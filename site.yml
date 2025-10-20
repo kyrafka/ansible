@@ -1,0 +1,28 @@
+- name: Configurar ajustes comunes y DHCP en servidor Ubuntu
+  hosts: ubuntu_server
+  become: true
+  roles:
+    - role: common
+    - role: dhcp
+    - role: procesos
+
+- name: Desplegar VM de Windows 11 en ESXi
+  hosts: esxi_host
+  gather_facts: false
+  roles:
+    - role: vmware
+
+- name: Crear VM de Windows 11 en host VirtualBox
+  hosts: vbox_host
+  gather_facts: false
+  roles:
+    - role: virtualbox
+
+- name: Post-configuración de VMs Windows
+  hosts: windows_vms
+  gather_facts: false
+  vars:
+    ansible_user: "{{ win_admin_user }}"
+    ansible_password: "{{ win_admin_password }}"
+  roles:
+    - role: windows

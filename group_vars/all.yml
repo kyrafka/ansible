@@ -1,0 +1,72 @@
+users:
+  - name: gamer01
+    state: present
+    groups: []
+    shell: /bin/bash
+  - name: steam_svc
+    state: present
+    groups: []
+    shell: /usr/sbin/nologin
+
+game_servers_dir: /opt/game_servers
+
+cron_restart_service: game_updater.service
+cron_time: "0 3 * * *"
+
+# winrm
+win_admin_user: "gamepc1"
+win_admin_password: "123456"
+
+dhcp:
+  interfaces:
+    - enp0s3
+  domain_name: localdomain
+  dns_servers: [8.8.8.8, 1.1.1.1]
+  default_lease_time: 600
+  max_lease_time: 7200
+  subnets:
+    - network: 192.168.10.0
+      netmask: 255.255.255.0
+      range_start: 192.168.10.10
+      range_end: 192.168.10.200
+      routers: 192.168.10.1
+    - network: 192.168.30.0
+      netmask: 255.255.255.0
+      range_start: 192.168.30.10
+      range_end: 192.168.30.200
+      routers: 192.168.30.1
+
+vmware:
+  hostname: 192.168.10.50
+  username: root
+  password: 'qwe123$'
+  validate_certs: false
+  datacenter: ha-datacenter
+  esxi_hostname: 192.168.10.50
+  datastore: datastore1
+  network_name: "VM Network"
+  vm_name: "Win11-GameCenter"
+  guest_id: windows11_64Guest
+  disk_gb: 64
+  memory_mb: 8192
+  cpu: 4
+  template: ""
+  iso_datastore_path: "Ruta"
+
+virtualbox:
+  vm_name: "Win11-GamePC"
+  os_type: "Windows11_64"
+  memory: 8192
+  vram: 128
+  cpus: 4
+  disk_path: "C:\\VirtualBox\\Win11-GamePC.vdi"
+  iso_path: "ruta"
+  disk_size_mb: 65536
+  nic1: "nat"
+  nic2: "bridged"
+  bridged_adapter: "Ethernet"
+
+servicios_necesarios:
+  - ssh
+  - cron
+  - NetworkManager

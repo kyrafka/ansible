@@ -1,0 +1,23 @@
+- name: Ensure users exist
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    state: "{{ item.state }}"
+    shell: "{{ item.shell }}"
+    groups: "{{ item.groups }}"
+    create_home: yes
+  loop: "{{ users }}"
+
+- name: Ensure game servers directory exists
+  ansible.builtin.file:
+    path: "{{ game_servers_dir }}"
+    state: directory
+    owner: steam_svc
+    group: steam_svc
+    mode: "0750"
+
+- name: Cron job to restart service daily at 3 AM
+  ansible.builtin.cron:
+    name: "restart game updater"
+    minute: "0"
+    hour: "3"
+    job: "systemctl restart {{ cron_restart_service }}"

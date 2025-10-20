@@ -1,0 +1,67 @@
+- name: Ensure VirtualBox is present
+  ansible.builtin.command: VBoxManage --version
+  register: vbox_version
+  changed_when: false
+  failed_when: vbox_version.rc != 0
+
+- name: Check if VM exists
+  ansible.builtin.command: VBoxManage list vms
+  register: vms_list
+  changed_when: false
+
+- name: Set fact vm_exists
+  ansible.builtin.set_fact:
+    vm_exists: "{{ ('\"' ~ virtualbox.vm_name ~ '\"') in vms_list.stdout }}"
+
+- name: Create VM
+  ansible.builtin.command: >
+    VBoxManage createvm --name "{{ virtualbox.vm_name }}" --ostype "{{ virtualbox.os_type }}" --register
+  when: not vm_exists
+
+- name: Configure VM memory/cpu
+  ansible.builtin.command: >
+    VBoxManage modifyvm "{{ virtualbox.vm_name }}" --memory {{ virtualbox.memory }} --vram {{ virtualbox.vram }} --cpus {{ virtualbox.cpus }} --nic1 {{ virtualbox.nic1 }}
+  when: not vm_exists
+
+- name: Attach bridged adapter if requested
+  ansible.builtin.command: >
+    VBoxManage modifyvm "{{ virtualbox.vm_name }}" --nic2 bridged --bridgeadapter2 "{{ virtualbox.bridged_adapter }}"
+  when: not vm_exists and (virtualbox.nic2 | default('') == 'bridged')
+
+- name: Create disk if missing
+  ansible.builtin.command: >
+    VBoxManage createmedium disk --filename "{{ virtualbox.disk_path }}" --size {{ virtualbox.disk_size_mb }}
+  args:
+    creates: "{{ virtualbox.disk_path }}"
+
+- name: Attach storage controller
+  ansible.builtin.command: >
+    VBoxManage storagectl "{{ virtualbox.vm_name }}" --name "SATA" --add sata --controller IntelAhci
+  when: not vm_exists
+
+- name: Attach disk
+  ansible.builtin.command: >
+    VBoxManage storageattach "{{ virtualbox.vm_name }}" --storagectl "SATA" --port 0 --device 0 --type hdd --medium "{{ virtualbox.disk_path }}"
+  when: not vm_exists
+
+- name: Ensure IDE controller exists (for ISO)
+  ansible.builtin.command: >
+    VBoxManage storagectl "{{ virtualbox.vm_name }}" --name "IDE" --add ide
+  when: (virtualbox.iso_path is defined) and (virtualbox.iso_path | length > 0)
+  changed_when: "added" in ide_add.stdout | default('')
+  failed_when: false
+  register: ide_add
+
+- name: Attach ISO to IDE controller
+  ansible.builtin.command: >
+    VBoxManage storageattach "{{ virtualbox.vm_name }}" --storagectl "IDE" --port 0 --device 0 --type dvddrive --medium "{{ virtualbox.iso_path }}"
+  when: (virtualbox.iso_path is defined) and (virtualbox.iso_path | length > 0)
+
+- name: Set boot order to DVD first
+  ansible.builtin.command: >
+    VBoxManage modifyvm "{{ virtualbox.vm_name }}" --boot1 dvd --boot2 disk --boot3 none --boot4 none
+  when: (virtualbox.iso_path is defined) and (virtualbox.iso_path | length > 0)
+
+- name: Start VM
+  ansible.builtin.command: >
+    VBoxManage startvm "{{ virtualbox.vm_name }}" --type headless

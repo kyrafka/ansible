@@ -1,0 +1,14 @@
+option domain-name "{{ dhcp.domain_name }}";
+option domain-name-servers {{ dhcp.dns_servers | join(', ') }};
+
+default-lease-time {{ dhcp.default_lease_time }};
+max-lease-time {{ dhcp.max_lease_time }};
+
+authoritative;
+
+{% for subnet in dhcp.subnets %}
+subnet {{ subnet.network }} netmask {{ subnet.netmask }} {
+  range {{ subnet.range_start }} {{ subnet.range_end }};
+  option routers {{ subnet.routers }};
+}
+{% endfor %}
