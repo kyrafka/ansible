@@ -19,7 +19,7 @@
     start_mode: auto
 
 - name: "Establecer la zona horaria"
-  community.windows.win_timezone:
+  ansible.windows.win_timezone:
     timezone: SA Pacific Standard Time
 
 # ==========================================================
@@ -47,6 +47,36 @@
       - Remote Desktop Users
     password_never_expires: true
     update_password: on_create
+
+- name: "Crear grupo local 'pcgamer'"
+  ansible.windows.win_group:
+    name: pcgamer
+    state: present
+
+- name: "Asegurar que el usuario 'pcgamer' pertenezca al grupo 'pcgamer'"
+  ansible.windows.win_group_membership:
+    name: pcgamer
+    members:
+      - pcgamer
+    state: present
+
+- name: "(Opcional) Crear rutas para ACL cuando se marque ensure_path"
+  ansible.windows.win_file:
+    path: "{{ item.path }}"
+    state: directory
+  loop: "{{ windows_acl_rules | default([]) }}"
+  when: item.ensure_path | default(false)
+
+- name: "Aplicar ACLs para el grupo/usuario definido"
+  ansible.windows.win_acl:
+    path: "{{ item.path }}"
+    user: "{{ item.user_or_group }}"
+    rights: "{{ item.rights | default('Modify') }}"
+    type: "{{ item.type | default('allow') }}"
+    inherit: "{{ item.inherit | default('ContainerInherit, ObjectInherit') }}"
+    propagation: "{{ item.propagation | default('None') }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ windows_acl_rules | default([]) }}"
 
 # ==========================================================
 # BLOQUE 3: CONFIGURACIÓN DE ESCRITORIO REMOTO (RDP)

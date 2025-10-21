@@ -1,21 +1,28 @@
-- name: Ensure users exist
+- name: Existe el grupo
+  ansible.builtin.group:
+    name: "{{ item.name }}"
+    state: "{{ item.state | default('present') }}"
+    gid: "{{ item.gid | default(omit) }}"
+  loop: "{{ unix_groups | default([]) }}"
+
+- name: usuario donde andas
   ansible.builtin.user:
     name: "{{ item.name }}"
     state: "{{ item.state }}"
     shell: "{{ item.shell }}"
     groups: "{{ item.groups }}"
+    append: yes
     create_home: yes
+    uid: "{{ item.uid | default(omit) }}"
+    group: "{{ item.primary_group | default(omit) }}"
+    comment: "{{ item.comment | default(omit) }}"
+    home: "{{ item.home | default(omit) }}"
+    password: "{{ item.password | default(omit) }}"
+    remove: "{{ item.remove | default(false) }}"
   loop: "{{ users }}"
 
-- name: Ensure game servers directory exists
-  ansible.builtin.file:
-    path: "{{ game_servers_dir }}"
-    state: directory
-    owner: steam_svc
-    group: steam_svc
-    mode: "0750"
 
-- name: Cron job to restart service using cron_time
+- name: Croncroncron
   ansible.builtin.cron:
     name: "restart game updater"
     minute: "{{ (cron_time.split()[0]) | default('0') }}"
@@ -24,3 +31,23 @@
     month: "{{ (cron_time.split()[3]) | default('*') }}"
     weekday: "{{ (cron_time.split()[4]) | default('*') }}"
     job: "systemctl restart {{ cron_restart_service }}"
+
+- name: Ensure filesystem permissions (generic)
+  ansible.builtin.file:
+     path: "{{ item.path }}"
+     state: "{{ item.state | default('file') }}"
+     owner: "{{ item.owner | default(omit) }}"
+     group: "{{ item.group | default(omit) }}"
+     mode: "{{ item.mode | default(omit) }}"
+     recurse: "{{ item.recurse | default(false) }}"
+  loop: "{{ filesystem_permissions | default([]) }}"
+
+- name: Ensure default ACLs for collaboration (optional)
+  ansible.posix.acl:
+    path: "{{ item.path }}"
+    entity: "{{ item.entity }}"
+    etype: "{{ item.etype | default('group') }}"
+    permissions: "{{ item.permissions | default('rwx') }}"
+    default: yes
+    state: present
+  loop: "{{ filesystem_default_acls | default([]) }}"

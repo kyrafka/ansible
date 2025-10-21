@@ -1,14 +1,43 @@
+unix_groups: 
+  - name: pcgamers
+    state: present
+  - name: servicios
+    state: present
+
 users:
   - name: gamer01
     state: present
-    groups: []
+    primary_group: pcgamers
     shell: /bin/bash
-  - name: steam_svc
+    
+  - name: steam_epic_svc
     state: present
-    groups: []
     shell: /usr/sbin/nologin
+    groups: [pcgamers]
+    primary_group: servicios
+    home: /srv/steam_epic_svc
+    create_home: true
 
+
+filesystem_permissions:
+  - path: /srv/steam_epic_svc        
+    state: directory
+    owner: steam_epic_svc
+    group: pcgamers
+    mode: "2770"                    
+    recurse: false
 game_servers_dir: /opt/game_servers
+
+# Permisos en Windows para el grupo 'pcgamer'
+windows_acl_rules:
+  - path: 'C:\\Games'
+    user_or_group: 'pcgamer'
+    rights: Modify
+    type: allow
+    inherit: ContainerInherit, ObjectInherit
+    propagation: None
+    state: present
+    ensure_path: true
 
 cron_restart_service: game_updater.service
 cron_time: "0 3 * * *"
@@ -20,7 +49,7 @@ enable_rdp: true
 
 dhcp_v6:
   interfaces:
-    - ens35
+    - ens34
   subnets:
     - network: fd10:10::/64
       range_start: fd10:10::100
@@ -28,8 +57,11 @@ dhcp_v6:
     - network: fd30:30::/64
       range_start: fd30:30::100
       range_end: fd30:30::1fff
-  name_servers: []
-  domain_search: []
+  name_servers:
+    - 2001:4860:4860::8888
+    - 2001:4860:4860::8844
+  domain_search:
+    - lab.local
 
 virtualbox:
   vm_name: "Win11-GamePC"
