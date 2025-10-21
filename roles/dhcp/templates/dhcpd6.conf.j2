@@ -1,0 +1,14 @@
+{% if dhcp_v6 is defined and dhcp_v6.name_servers is defined and dhcp_v6.name_servers | length > 0 %}
+option dhcp6.name-servers {{ dhcp_v6.name_servers | join(', ') }};
+{% endif %}
+
+authoritative;
+
+{% if dhcp_v6 is defined and dhcp_v6.subnets is defined %}
+{% for subnet in dhcp_v6.subnets %}
+subnet6 {{ subnet.network }} {
+  range6 {{ subnet.range_start }} {{ subnet.range_end }};
+}
+
+{% endfor %}
+{% endif %}

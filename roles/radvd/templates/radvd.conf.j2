@@ -1,0 +1,16 @@
+interface {{ (dhcp_v6.interfaces | first) if (dhcp_v6 is defined and dhcp_v6.interfaces is defined and dhcp_v6.interfaces|length>0) else 'enp0s3' }} {
+  AdvSendAdvert on;
+  MinRtrAdvInterval 30;
+  MaxRtrAdvInterval 100;
+  AdvManagedFlag off;
+  AdvOtherConfigFlag on;
+
+  {% if dhcp_v6 is defined and dhcp_v6.subnets is defined %}
+  {% for subnet in dhcp_v6.subnets %}
+  prefix {{ subnet.network }} {
+    AdvOnLink on;
+    AdvAutonomous on;
+  };
+  {% endfor %}
+  {% endif %}
+}

@@ -4,13 +4,9 @@
   roles:
     - role: common
     - role: dhcp
+    - role: radvd
     - role: procesos
-
-- name: Desplegar VM de Windows 11 en ESXi
-  hosts: esxi_host
-  gather_facts: false
-  roles:
-    - role: vmware
+    - role: storage
 
 - name: Crear VM de Windows 11 en host VirtualBox
   hosts: vbox_host

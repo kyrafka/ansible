@@ -1,2 +1,2 @@
-INTERFACESv4="{{ dhcp.interfaces | join(' ') }}"
-INTERFACESv6=""
+INTERFACESv4="{{ (dhcp.interfaces | join(' ')) if (dhcp is defined and dhcp.interfaces is defined) else '' }}"
+INTERFACESv6="{{ (dhcp_v6.interfaces | join(' ')) if (dhcp_v6 is defined and dhcp_v6.interfaces is defined) else '' }}"

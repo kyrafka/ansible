@@ -1,4 +1,8 @@
-- name: Ensure Windows admin user exists
+---
+# ==========================================================
+# BLOQUE 1: CONFIGURACIÓN INICIAL Y DE SERVICIOS
+# ==========================================================
+- name: "Confirmar que el usuario administrador de Ansible existe"
   ansible.windows.win_user:
     name: "{{ win_admin_user }}"
     password: "{{ win_admin_password }}"
@@ -6,19 +10,34 @@
     groups:
       - Administrators
     password_never_expires: true
-    update_password: always
+    update_password: on_create
 
-- name: Ensure WinRM service is running
+- name: "Asegurar que el servicio WinRM esté iniciado y en automático"
   ansible.windows.win_service:
     name: WinRM
     state: started
     start_mode: auto
 
-- name: Set timezone to SA Pacific Standard Time
-  ansible.windows.win_timezone:
+- name: "Establecer la zona horaria"
+  community.windows.win_timezone:
     timezone: SA Pacific Standard Time
 
-- name: Ensure pcgamer user exists and is local admin
+# ==========================================================
+# BLOQUE 2: GESTIÓN DE USUARIOS
+# ==========================================================
+- name: "Crear rdp_user con mínimos privilegios para RDP"
+  ansible.windows.win_user:
+    name: rdp_user
+    password: "{{ win_admin_password }}"
+    state: present
+    groups:
+      - Remote Desktop Users
+    password_never_expires: true
+    update_password: on_create
+  when: enable_rdp | default(false)
+  tags: [rdp]
+
+- name: "Asegurar que el usuario 'pcgamer' exista y sea administrador local"
   ansible.windows.win_user:
     name: pcgamer
     password: "{{ win_admin_password }}"
@@ -29,19 +48,29 @@
     password_never_expires: true
     update_password: on_create
 
-- name: Enable Remote Desktop (allow RDP connections)
+# ==========================================================
+# BLOQUE 3: CONFIGURACIÓN DE ESCRITORIO REMOTO (RDP)
+# ==========================================================
+- name: "Habilitar Escritorio Remoto (modificando el registro)"
   ansible.windows.win_regedit:
     path: HKLM:\System\CurrentControlSet\Control\Terminal Server
     name: fDenyTSConnections
     data: 0
     type: dword
+  when: enable_rdp | default(false)
+  tags: [rdp]
 
-- name: Enable Windows Firewall rules for Remote Desktop group
+- name: "Habilitar reglas de firewall de Windows para el grupo 'Remote Desktop'"
   ansible.windows.win_shell: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
   args:
     executable: powershell.exe
+  when: enable_rdp | default(false)
+  tags: [rdp]
 
-- name: Install Windows Security and Critical updates
+# ==========================================================
+# BLOQUE 4: ACTUALIZACIONES DEL SISTEMA
+# ==========================================================
+- name: "Instalar actualizaciones Críticas y de Seguridad de Windows"
   ansible.windows.win_updates:
     category_names:
       - SecurityUpdates
@@ -49,6 +78,75 @@
     state: installed
   register: winupd
 
-- name: Reboot if required by updates
+- name: "Reiniciar si es requerido por las actualizaciones"
   ansible.windows.win_reboot:
   when: winupd.reboot_required | default(false)
+
+# ==========================================================
+# BLOQUE 5: TAREAS PROGRAMADAS DE MANTENIMIENTO
+# ==========================================================
+- name: "Crear tarea semanal de Actualizaciones de Windows"
+  community.windows.win_scheduled_task:
+    name: Ansible-WindowsUpdates
+    description: "Instala actualizaciones críticas y de seguridad semanalmente"
+    enabled: "{{ windows_maintenance.enable | default(true) }}"
+    actions:
+      - path: powershell.exe
+        arguments: -NoProfile -ExecutionPolicy Bypass -Command "Install-Module PSWindowsUpdate -Force -SkipPublisherCheck; Get-WindowsUpdate -AcceptAll -Install -AutoReboot"
+    triggers:
+      - type: weekly
+        days_of_week:
+          - "{{ windows_maintenance.updates.day_of_week | default('Sunday') }}"
+        start_boundary: "2025-10-26T{{ windows_maintenance.updates.time | default('03:00') }}:00"
+    username: SYSTEM
+    run_level: highest
+  tags: [windows_maintenance]
+
+- name: "Crear tarea semanal de Limpieza de Disco"
+  community.windows.win_scheduled_task:
+    name: Ansible-DiskCleanup
+    description: "Ejecuta la limpieza de disco (requiere preconfiguración con /sageset:1)"
+    enabled: "{{ windows_maintenance.enable | default(true) }}"
+    actions:
+      - path: cleanmgr.exe
+        arguments: /sagerun:1
+    triggers:
+      - type: weekly
+        days_of_week:
+          - "{{ windows_maintenance.cleanup.day_of_week | default('Monday') }}"
+        start_boundary: "2025-10-27T{{ windows_maintenance.cleanup.time | default('04:00') }}:00"
+    username: SYSTEM
+    run_level: highest
+  tags: [windows_maintenance]
+
+- name: "Crear tarea semanal de Análisis de Antivirus (Defender)"
+  community.windows.win_scheduled_task:
+    name: Ansible-DefenderScan
+    description: "Ejecuta un análisis rápido de Windows Defender semanalmente"
+    enabled: "{{ windows_maintenance.enable | default(true) }}"
+    actions:
+      - path: powershell.exe
+        arguments: -NoProfile -ExecutionPolicy Bypass -Command "Start-MpScan -ScanType QuickScan"
+    triggers:
+      - type: weekly
+        days_of_week:
+          - "{{ windows_maintenance.antivirus.day_of_week | default('Wednesday') }}"
+        start_boundary: "2025-10-29T{{ windows_maintenance.antivirus.time | default('04:00') }}:00"
+    username: SYSTEM
+    run_level: highest
+  tags: [windows_maintenance]
+
+- name: "Crear tarea diaria de Reinicio"
+  community.windows.win_scheduled_task:
+    name: Ansible-DailyReboot
+    description: "Reinicia la VM diariamente para mantenerla 'fresca'"
+    enabled: "{{ windows_maintenance.enable | default(true) }}"
+    actions:
+      - path: shutdown.exe
+        arguments: /r /f /t 0
+    triggers:
+      - type: daily
+        start_boundary: "2025-10-22T{{ windows_maintenance.reboot.time | default('05:00') }}:00"
+    username: SYSTEM
+    run_level: highest
+  tags: [windows_maintenance]

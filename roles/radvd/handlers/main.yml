@@ -1,0 +1,4 @@
+- name: Restart radvd
+  ansible.builtin.service:
+    name: radvd
+    state: restarted

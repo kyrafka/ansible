@@ -1,0 +1,82 @@
+- name: directorio existe
+  ansible.builtin.file:
+    path: /var/tmp
+    state: directory
+    mode: "0755"
+
+- name: Collect disk usage (df -h)
+  ansible.builtin.command: df -h
+  register: df_h
+  changed_when: false
+
+- name: Collect inode usage (df -i)
+  ansible.builtin.command: df -i
+  register: df_i
+  changed_when: false
+
+- name: Collect top sizes for watched paths
+  ansible.builtin.shell: |
+    set -o pipefail
+    for p in {{ storage.watch_paths | default([]) | join(' ') }}; do
+      echo "# Path: $p";
+      du -sh $p 2>/dev/null || true;
+    done
+  args:
+    executable: /bin/bash
+  register: du_paths
+  changed_when: false
+  when: storage.watch_paths is defined and storage.watch_paths | length > 0
+
+- name: Vacuum journald to configured retention
+  ansible.builtin.command: >-
+    journalctl --vacuum-time={{ storage.journald_retention_days | default(30) }}d
+  register: journal_vacuum
+  changed_when: '"Vacuuming" in journal_vacuum.stdout or journal_vacuum.rc == 0'
+  failed_when: false
+  become: true
+
+- name: Build storage report
+  ansible.builtin.copy:
+    dest: /var/tmp/ansible_storage_report.txt
+    mode: "0644"
+    content: |
+      === Ansible Storage Report ===
+      Generated: {{ ansible_date_time.iso8601 }}
+
+      -- Disk usage (df -h) --
+      {{ df_h.stdout }}
+
+      -- Inode usage (df -i) --
+      {{ df_i.stdout }}
+
+      -- Watched paths sizes --
+      {% if du_paths is defined %}{{ du_paths.stdout }}{% else %}(no watch_paths defined){% endif %}
+
+      -- Journald vacuum result --
+      {{ journal_vacuum.stdout | default('n/a') }}
+
+- name: Warn when disk usage exceeds warning threshold
+  ansible.builtin.shell: |
+    awk 'NR>1 {print $5 " " $6}' | sed 's/%//g' | awk '{if($1>{{ storage.disk_usage_warning | default(80) }}) print $0}'
+  args:
+    executable: /bin/bash
+    stdin: "{{ df_h.stdout }}"
+  register: disk_warn
+  changed_when: false
+
+- name: Warn when inode usage exceeds warning threshold
+  ansible.builtin.shell: |
+    awk 'NR>1 {print $5 " " $6}' | sed 's/%//g' | awk '{if($1>{{ storage.inode_usage_warning | default(85) }}) print $0}'
+  args:
+    executable: /bin/bash
+    stdin: "{{ df_i.stdout }}"
+  register: inode_warn
+  changed_when: false
+
+- name: Display storage warnings (if any)
+  ansible.builtin.debug:
+    msg: |
+      Disk usage over {{ storage.disk_usage_warning | default(80) }}%:
+      {{ disk_warn.stdout | default('none') }}
+      Inode usage over {{ storage.inode_usage_warning | default(85) }}%:
+      {{ inode_warn.stdout | default('none') }}

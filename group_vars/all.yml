@@ -15,58 +15,70 @@ cron_time: "0 3 * * *"
 
 # winrm
 win_admin_user: "gamepc1"
-win_admin_password: "123456"
+win_admin_password: "{{ vault_win_admin_password }}"
+enable_rdp: true
 
-dhcp:
+dhcp_v6:
   interfaces:
-    - enp0s3
-  domain_name: localdomain
-  dns_servers: [8.8.8.8, 1.1.1.1]
-  default_lease_time: 600
-  max_lease_time: 7200
+    - ens35
   subnets:
-    - network: 192.168.10.0
-      netmask: 255.255.255.0
-      range_start: 192.168.10.10
-      range_end: 192.168.10.200
-      routers: 192.168.10.1
-    - network: 192.168.30.0
-      netmask: 255.255.255.0
-      range_start: 192.168.30.10
-      range_end: 192.168.30.200
-      routers: 192.168.30.1
+    - network: fd10:10::/64
+      range_start: fd10:10::100
+      range_end: fd10:10::1fff
+    - network: fd30:30::/64
+      range_start: fd30:30::100
+      range_end: fd30:30::1fff
 
-vmware:
-  hostname: 192.168.10.50
-  username: root
-  password: 'qwe123$'
-  validate_certs: false
-  datacenter: ha-datacenter
-  esxi_hostname: 192.168.10.50
-  datastore: datastore1
-  network_name: "VM Network"
-  vm_name: "Win11-GameCenter"
-  guest_id: windows11_64Guest
-  disk_gb: 64
-  memory_mb: 8192
-  cpu: 4
-  template: ""
-  iso_datastore_path: "Ruta"
 
 virtualbox:
   vm_name: "Win11-GamePC"
   os_type: "Windows11_64"
-  memory: 8192
+  memory: 400
   vram: 128
-  cpus: 4
+  cpus: 2
   disk_path: "C:\\VirtualBox\\Win11-GamePC.vdi"
   iso_path: "ruta"
-  disk_size_mb: 65536
+  disk_size_mb: 32000
   nic1: "nat"
   nic2: "bridged"
   bridged_adapter: "Ethernet"
 
 servicios_necesarios:
-  - ssh
-  - cron
-  - NetworkManager
+  - ssh                  # Acceso remoto seguro por consola (SSH)
+  - cron                 # Programador de tareas en segundo plano (CRON)
+  - NetworkManager       # Gestor de interfaces y configuración de red
+  - isc-dhcp-server6     # Servidor DHCPv6: asigna direcciones IPv6 a clientes
+  - radvd                # Prefijos y gateway IPv6
+  - systemd-timesyncd    # Sincronización de hora del sistema (NTP ligero)
+  - rsyslog              # Recolección y almacenamiento de logs del sistema
+
+# almacenamiento/monitoreo
+storage:
+  disk_usage_warning: 80
+  disk_usage_critical: 90
+  inode_usage_warning: 85
+  inode_usage_critical: 95
+  watch_paths:
+    - /var/log
+    - /opt/game_servers
+    - /tmp
+    - /home
+  journald_retention_days: 30
+  syslog_retention_days: 14
+  dhcp_log_retention_days: 7
+
+# mantenimiento Windows programado
+windows_maintenance:
+  enable: true
+  updates:
+    day_of_week: Sunday
+    time: '03:00'
+  cleanup:
+    day_of_week: Monday
+    time: '04:00'
+  antivirus:
+    day_of_week: Wednesday
+    time: '04:00'
+  reboot:
+    frequency: Daily
+    time: '05:00'

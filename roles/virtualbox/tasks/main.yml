@@ -48,7 +48,7 @@
   ansible.builtin.command: >
     VBoxManage storagectl "{{ virtualbox.vm_name }}" --name "IDE" --add ide
   when: (virtualbox.iso_path is defined) and (virtualbox.iso_path | length > 0)
-  changed_when: "added" in ide_add.stdout | default('')
+  changed_when: '"added" in ide_add.stdout | default("")'  
   failed_when: false
   register: ide_add
 
