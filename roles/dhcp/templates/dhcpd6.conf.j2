@@ -4,6 +4,10 @@ option dhcp6.name-servers {{ dhcp_v6.name_servers | join(', ') }};
 
 authoritative;
 
+{% if dhcp_v6 is defined and dhcp_v6.domain_search is defined and dhcp_v6.domain_search | length > 0 %}
+option dhcp6.domain-search {{ dhcp_v6.domain_search | join(', ') }};
+{% endif %}
+
 {% if dhcp_v6 is defined and dhcp_v6.subnets is defined %}
 {% for subnet in dhcp_v6.subnets %}
 subnet6 {{ subnet.network }} {

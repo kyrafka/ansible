@@ -15,9 +15,12 @@
     group: steam_svc
     mode: "0750"
 
-- name: Cron job to restart service daily at 3 AM
+- name: Cron job to restart service using cron_time
   ansible.builtin.cron:
     name: "restart game updater"
-    minute: "0"
-    hour: "3"
+    minute: "{{ (cron_time.split()[0]) | default('0') }}"
+    hour: "{{ (cron_time.split()[1]) | default('3') }}"
+    day: "{{ (cron_time.split()[2]) | default('*') }}"
+    month: "{{ (cron_time.split()[3]) | default('*') }}"
+    weekday: "{{ (cron_time.split()[4]) | default('*') }}"
     job: "systemctl restart {{ cron_restart_service }}"
