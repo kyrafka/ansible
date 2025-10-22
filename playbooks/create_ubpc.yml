@@ -1,0 +1,9 @@
+- name: Crear VM Ubuntu UBPC en ESXi
+  hosts: localhost
+  gather_facts: false
+  collections:
+    - community.vmware
+  vars_files:
+    - ../group_vars/ubpc.yml
+  roles:
+    - role: ../roles/vmware

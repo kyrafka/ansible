@@ -93,26 +93,8 @@ virtualbox:
   enable_efi: true  # Para Windows 11
 
 # Configuración VMware vSphere
-vmware:
-  vcenter_hostname: "168.121.48.254"
-  vcenter_username: "{{ vault_vcenter_username }}"
-  vcenter_password: "{{ vault_vcenter_password }}"
-  vm_name: "Ubuntu-GameServer"
-  datacenter: "ha-datacenter"
-  datastore: "datastore1"
-  folder: "/"
-  guest_id: "ubuntu64Guest"  # Ubuntu Linux
-  memory: 4096
-  cpus: 2
-  cores_per_socket: 1
-  disk_size_mb: 32768  # 32GB para Ubuntu
-  network_name: "VM Network"
-  iso_path: "ubuntu-24.04.3-desktop-amd64.iso"  # Tu ISO de Ubuntu
-  boot_firmware: "bios"  # BIOS para Ubuntu
-  wait_for_ip: true
-  configure_linux: true  # Configurar Ubuntu después de instalación
-  initial_user: "ubuntu"
-  initial_password: "ubuntu"
+# Nota: los valores reales se definen en archivos específicos por despliegue
+# como `group_vars/ubpc.yml` para evitar duplicidades.
 
 servicios_necesarios:
   - ssh                  # Acceso remoto seguro por consola (SSH)

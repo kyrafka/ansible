@@ -7,6 +7,7 @@
     hostname: "{{ vmware.vcenter_hostname }}"
     username: "{{ vmware.vcenter_username }}"
     password: "{{ vmware.vcenter_password }}"
+    port: "{{ vmware.port | default(443) }}"
     validate_certs: false
     vm_name: "{{ vmware.vm_name }}"
   register: vm_info
@@ -17,6 +18,7 @@
     hostname: "{{ vmware.vcenter_hostname }}"
     username: "{{ vmware.vcenter_username }}"
     password: "{{ vmware.vcenter_password }}"
+    port: "{{ vmware.port | default(443) }}"
     validate_certs: false
     name: "{{ vmware.vm_name }}"
     template: "{{ vmware.template_name | default(omit) }}"
@@ -55,6 +57,7 @@
     hostname: "{{ vmware.vcenter_hostname }}"
     username: "{{ vmware.vcenter_username }}"
     password: "{{ vmware.vcenter_password }}"
+    port: "{{ vmware.port | default(443) }}"
     validate_certs: false
     name: "{{ vmware.vm_name }}"
     boot_order:
@@ -69,6 +72,7 @@
     hostname: "{{ vmware.vcenter_hostname }}"
     username: "{{ vmware.vcenter_username }}"
     password: "{{ vmware.vcenter_password }}"
+    port: "{{ vmware.port | default(443) }}"
     validate_certs: false
     name: "{{ vmware.vm_name }}"
     state: powered-on
@@ -79,6 +83,7 @@
     hostname: "{{ vmware.vcenter_hostname }}"
     username: "{{ vmware.vcenter_username }}"
     password: "{{ vmware.vcenter_password }}"
+    port: "{{ vmware.port | default(443) }}"
     validate_certs: false
     name: "{{ vmware.vm_name }}"
   register: vm_facts
