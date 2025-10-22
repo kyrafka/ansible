@@ -2,3 +2,13 @@ collections:
   - name: community.general
   - name: community.windows
   - name: ansible.posix
+  - name: community.vmware
+
+roles:
+  - name: bertvv.dhcp
+    version: "3.2.0"
+  - name: bertvv.radvd
+    version: "1.1.0"
+
+
+  

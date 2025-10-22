@@ -1,0 +1,118 @@
+---
+# ==========================================================
+# BLOQUE 1: CREAR Y CONFIGURAR VM EN VMWARE vSphere
+# ==========================================================
+- name: Verificar si la VM ya existe
+  community.vmware.vmware_vm_info:
+    hostname: "{{ vmware.vcenter_hostname }}"
+    username: "{{ vmware.vcenter_username }}"
+    password: "{{ vmware.vcenter_password }}"
+    validate_certs: false
+    vm_name: "{{ vmware.vm_name }}"
+  register: vm_info
+  failed_when: false
+
+- name: Crear nueva VM Windows
+  community.vmware.vmware_guest:
+    hostname: "{{ vmware.vcenter_hostname }}"
+    username: "{{ vmware.vcenter_username }}"
+    password: "{{ vmware.vcenter_password }}"
+    validate_certs: false
+    name: "{{ vmware.vm_name }}"
+    template: "{{ vmware.template_name | default(omit) }}"
+    datacenter: "{{ vmware.datacenter | default('ha-datacenter') }}"
+    folder: "{{ vmware.folder | default('/') }}"
+    datastore: "{{ vmware.datastore }}"
+    guest_id: "{{ vmware.guest_id }}"
+    hardware:
+      memory_mb: "{{ vmware.memory }}"
+      num_cpus: "{{ vmware.cpus }}"
+      num_cpu_cores_per_socket: "{{ vmware.cores_per_socket | default(1) }}"
+      scsi: paravirtual
+    disk:
+      - size_gb: "{{ (vmware.disk_size_mb / 1024) | int }}"
+        type: thin
+        datastore: "{{ vmware.datastore }}"
+    networks:
+      - name: "{{ vmware.network_name }}"
+        device_type: vmxnet3
+    cdrom:
+      - controller_number: 0
+        unit_number: 0
+        type: iso
+        iso_path: "[{{ vmware.datastore }}] {{ vmware.iso_path }}"
+        state: present
+    boot_firmware: "{{ vmware.boot_firmware | default('bios') }}"
+    secure_boot_enabled: "{{ vmware.secure_boot | default(false) }}"
+    virt_based_security: "{{ vmware.secure_boot | default(false) }}"
+    state: present
+    wait_for_ip_address: false
+  when: vm_info.virtual_machines | length == 0
+  register: vm_creation
+
+- name: Configurar VM para arranque desde CD/ISO
+  community.vmware.vmware_guest_boot_manager:
+    hostname: "{{ vmware.vcenter_hostname }}"
+    username: "{{ vmware.vcenter_username }}"
+    password: "{{ vmware.vcenter_password }}"
+    validate_certs: false
+    name: "{{ vmware.vm_name }}"
+    boot_order:
+      - cdrom
+      - disk
+      - ethernet
+      - floppy
+  when: vm_creation.changed | default(false)
+
+- name: Encender la VM
+  community.vmware.vmware_guest_powerstate:
+    hostname: "{{ vmware.vcenter_hostname }}"
+    username: "{{ vmware.vcenter_username }}"
+    password: "{{ vmware.vcenter_password }}"
+    validate_certs: false
+    name: "{{ vmware.vm_name }}"
+    state: powered-on
+  register: vm_power_on
+
+- name: Esperar a que la VM obtenga IP (opcional)
+  community.vmware.vmware_guest_info:
+    hostname: "{{ vmware.vcenter_hostname }}"
+    username: "{{ vmware.vcenter_username }}"
+    password: "{{ vmware.vcenter_password }}"
+    validate_certs: false
+    name: "{{ vmware.vm_name }}"
+  register: vm_facts
+  until: vm_facts.instance.ipv4 is defined and vm_facts.instance.ipv4 | length > 0
+  retries: 30
+  delay: 10
+  when: vmware.wait_for_ip | default(false)
+
+- name: Mostrar información de la VM creada
+  ansible.builtin.debug:
+    msg:
+      - "VM '{{ vmware.vm_name }}' creada/configurada exitosamente"
+      - "Estado: {{ vm_facts.instance.hw_power_status | default('unknown') }}"
+      - "IP: {{ vm_facts.instance.ipv4 | default('Pendiente de asignación') }}"
+  when: vm_facts is defined
+
+# ==========================================================
+# BLOQUE 2: POST-CONFIGURACIÓN DE WINDOWS (INTEGRADO)
+# ==========================================================
+- name: Esperar a que WinRM esté disponible
+  ansible.builtin.wait_for:
+    host: "{{ vm_facts.instance.ipv4 | first }}"
+    port: 5985
+    timeout: 600
+  when: 
+    - vm_facts is defined 
+    - vm_facts.instance.ipv4 is defined 
+    - vm_facts.instance.ipv4 | length > 0
+    - vmware.configure_windows | default(false)
+
+- name: Configurar Windows en la VM recién creada
+  include_tasks: configure_windows.yml
+  when: 
+    - vm_facts is defined 
+    - vm_facts.instance.ipv4 is defined 
+    - vm_facts.instance.ipv4 | length > 0
+    - vmware.configure_windows | default(false)

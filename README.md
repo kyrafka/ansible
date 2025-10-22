@@ -27,8 +27,8 @@ Este proyecto está pensado para:
 
 - **Inventario (`inventory/hosts.ini`)**
   - `ubuntu_server`: ubuntu1 → `fd10:10::10` (ansible_user=`salamaleca`)
-  - `vbox_host`: vboxhost1 → `fd30:30::20` (ansible_user=`administrator`, ansible_password=`123456`, `ssh` con PowerShell)
-  - `windows_vms`: winvm1 → `fd30:30::12`. Vars del grupo:
+  - `vmware_host`: vcenter1 → `168.121.48.254` (ansible_user=`root`, ansible_password=`qwe123$`)
+  - `windows_vms`: winvm1 → `[IP_asignada_por_DHCP]`. Vars del grupo:
     - `ansible_connection=winrm`
     - `ansible_winrm_transport=ntlm`
     - `ansible_winrm_server_cert_validation=ignore`
@@ -42,15 +42,15 @@ Este proyecto está pensado para:
   - `winrm`:
     - `win_admin_user`: `gamepc1`
     - `win_admin_password`: `123456`
-  - `virtualbox`:
-    - `vm_name=Win11-GamePC`, `os_type=Windows11_64`, `memory=400`, `vram=128`, `cpus=2`
-    - `disk_path=C:\\VirtualBox\\Win11-GamePC.vdi`, `iso_path=ruta`, `disk_size_mb=32000`
-    - `nic1=nat`, `nic2=bridged`, `bridged_adapter=Ethernet`
+  - `vmware`:
+    - `vcenter_hostname=168.121.48.254`, `vm_name=Win11-GamePC`, `guest_id=windows9_64Guest`
+    - `memory=4096`, `cpus=2`, `disk_size_mb=65536`, `datastore=datastore1`
+    - `iso_path=ubuntu-24.04.3-desktop-amd64.iso`, `network_name=VM Network`
 
 - **Plays activos (`site.yml`)**
-  - `ubuntu_server`: roles `common`, `dhcp`, `procesos` (con `become: true`)
-  - `vbox_host`: rol `virtualbox`
-  - `windows_vms`: rol `windows` (usa `win_admin_user`/`win_admin_password`)
+  - `ubuntu_server`: roles `common`, `dhcp`, `radvd`, `procesos`, `storage` (con `become: true`)
+  - `vmware_host`: rol `vmware` (crea VM y configura Windows automáticamente)
+  - `windows_vms`: rol `windows` (configuración adicional post-instalación)
 
 ## DHCPv6 (plan y parámetros)
 
