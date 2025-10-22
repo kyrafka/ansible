@@ -1,3 +1,12 @@
+- name: Verificar que los paquetes de servicios necesarios estén instalados
+  ansible.builtin.package_facts:
+    manager: apt
+
+- name: Verificar servicios instalados vs necesarios
+  ansible.builtin.debug:
+    msg: "Servicio {{ item }} - Paquete instalado: {{ ansible_facts.packages[item] is defined }}"
+  loop: "{{ servicios_necesarios }}"
+
 - name: Obtener información de servicios (service_facts)
   ansible.builtin.service_facts:
 
@@ -29,6 +38,7 @@
     state: started
     enabled: true
   loop: "{{ servicios_necesarios }}"
+  when: ansible_facts.packages[item] is defined or item in ['ssh', 'cron', 'NetworkManager', 'systemd-timesyncd', 'rsyslog']
 
 - name: Comprobar si hay servicios fallados
   ansible.builtin.command: systemctl --failed --no-legend

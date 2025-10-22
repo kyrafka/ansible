@@ -42,6 +42,11 @@
      recurse: "{{ item.recurse | default(false) }}"
   loop: "{{ filesystem_permissions | default([]) }}"
 
+- name: Check if ansible.posix collection is available
+  ansible.builtin.set_fact:
+    posix_available: "{{ ansible_collections.ansible.posix is defined }}"
+  ignore_errors: true
+
 - name: Ensure default ACLs for collaboration (optional)
   ansible.posix.acl:
     path: "{{ item.path }}"
@@ -51,3 +56,4 @@
     default: yes
     state: present
   loop: "{{ filesystem_default_acls | default([]) }}"
+  when: posix_available | default(false)

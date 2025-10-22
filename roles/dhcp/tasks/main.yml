@@ -1,29 +1,12 @@
-- name: Install DHCP server
+# DHCPv6 only configuration - no IPv4 DHCP needed
+
+- name: Install DHCPv6 server
   ansible.builtin.apt:
-    name: isc-dhcp-server
+    name: isc-dhcp-server6
     state: present
     update_cache: yes
 
-- name: Configure ISC DHCP server defaults
-  ansible.builtin.template:
-    src: isc-dhcp-server.default.j2
-    dest: /etc/default/isc-dhcp-server
-    owner: root
-    group: root
-    mode: "0644"
-  notify: Restart isc-dhcp-server
-
-- name: Render dhcpd.conf
-  ansible.builtin.template:
-    src: dhcpd.conf.j2
-    dest: /etc/dhcp/dhcpd.conf
-    owner: root
-    group: root
-    mode: "0644"
-  notify: Restart isc-dhcp-server
-  when: dhcp is defined and dhcp.subnets is defined and (dhcp.subnets | length) > 0
-
-- name: Render dhcpd6.conf (IPv6) when dhcp_v6 is defined
+- name: Render dhcpd6.conf (IPv6)
   ansible.builtin.template:
     src: dhcpd6.conf.j2
     dest: /etc/dhcp/dhcpd6.conf
@@ -33,14 +16,16 @@
   when: dhcp_v6 is defined and dhcp_v6.subnets is defined
   notify: Restart isc-dhcp-server6
 
-- name: Enable and start DHCP service
-  ansible.builtin.service:
-    name: isc-dhcp-server
-    state: started
-    enabled: yes
-  when: dhcp is defined and dhcp.subnets is defined and (dhcp.subnets | length) > 0
+- name: Configure ISC DHCPv6 server defaults
+  ansible.builtin.template:
+    src: isc-dhcp-server6.default.j2
+    dest: /etc/default/isc-dhcp-server6
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart isc-dhcp-server6
 
-- name: Enable and start DHCPv6 service when dhcp_v6 is defined
+- name: Enable and start DHCPv6 service
   ansible.builtin.service:
     name: isc-dhcp-server6
     state: started

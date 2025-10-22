@@ -1,3 +1,16 @@
+- name: Validar variables críticas
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Verificar que vault_win_admin_password esté definida
+      ansible.builtin.assert:
+        that:
+          - vault_win_admin_password is defined
+          - vault_win_admin_password | length > 0
+        fail_msg: "vault_win_admin_password no está definida en el vault"
+        success_msg: "Credenciales del vault verificadas"
+      when: "'windows_vms' in group_names or 'vbox_host' in group_names"
+
 - name: Configurar ajustes comunes y DHCP en servidor Ubuntu
   hosts: ubuntu_server
   become: true
