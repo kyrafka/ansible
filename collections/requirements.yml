@@ -6,9 +6,4 @@ collections:
 
 roles:
   - name: bertvv.dhcp
-    version: "3.2.0"
   - name: bertvv.radvd
-    version: "1.1.0"
-
-
-  
