@@ -33,15 +33,10 @@
     --accelerate3d on
   when: not vm_exists
 
-- name: Configurar red NAT
-  ansible.builtin.command: >
-    VBoxManage modifyvm "{{ virtualbox.vm_name }}" --nic1 nat
-  when: not vm_exists
-
-- name: Configurar red bridged (segunda interfaz)
+- name: Configurar red bridged (NIC1)
   ansible.builtin.command: >
     VBoxManage modifyvm "{{ virtualbox.vm_name }}" 
-    --nic2 bridged --bridgeadapter2 "{{ virtualbox.bridged_adapter }}"
+    --nic1 bridged --bridgeadapter1 "{{ virtualbox.bridged_adapter }}"
   when: not vm_exists and virtualbox.bridged_adapter is defined
 
 - name: Crear controlador SATA
