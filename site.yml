@@ -17,7 +17,7 @@
   roles:
     - role: common
     - role: bertvv.dhcp
-    - role: bertvv.radvd
+    - role: debops.radvd
     - role: procesos
     - role: storage
 
