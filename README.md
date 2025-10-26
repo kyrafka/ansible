@@ -4,7 +4,6 @@ Este proyecto está pensado para:
 
 - Desplegar y configurar componentes en distintos entornos:
   - Ubuntu (común y DHCP)
-  - VirtualBox
   - Windows (post-configuración)
 - Gestionar procesos y servicios críticos en hosts Linux, con verificación, aseguramiento y resumen de diagnóstico.
 
@@ -12,12 +11,11 @@ Este proyecto está pensado para:
 
 - `site.yml`: orquesta los roles por grupo de hosts.
 - `inventory/hosts.ini`: inventario de hosts y grupos.
-- `group_vars/all.yml`: variables globales (usuarios, DHCP, VirtualBox, WinRM, servicios necesarios, etc.).
+- `group_vars/all.yml`: variables globales (usuarios, DHCP, WinRM, servicios necesarios, etc.).
 - `roles/`:
   - `common`: gestión de usuarios, directorios y cron.
   - `dhcp`: instalación y configuración de `isc-dhcp-server`.
   - `dhcp`: instalación y configuración de `isc-dhcp-server` (IPv4/IPv6).
-  - `virtualbox`: tareas de VirtualBox.
   - `windows`: post-configuración de VMs Windows.
   - `procesos`: gestión de procesos y servicios necesarios en Linux.
 - `collections/requirements.yml`: colecciones requeridas.
@@ -114,7 +112,7 @@ ansible-playbook -i inventory/hosts.ini site.yml
 ```
 
 - El play `ubuntu_server` ejecuta `common`, `dhcp` y `procesos`.
-- Los plays de `vbox_host` y `windows_vms` ejecutan sus roles respectivos.
+- El play de `windows_vms` ejecuta su rol respectivo.
 
 ## Notas
 

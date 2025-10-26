@@ -69,7 +69,7 @@ radvd_interfaces:
     AdvSendAdvert: 'on'
     MinRtrAdvInterval: 30
     MaxRtrAdvInterval: 100
-    AdvManagedFlag: 'off'
+    AdvManagedFlag: 'on'
     AdvOtherConfigFlag: 'on'
     prefixes:
       - prefix: fd10:10::/64
@@ -84,21 +84,13 @@ virtualbox:
   vm_name: "Win11-GamePC"
   os_type: "Windows11_64"
   memory: 4096
-  vram: 128
-  cpus: 2
-  disk_path: "C:\\VirtualBox VMs\\Win11-GamePC\\Win11-GamePC.vdi"
-  disk_size_mb: 65536  # 64GB
-  iso_path: "C:\\Users\\Diego\\Desktop\\iso\\Win11_24H2_Spanish_x64.iso"  # Ajusta según tu ruta
-  bridged_adapter: "Ethernet"  # Cambia por tu adaptador de red
-  enable_efi: true  # Para Windows 11
-
 # Configuración VMware vSphere
 # Nota: los valores reales se definen en archivos específicos por despliegue
-# como `group_vars/ubpc.yml` para evitar duplicidades.
+# en  `group_vars/ubpc.yml` ps
 
 servicios_necesarios:
   - ssh                  # Acceso remoto seguro por consola (SSH)
-  - cron                 # Programador de tareas en segundo plano (CRON)
+  - cron                 # Programador de tareas en segundo plano (CRONnnn)
   - NetworkManager       # Gestor de interfaces y configuración de red
   - isc-dhcp-server6     # Servidor DHCPv6: asigna direcciones IPv6 a clientes
   - radvd                # Prefijos y gateway IPv6

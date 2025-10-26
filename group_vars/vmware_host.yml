@@ -1,6 +1,5 @@
 vmware:
   vcenter_hostname: "172.17.25.11"
-  port: 10111
   vcenter_username: "{{ vault_vcenter_username | default('root') }}"
   vcenter_password: "{{ vault_vcenter_password | default('qwe123$') }}"
   datacenter: "ha-datacenter"
@@ -13,7 +12,7 @@ vmware:
   memory: 2048
   cpus: 1
   cores_per_socket: 1
-  disk_size_mb: 20480
+  disk_size_mb: 2048
 
   iso_path: "ubuntu-24.04.3-desktop-amd64.iso"
   boot_firmware: "efi"

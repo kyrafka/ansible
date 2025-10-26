@@ -23,12 +23,7 @@
 
 - name: Crear VM Ubuntu en VMware vSphere
   hosts: vmware_host
+  connection: local
   gather_facts: false
   roles:
     - role: vmware
-
-- name: Crear VM Windows en VirtualBox (PC Local)
-  hosts: vbox_host
-  gather_facts: false
-  roles:
-    - role: virtualbox
