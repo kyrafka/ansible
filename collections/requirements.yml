@@ -5,7 +5,6 @@ collections:
   - name: community.vmware
 
 roles:
-  - src: git+https://github.com/bertvv/ansible-role-dhcp.git
-    name: bertvv.dhcp
-  - src: git+https://github.com/bertvv/ansible-role-radvd.git
+  - name: bertvv.dhcp
+  - name: bertvv.radvd
     name: bertvv.radvd
