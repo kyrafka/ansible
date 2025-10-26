@@ -54,14 +54,14 @@ dhcp_global_domain_name_servers:
   - 2001:4860:4860::8844
 
 dhcp_subnets6:
-  - network: fd10:10::
+  - network: "fd10:10::"
     prefix: 64
-    range_begin: fd10:10::100
-    range_end: fd10:10::1fff
-  - network: fd30:30::
+    range_begin: "fd10:10::100"
+    range_end: "fd10:10::1fff"
+  - network: "fd30:30::"
     prefix: 64
-    range_begin: fd30:30::100
-    range_end: fd30:30::1fff
+    range_begin: "fd30:30::100"
+    range_end: "fd30:30::1fff"
 
 # Configuración para bertvv.radvd role
 radvd_interfaces:
