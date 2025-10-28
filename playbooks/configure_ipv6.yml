@@ -1,6 +1,6 @@
 ---
 - name: Configurar IPv6 en servidor Ubuntu
-  hosts: labjuegos  # Cambiado a labjuegos para que coincida con tu inventario
+  hosts: servidores_ubuntu  # Grupo que contiene a labjuegos en el inventario
   become: true
   vars:
     # Configuración IPv6

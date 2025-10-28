@@ -1,0 +1,25 @@
+---
+- name: Configurar entorno local para Ansible
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: Crear directorio de inventario si no existe
+      file:
+        path: "{{ playbook_dir }}/inventory"
+        state: directory
+        mode: '0755'
+
+    - name: Crear archivo de inventario local
+      copy:
+        dest: "{{ playbook_dir }}/inventory/local.ini"
+        content: |
+          [local]
+          localhost ansible_connection=local
+        mode: '0644'
+
+    - name: Actualizar playbook para usar inventario local
+      replace:
+        path: "{{ playbook_dir }}/playbooks/configure_ipv6.yml"
+        regexp: 'hosts: .*'
+        replace: 'hosts: local'
