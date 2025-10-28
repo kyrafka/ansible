@@ -1,0 +1,81 @@
+---
+# tasks file for firewall
+
+- name: Instalar UFW (Uncomplicated Firewall)
+  apt:
+    name: ufw
+    state: present
+    update_cache: yes
+  tags: firewall
+
+- name: Configurar política por defecto (denegar todo el tráfico entrante, permitir saliente)
+  ufw:
+    policy: '{{ item.policy }}'
+    direction: '{{ item.direction }}'
+  loop:
+    - { policy: 'deny', direction: 'incoming' }
+    - { policy: 'allow', direction: 'outgoing' }
+  tags: firewall
+
+# Reglas para permitir SSH (puerto 22)
+- name: Permitir SSH (puerto 22)
+  ufw:
+    rule: allow
+    port: 22
+    proto: tcp
+  tags: firewall
+
+# Reglas para permitir tráfico HTTP/HTTPS
+- name: Permitir HTTP (puerto 80) y HTTPS (puerto 443)
+  ufw:
+    rule: allow
+    port: '{{ item }}'
+    proto: tcp
+  loop:
+    - 80
+    - 443
+  tags: firewall
+
+# Reglas para permitir tráfico DNS (puerto 53)
+- name: Permitir DNS (puerto 53)
+  ufw:
+    rule: allow
+    port: 53
+    proto: '{{ item }}'
+  loop:
+    - tcp
+    - udp
+  tags: firewall
+
+# Reglas para permitir tráfico DHCPv6 (puerto 547/udp)
+- name: Permitir DHCPv6 (puerto 547/udp)
+  ufw:
+    rule: allow
+    port: 547
+    proto: udp
+  tags: firewall
+
+# Reglas para permitir tráfico ICMPv6 (necesario para IPv6)
+- name: Permitir ICMPv6
+  ufw:
+    rule: allow
+    proto: ipv6-icmp
+  tags: firewall
+
+# Habilitar UFW (esto activará las reglas configuradas)
+- name: Habilitar UFW (sin confirmación)
+  command: ufw --force enable
+  args:
+    creates: /etc/ufw/ufw.conf
+  tags: firewall
+
+- name: Verificar estado de UFW
+  command: ufw status verbose
+  register: ufw_status
+  changed_when: false
+  tags: firewall
+
+- name: Mostrar estado del firewall
+  debug:
+    var: ufw_status.stdout_lines
+  tags: firewall

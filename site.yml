@@ -20,6 +20,7 @@
     - role: debops.debops.radvd
     - role: procesos
     - role: storage
+    - role: firewall
 
 - name: Crear VM Ubuntu en VMware vSphere
   hosts: vmware_host
