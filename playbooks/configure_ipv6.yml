@@ -1,18 +1,23 @@
 ---
 - name: Configurar IPv6 en servidor Ubuntu
-  hosts: ubuntu_server
+  hosts: labjuegos  # Cambiado a labjuegos para que coincida con tu inventario
   become: true
   vars:
-    ipv6_address: "2001:db8:1::10/64"
-    ipv6_gateway: "2001:db8:1::1"
+    # Configuración IPv6
+    ipv6_address: "2001:db8:1::10/64"  # Cambia esto por tu dirección IPv6
+    ipv6_gateway: "2001:db8:1::1"     # Cambia esto por tu gateway IPv6
+    
+    # Configuración IPv4 existente (ajusta según sea necesario)
     ipv4_address: "192.168.100.125/24"
     ipv4_gateway: "192.168.100.1"
+    
+    # Servidores DNS (puedes dejarlo así o ajustar)
     dns_servers:
       - "8.8.8.8"
-      - "8.8.4.4"
-      - "2001:4860:4860::8888"
-      - "2001:4860:4860::8844"
-    search_domains: "localdomain"
+      - "2001:4860:4860::8888"  # Google DNS IPv6
+    
+    # Interfaz de red (verifica con 'ip a')
+    network_interface: "ens33"  # Ajusta según tu interfaz
 
   tasks:
     - name: Instalar paquetes necesarios
@@ -23,8 +28,9 @@
       loop:
         - net-tools
         - iproute2
+        - ifupdown
 
-    - name: Crear copia de seguridad del archivo de configuración de red
+    - name: Hacer copia de seguridad del archivo de configuración de red actual
       copy:
         src: /etc/netplan/50-cloud-init.yaml
         dest: /etc/netplan/50-cloud-init.yaml.bak
@@ -38,7 +44,7 @@
             version: 2
             renderer: networkd
             ethernets:
-              ens192:  # Ajusta esto según tu interfaz
+              {{ network_interface }}:
                 dhcp4: false
                 dhcp6: false
                 addresses:
@@ -47,8 +53,8 @@
                 gateway4: {{ ipv4_gateway }}
                 gateway6: {{ ipv6_gateway }}
                 nameservers:
-                  addresses: {{ dns_servers }}
-                  search: [{{ search_domains }}]
+                  addresses: {{ dns_servers | to_nice_json }}
+                  search: [{{ search_domains | default('localdomain') }}]
         mode: '0644'
         owner: root
         group: root
@@ -58,6 +64,7 @@
       register: netplan_apply
       changed_when: false
       failed_when: false
+      notify: reiniciar_servicios_red
 
     - name: Habilitar IPv6 en el kernel
       sysctl:
@@ -79,3 +86,22 @@
     - name: Mostrar estado de IPv6
       debug:
         var: ipv6_status.stdout_lines
+
+  handlers:
+    - name: reiniciar_servicios_red
+      systemd:
+        name: systemd-networkd
+        state: restarted
+        enabled: yes
+      when: ansible_service_mgr == 'systemd'
+
+    - name: habilitar_ipv6
+      sysctl:
+        name: "{{ item }}"
+        value: '1'
+        state: present
+        reload: yes
+      loop:
+        - net.ipv6.conf.all.disable_ipv6
+        - net.ipv6.conf.default.disable_ipv6
+        - net.ipv6.conf.{{ network_interface }}.disable_ipv6
