@@ -53,8 +53,10 @@
                 addresses:
                   - {{ ipv4_address }}
                   - {{ ipv6_address }}
-                gateway4: {{ ipv4_gateway }}
-                gateway6: {{ ipv6_gateway }}
+                routes:
+                  - to: ::/0
+                    via: {{ ipv6_gateway }}
+                    on-link: true
                 nameservers:
                   addresses: {{ dns_servers | to_nice_json }}
                   search: [{{ search_domains | default('localdomain') }}]
