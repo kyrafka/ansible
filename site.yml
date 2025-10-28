@@ -11,13 +11,27 @@
         success_msg: "Credenciales del vault verificadas"
       when: "'windows_vms' in group_names or 'vmware_host' in group_names"
 
+- name: Configurar red IPv6 en servidor Ubuntu
+  hosts: ubuntu_server
+  become: true
+  vars:
+    network_ipv6_interface: "ens33"
+    network_ipv6_address: "2001:db8:1::10"
+    network_ipv6_netmask: "64"
+    network_ipv6_gateway: "2001:db8:1::1"
+    network_ipv6_dns_servers:
+      - "2001:4860:4860::8888"
+      - "2001:4860:4860::8844"
+    network_ipv6_domain: "localdomain"
+  roles:
+    - role: network_ipv6
+
 - name: Configurar ajustes comunes y DHCP en servidor Ubuntu
   hosts: ubuntu_server
   become: true
   roles:
     - role: common
-    - role: bertvv.dhcp
-    - role: debops.debops.radvd
+    - role: dhcpv6
     - role: procesos
     - role: storage
     - role: firewall

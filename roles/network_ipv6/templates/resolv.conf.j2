@@ -1,0 +1,14 @@
+# Archivo de configuración de DNS generado por Ansible
+# NO EDITAR MANUALMENTE - LOS CAMBIOS SE PERDERÁN
+
+# Servidores DNS configurados
+{% for dns in network_ipv6_dns_servers %}
+nameserver {{ dns }}
+{% endfor %}
+
+{% if network_ipv6_domain is defined %}
+search {{ network_ipv6_domain }}
+{% endif %}
+
+# Opciones de resolución
+options rotate timeout:2 attempts:2

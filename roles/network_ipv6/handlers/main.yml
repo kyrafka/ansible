@@ -1,0 +1,17 @@
+---
+- name: restart networking
+  service:
+    name: networking
+    state: restarted
+
+- name: apply sysctl
+  command: sysctl --system
+  register: sysctl_result
+  changed_when: false
+  ignore_errors: true
+
+- name: restart systemd-resolved
+  service:
+    name: systemd-resolved
+    state: restarted
+  when: ansible_service_mgr == 'systemd'

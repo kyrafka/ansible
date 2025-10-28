@@ -1,0 +1,24 @@
+---
+# Configuración de red IPv6 por defecto
+
+# Interfaz de red principal (ajustar según sea necesario)
+network_ipv6_interface: "ens33"
+
+# Configuración de red IPv6
+network_ipv6_address: "2001:db8:1::10"
+network_ipv6_netmask: "64"
+network_ipv6_gateway: "2001:db8:1::1"
+
+# Configuración de DNS
+network_ipv6_dns_servers:
+  - "2001:4860:4860::8888"  # Google DNS 1
+  - "2001:4860:4860::8844"  # Google DNS 2
+
+# Dominio de búsqueda DNS
+network_ipv6_domain: "localdomain"
+
+# Rutas estáticas adicionales (opcional)
+# network_ipv6_static_routes:
+#   - network: "2001:db8:2::/64"
+#     gateway: "2001:db8:1::1"
+#     interface: "ens33"

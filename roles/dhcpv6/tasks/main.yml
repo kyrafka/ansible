@@ -1,0 +1,36 @@
+---
+- name: Instalar ISC DHCPv6 Server
+  apt:
+    name: isc-dhcp-server
+    state: present
+
+- name: Crear directorio de configuración de red
+  file:
+    path: /etc/network/interfaces.d
+    state: directory
+    mode: '0755'
+
+- name: Configurar interfaces de red
+  template:
+    src: interfaces.j2
+    dest: /etc/network/interfaces.d/50-cloud-init.cfg
+  notify: restart networking
+
+- name: Configurar DHCPv6
+  template:
+    src: dhcpd6.conf.j2
+    dest: /etc/dhcp/dhcpd6.conf
+  notify: restart isc-dhcp-server
+
+- name: Habilitar IPv6 forwarding
+  sysctl:
+    name: net.ipv6.conf.all.forwarding
+    value: '1'
+    state: present
+    reload: yes
+
+- name: Asegurar que el servicio isc-dhcp-server esté habilitado y en ejecución
+  service:
+    name: isc-dhcp-server
+    state: started
+    enabled: yes

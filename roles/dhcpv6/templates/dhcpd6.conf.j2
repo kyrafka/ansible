@@ -1,0 +1,28 @@
+# Configuración global de DHCPv6
+default-lease-time {{ dhcp6_config.default_lease_time }};
+max-lease-time {{ dhcp6_config.max_lease_time }};
+option dhcp6.domain-name-servers {{ dhcp6_config.domain_name_servers }};
+option dhcp6.domain-name "{{ dhcp6_config.domain_name }}";
+
+# Configuración de subredes
+{% for net in networks %}
+subnet6 {{ net.ipv6_network }} {
+    # Rango de direcciones asignables
+    range6 {{ net.range_start }} {{ net.range_end }};
+
+    # Configuración DNS
+    option dhcp6.name-servers {{ net.dns_servers | join(', ') }};
+    option dhcp6.domain-name-servers {{ net.dns_servers | join(', ') }};
+    option dhcp6.domain-name "{{ net.domain_name }}";
+
+    # Otras opciones
+    option dhcp6.preference 255;
+    option dhcp6.rapid-commit;
+}
+{% endfor %}
+
+# Configuración de hosts específicos (si es necesario)
+# host servidor1 {
+#     host-identifier option dhcp6.client-id 00:01:00:01:27:71:4e:a1:00:0c:29:2c:9c:27;
+#     fixed-address6 2001:db8:1::10;
+# }

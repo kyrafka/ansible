@@ -47,21 +47,58 @@ win_admin_user: "gamepc1"
 win_admin_password: "{{ vault_win_admin_password }}"
 enable_rdp: true
 
-# Configuración para bertvv.dhcp role
-dhcp_global_domain_name: lab.local
-dhcp_global_domain_name_servers:
-  - 2001:4860:4860::8888
-  - 2001:4860:4860::8844
+# Configuración de redes IPv6
+networks:
+  # Red 1 - Switch 1 (Servidor Ubuntu)
+  - name: red1_servidor1
+    ipv6_network: "2001:db8:1::/64"
+    ipv6_gateway: "2001:db8:1::1"
+    range_start: "2001:db8:1::10"     # Primera IP asignable
+    range_end: "2001:db8:1::FFFF"    # Última IP del rango
+    dns_servers: 
+      - "2001:4860:4860::8888"      # Google DNS 1
+      - "2001:4860:4860::8844"      # Google DNS 2
+    domain_name: "red1.local"
+    
+  # Red 2 - Switch 1 (Clientes)
+  - name: red2_switch1
+    ipv6_network: "2001:db8:2::/64"
+    ipv6_gateway: "2001:db8:2::1"
+    range_start: "2001:db8:2::10"
+    range_end: "2001:db8:2::FFFF"
+    dns_servers: 
+      - "2001:4860:4860::8888"
+      - "2001:4860:4860::8844"
+    domain_name: "red2.local"
 
-dhcp_subnets6:
-  - network: "fd10:10::"
-    prefix: 64
-    range_begin: "fd10:10::100"
-    range_end: "fd10:10::1fff"
-  - network: "fd30:30::"
-    prefix: 64
-    range_begin: "fd30:30::100"
-    range_end: "fd30:30::1fff"
+  # Red 3 - Switch 2 (Servidor 2)
+  - name: red3_servidor2
+    ipv6_network: "2001:db8:3::/64"
+    ipv6_gateway: "2001:db8:3::1"
+    range_start: "2001:db8:3::10"
+    range_end: "2001:db8:3::FFFF"
+    dns_servers: 
+      - "2001:4860:4860::8888"
+      - "2001:4860:4860::8844"
+    domain_name: "red3.local"
+
+  # Red 4 - Switch 2 (Clientes)
+  - name: red4_switch2
+    ipv6_network: "2001:db8:4::/64"
+    ipv6_gateway: "2001:db8:4::1"
+    range_start: "2001:db8:4::10"
+    range_end: "2001:db8:4::FFFF"
+    dns_servers: 
+      - "2001:4860:4860::8888"
+      - "2001:4860:4860::8844"
+    domain_name: "red4.local"
+
+# Configuración del servidor DHCPv6
+dhcp6_config:
+  default_lease_time: 600
+  max_lease_time: 7200
+  domain_name_servers: "{{ networks[0].dns_servers | join(',') }}"
+  domain_name: "{{ networks[0].domain_name }}"
 
 # Configuración para bertvv.radvd role
 radvd_interfaces:

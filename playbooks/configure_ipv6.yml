@@ -1,0 +1,81 @@
+---
+- name: Configurar IPv6 en servidor Ubuntu
+  hosts: ubuntu_server
+  become: true
+  vars:
+    ipv6_address: "2001:db8:1::10/64"
+    ipv6_gateway: "2001:db8:1::1"
+    ipv4_address: "192.168.100.125/24"
+    ipv4_gateway: "192.168.100.1"
+    dns_servers:
+      - "8.8.8.8"
+      - "8.8.4.4"
+      - "2001:4860:4860::8888"
+      - "2001:4860:4860::8844"
+    search_domains: "localdomain"
+
+  tasks:
+    - name: Instalar paquetes necesarios
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      loop:
+        - net-tools
+        - iproute2
+
+    - name: Crear copia de seguridad del archivo de configuración de red
+      copy:
+        src: /etc/netplan/50-cloud-init.yaml
+        dest: /etc/netplan/50-cloud-init.yaml.bak
+        remote_src: yes
+
+    - name: Configurar Netplan para IPv6
+      copy:
+        dest: /etc/netplan/60-ipv6-config.yaml
+        content: |
+          network:
+            version: 2
+            renderer: networkd
+            ethernets:
+              ens192:  # Ajusta esto según tu interfaz
+                dhcp4: false
+                dhcp6: false
+                addresses:
+                  - {{ ipv4_address }}
+                  - {{ ipv6_address }}
+                gateway4: {{ ipv4_gateway }}
+                gateway6: {{ ipv6_gateway }}
+                nameservers:
+                  addresses: {{ dns_servers }}
+                  search: [{{ search_domains }}]
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Aplicar configuración de red
+      command: netplan apply
+      register: netplan_apply
+      changed_when: false
+      failed_when: false
+
+    - name: Habilitar IPv6 en el kernel
+      sysctl:
+        name: "{{ item }}"
+        value: '0'
+        state: present
+        sysctl_set: yes
+        reload: yes
+      loop:
+        - net.ipv6.conf.all.disable_ipv6
+        - net.ipv6.conf.default.disable_ipv6
+        - net.ipv6.conf.lo.disable_ipv6
+
+    - name: Verificar configuración de red
+      command: ip -6 addr show
+      register: ipv6_status
+      changed_when: false
+
+    - name: Mostrar estado de IPv6
+      debug:
+        var: ipv6_status.stdout_lines

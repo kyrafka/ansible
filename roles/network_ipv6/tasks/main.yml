@@ -1,0 +1,66 @@
+---
+- name: Instalar paquetes necesarios
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  loop:
+    - net-tools
+    - iproute2
+    - ifupdown
+
+- name: Crear directorio de configuración de red
+  file:
+    path: /etc/network/interfaces.d
+    state: directory
+    mode: '0755'
+
+- name: Configurar interfaces de red
+  template:
+    src: interfaces.j2
+    dest: /etc/network/interfaces.d/60-ipv6-config
+  notify: restart networking
+
+- name: Configurar sysctl para IPv6
+  template:
+    src: 99-ipv6-sysctl.conf.j2
+    dest: /etc/sysctl.d/99-ipv6-sysctl.conf
+  notify: apply sysctl
+
+- name: Configurar DNS
+  template:
+    src: resolv.conf.j2
+    dest: /etc/resolv.conf
+    mode: '0644'
+    owner: root
+    group: root
+  when: network_ipv6_dns_servers is defined and network_ipv6_dns_servers | length > 0
+
+- name: Instalar y configurar systemd-resolved
+  block:
+    - name: Instalar systemd-resolved
+      apt:
+        name: systemd-resolved
+        state: present
+      when: ansible_service_mgr == 'systemd'
+
+    - name: Configurar systemd-resolved
+      copy:
+        dest: /etc/systemd/resolved.conf
+        content: |
+          [Resolve]
+          DNS={{ network_ipv6_dns_servers | join(' ') }}
+          Domains={{ network_ipv6_domain | default('~.') }}
+          LLMNR=no
+          MulticastDNS=no
+          DNSSEC=allow-downgrade
+          DNSOverTLS=opportunistic
+          Cache=yes
+          DNSStubListener=yes
+          ReadEtcHosts=yes
+        mode: '0644'
+        owner: root
+        group: root
+      when: ansible_service_mgr == 'systemd'
+      notify: restart systemd-resolved
+  when: ansible_service_mgr == 'systemd' and network_ipv6_dns_servers is defined and network_ipv6_dns_servers | length > 0
