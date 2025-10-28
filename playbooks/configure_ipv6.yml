@@ -7,9 +7,9 @@
     ipv6_address: "2001:db8:1::10/64"  # Cambia esto por tu dirección IPv6
     ipv6_gateway: "2001:db8:1::1"     # Cambia esto por tu gateway IPv6
     
-    # Configuración IPv4 existente (ajusta según sea necesario)
-    ipv4_address: "192.168.1.10/24"  # Ajusta según tu red
-    ipv4_gateway: "192.168.1.1"
+    # Configuración IPv4
+    ipv4_address: "168.121.48.254/24"  # Dirección IP del servidor
+    ipv4_gateway: "168.121.48.1"       # Ajusta la puerta de enlace según tu red
     
     # Servidores DNS (puedes dejarlo así o ajustar)
     dns_servers:
