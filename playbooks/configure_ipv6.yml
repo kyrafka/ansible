@@ -8,16 +8,19 @@
     ipv6_gateway: "2001:db8:1::1"     # Cambia esto por tu gateway IPv6
     
     # Configuración IPv4 existente (ajusta según sea necesario)
-    ipv4_address: "192.168.100.125/24"
-    ipv4_gateway: "192.168.100.1"
+    ipv4_address: "192.168.1.10/24"  # Ajusta según tu red
+    ipv4_gateway: "192.168.1.1"
     
     # Servidores DNS (puedes dejarlo así o ajustar)
     dns_servers:
       - "8.8.8.8"
+      - "8.8.4.4"
       - "2001:4860:4860::8888"  # Google DNS IPv6
+      - "2001:4860:4860::8844"
     
     # Interfaz de red (verifica con 'ip a')
-    network_interface: "ens33"  # Ajusta según tu interfaz
+    network_interface: "ens34"  # Ajusta según tu interfaz
+    search_domains: "localdomain"
 
   tasks:
     - name: Instalar paquetes necesarios
