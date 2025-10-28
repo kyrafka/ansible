@@ -23,6 +23,14 @@
     search_domains: "localdomain"
 
   tasks:
+    - name: Asegurar que el directorio /etc/netplan existe
+      file:
+        path: /etc/netplan
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
     - name: Instalar paquetes necesarios
       apt:
         name: "{{ item }}"
@@ -63,6 +71,9 @@
         mode: '0644'
         owner: root
         group: root
+        force: yes
+      register: netplan_config
+      notify: Aplicar configuración de red
 
     - name: Aplicar configuración de red
       command: netplan apply
@@ -93,6 +104,14 @@
         var: ipv6_status.stdout_lines
 
   handlers:
+    - name: Aplicar configuración de red
+      command: netplan apply
+      async: 30
+      poll: 10
+      register: netplan_result
+      changed_when: false
+      listen: Aplicar configuración de red
+
     - name: reiniciar_servicios_red
       systemd:
         name: systemd-networkd
