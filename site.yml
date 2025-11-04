@@ -1,7 +1,7 @@
 ---
 # Playbook principal para configurar servicios IPv6
 # Red: 2025:db8:10::/64
-# Servidor: 2025:db8:10::2 (IP ya asignada por DHCP)
+# nota importante - 2025:db8:10::2 
 
 - name: Mostrar información de la configuración
   hosts: all
@@ -10,7 +10,7 @@
     - name: Información de red IPv6
       debug:
         msg: |
-          🌐 Configuración de red:
+           Configuración de red:
           - Red: {{ network_config.ipv6_network }}
           - Gateway: {{ network_config.ipv6_gateway }}
           - DHCP desde: {{ network_config.dhcp_range_start }}
@@ -23,7 +23,6 @@
     - role: common
     - role: dns_bind
     - role: dhcpv6
-    - role: http_web
     - role: firewall
     - role: procesos
     - role: storage
@@ -45,7 +44,6 @@
     - role: common
     - role: dns_bind
     - role: dhcpv6
-    - role: http_web
     - role: firewall
     - role: procesos
     - role: storage

@@ -145,7 +145,7 @@ verificar_logs() {
     echo "====================="
     
     # Verificar logs importantes
-    logs=("/var/log/apache2/error.log" "/var/log/named/query.log" "/var/log/fail2ban.log" "/var/log/dhcpd6.log")
+    logs=("/var/log/named/query.log" "/var/log/fail2ban.log" "/var/log/dhcpd6.log")
     
     for log in "${logs[@]}"; do
         if [ -f "$log" ]; then
@@ -196,7 +196,7 @@ main() {
     echo "======================="
     verificar_servicio "ssh" "22"
     verificar_servicio "bind9" "53"
-    verificar_servicio "apache2" "80"
+
     verificar_servicio "isc-dhcp-server6" "547"
     verificar_servicio "isc-dhcp-server6" "547"
     verificar_servicio "fail2ban" ""

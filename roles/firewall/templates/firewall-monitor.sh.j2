@@ -32,7 +32,7 @@ check_critical_services() {
     echo -e "${BLUE}🔧 SERVICIOS CRÍTICOS${NC}"
     echo "===================="
     
-    services=("ssh" "ufw" "fail2ban" "bind9" "apache2" "isc-dhcp-server6")
+    services=("ssh" "ufw" "fail2ban" "bind9" "isc-dhcp-server6")
     
     for service in "${services[@]}"; do
         if systemctl is-active --quiet "$service" 2>/dev/null; then

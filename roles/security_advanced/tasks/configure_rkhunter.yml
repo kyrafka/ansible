@@ -1,0 +1,38 @@
+---
+# Configuración de RKHunter - Detector de rootkits
+
+- name: "Configurar RKHunter"
+  template:
+    src: rkhunter.conf.j2
+    dest: /etc/rkhunter.conf
+    backup: yes
+    mode: '0644'
+
+- name: "Actualizar base de datos de RKHunter"
+  command: rkhunter --update --quiet
+  changed_when: false
+  failed_when: false
+
+- name: "Crear baseline de archivos del sistema"
+  command: rkhunter --propupd --quiet
+  changed_when: false
+  failed_when: false
+
+- name: "Crear script de escaneo automático"
+  template:
+    src: rkhunter-scan.sh.j2
+    dest: /usr/local/bin/rkhunter-scan.sh
+    mode: '0755'
+
+- name: "Ejecutar escaneo inicial"
+  command: rkhunter --check --skip-keypress --quiet
+  register: rkhunter_initial
+  changed_when: false
+  failed_when: false
+
+- name: "Mostrar resultado del escaneo inicial"
+  debug:
+    msg: |
+      🔍 Escaneo inicial de RKHunter completado
+      Ejecuta 'rkhunter-scan.sh' para escaneos manuales
+      Logs en: /var/log/rkhunter.log

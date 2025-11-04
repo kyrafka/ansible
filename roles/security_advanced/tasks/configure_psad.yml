@@ -1,0 +1,55 @@
+---
+# Configuración de PSAD - Port Scan Attack Detector
+
+- name: "Configurar PSAD"
+  template:
+    src: psad.conf.j2
+    dest: /etc/psad/psad.conf
+    backup: yes
+    mode: '0600'
+  notify: restart psad
+
+- name: "Configurar firmas de PSAD"
+  template:
+    src: psad_signatures.j2
+    dest: /etc/psad/signatures
+    mode: '0644'
+  notify: restart psad
+
+- name: "Habilitar logging de UFW para PSAD"
+  lineinfile:
+    path: /etc/ufw/before.rules
+    line: '-A ufw-before-input -j LOG --log-prefix "[UFW BLOCK] "'
+    insertafter: '^# End required lines'
+    backup: yes
+  notify: reload ufw
+
+- name: "Configurar logrotate para PSAD"
+  template:
+    src: psad-logrotate.j2
+    dest: /etc/logrotate.d/psad
+    mode: '0644'
+
+- name: "Habilitar y iniciar PSAD"
+  systemd:
+    name: psad
+    enabled: yes
+    state: started
+
+- name: "Crear script de análisis PSAD"
+  template:
+    src: psad-analysis.sh.j2
+    dest: /usr/local/bin/psad-analysis.sh
+    mode: '0755'
+
+- name: "Mostrar configuración de PSAD"
+  debug:
+    msg: |
+      🔍 PSAD configurado para detectar escaneos de puertos
+      Monitorea logs de UFW en tiempo real
+      Bloqueo automático de IPs sospechosas habilitado
+      
+      Comandos útiles:
+      - psad -S (estado actual)
+      - psad --fw-analyze (análizar firewall)
+      - psad-analysis.sh (reporte completo)

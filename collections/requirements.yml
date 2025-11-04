@@ -7,4 +7,4 @@ collections:
 roles:
   - name: bertvv.dhcp
   - name: debops.radvd
-    name: bertvv.radvd
+  - name: bertvv.radvd

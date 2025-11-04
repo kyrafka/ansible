@@ -37,4 +37,10 @@ security_report_*.txt
 /tmp/*.iso
 autoinstall-*.iso
 
+# Archivos de inventario con IPs reales (opcional)
 # inventory/production.ini
+
+# Archivos de documentación temporales
+*-TEMP.md
+*-OLD.md
+DRAFT-*.md

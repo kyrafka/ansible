@@ -108,7 +108,7 @@ run_main_playbook() {
 verify_services() {
     log_message "Verificando servicios instalados..."
     
-    services=("ssh" "bind9" "apache2" "isc-dhcp-server6" "fail2ban" "ufw")
+    services=("ssh" "bind9" "isc-dhcp-server6" "fail2ban" "ufw")
     
     for service in "${services[@]}"; do
         if systemctl is-active --quiet "$service" 2>/dev/null; then
@@ -125,8 +125,8 @@ show_final_info() {
     
     echo ""
     echo "🌐 Servicios disponibles:"
-    echo "  - Web: http://$(hostname)"
     echo "  - DNS: $(hostname).gamecenter.local"
+    echo "  - DHCPv6: Asignación automática de IPs"
     echo ""
     echo "🔧 Comandos útiles:"
     echo "  - Monitoreo de firewall: fw-monitor"

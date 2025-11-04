@@ -1,0 +1,37 @@
+---
+# Configuración de AIDE - Advanced Intrusion Detection Environment
+
+- name: "Configurar AIDE"
+  template:
+    src: aide.conf.j2
+    dest: /etc/aide/aide.conf
+    backup: yes
+    mode: '0644'
+
+- name: "Inicializar base de datos de AIDE"
+  shell: |
+    if [ ! -f /var/lib/aide/aide.db ]; then
+      aide --init
+      mv /var/lib/aide/aide.db.new /var/lib/aide/aide.db
+    fi
+  args:
+    creates: /var/lib/aide/aide.db
+
+- name: "Crear script de verificación AIDE"
+  template:
+    src: aide-check.sh.j2
+    dest: /usr/local/bin/aide-check.sh
+    mode: '0755'
+
+- name: "Mostrar información de AIDE"
+  debug:
+    msg: |
+      🔍 AIDE configurado para monitoreo de integridad
+      Base de datos inicializada en: /var/lib/aide/aide.db
+      Ejecuta 'aide-check.sh' para verificar cambios
+      
+      Directorios monitoreados:
+      - /etc (archivos de configuración)
+      - /bin, /sbin (binarios del sistema)
+      - /usr/bin, /usr/sbin (binarios de usuario)
+      - /var/log (logs del sistema)
