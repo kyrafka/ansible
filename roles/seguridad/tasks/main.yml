@@ -1,0 +1,36 @@
+---
+# Configuración avanzada de seguridad adicional
+
+---
+# Seguridad simple y efectiva para proyecto IPv6
+
+- name: "Instalar herramientas básicas de seguridad"
+  apt:
+    name:
+      - unattended-upgrades  # Actualizaciones automáticas
+      - logrotate           # Rotación de logs
+      - rsyslog             # Logging centralizado
+      - auditd              # Auditoría básica del sistema
+    state: present
+    update_cache: yes
+  tags: security
+
+- name: "Configurar actualizaciones automáticas de seguridad"
+  include_tasks: configure_auto_updates.yml
+  tags: [security, updates]
+
+- name: "Configurar auditoría básica del sistema"
+  include_tasks: configure_audit.yml
+  tags: [security, audit]
+
+- name: "Configurar rotación de logs"
+  include_tasks: configure_logrotate.yml
+  tags: [security, logs]
+
+- name: "Crear script de verificación de seguridad simple"
+  include_tasks: create_simple_security_check.yml
+  tags: [security, scripts]
+
+- name: "Configurar limpieza automática del sistema"
+  include_tasks: configure_system_cleanup.yml
+  tags: [security, cleanup]

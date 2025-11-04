@@ -111,6 +111,12 @@
     state: link
   tags: firewall
 
+- name: "Incluir seguridad avanzada (opcional)"
+  include_role:
+    name: seguridad
+  when: enable_advanced_security | default(false)
+  tags: [firewall, seguridad]
+
 - name: "Mostrar estado del firewall"
   command: ufw status verbose
   register: firewall_status

@@ -1,0 +1,159 @@
+#!/bin/bash
+# Script simple de verificación de seguridad para proyecto IPv6
+
+# Colores
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+show_help() {
+    echo "🔒 Verificación de Seguridad Simple"
+    echo "=================================="
+    echo "Uso: $0 [opción]"
+    echo ""
+    echo "Opciones:"
+    echo "  --quick   Verificación rápida"
+    echo "  --report  Generar reporte completo"
+    echo "  --help    Mostrar esta ayuda"
+}
+
+check_services() {
+    echo -e "${BLUE}🔧 Verificando servicios críticos...${NC}"
+    
+    services=("ssh" "bind9" "isc-dhcp-server6" "fail2ban" "ufw")
+    
+    for service in "${services[@]}"; do
+        if systemctl is-active --quiet "$service"; then
+            echo -e "  ✅ $service: ${GREEN}ACTIVO${NC}"
+        else
+            echo -e "  ❌ $service: ${RED}INACTIVO${NC}"
+        fi
+    done
+}
+
+check_ports() {
+    echo -e "${BLUE}🌐 Verificando puertos abiertos...${NC}"
+    
+    expected_ports=("22" "53" "547")
+    open_ports=$(ss -tuln | grep LISTEN | awk '{print $5}' | cut -d: -f2 | sort -u)
+    
+    for port in "${expected_ports[@]}"; do
+        if echo "$open_ports" | grep -q "^$port$"; then
+            echo -e "  ✅ Puerto $port: ${GREEN}ABIERTO${NC}"
+        else
+            echo -e "  ⚠️  Puerto $port: ${YELLOW}CERRADO${NC}"
+        fi
+    done
+    
+    # Puertos inesperados
+    unexpected=$(echo "$open_ports" | grep -v -E "^(22|53|547)$" | head -5)
+    if [ -n "$unexpected" ]; then
+        echo -e "  ${YELLOW}Puertos adicionales abiertos:${NC}"
+        echo "$unexpected" | sed 's/^/    /'
+    fi
+}
+
+check_users() {
+    echo -e "${BLUE}👥 Verificando usuarios con shell...${NC}"
+    
+    users_with_shell=$(grep -E "/bin/(bash|sh|zsh)" /etc/passwd | cut -d: -f1)
+    user_count=$(echo "$users_with_shell" | wc -l)
+    
+    echo -e "  Usuarios con shell de login: ${user_count}"
+    if [ "$user_count" -gt 5 ]; then
+        echo -e "  ${YELLOW}⚠️  Muchos usuarios con shell${NC}"
+    fi
+}
+
+check_disk_space() {
+    echo -e "${BLUE}💾 Verificando espacio en disco...${NC}"
+    
+    df -h | awk 'NR>1 {
+        usage = int($5)
+        if (usage > 90) 
+            printf "  🔴 %s: %s (%s usado)\n", $6, $4, $5
+        else if (usage > 80) 
+            printf "  🟡 %s: %s (%s usado)\n", $6, $4, $5
+        else 
+            printf "  ✅ %s: %s (%s usado)\n", $6, $4, $5
+    }'
+}
+
+check_processes() {
+    echo -e "${BLUE}⚡ Top 5 procesos por CPU...${NC}"
+    ps -eo pid,comm,%cpu --sort=-%cpu | head -6 | tail -5 | while read line; do
+        echo "  $line"
+    done
+}
+
+check_failed_logins() {
+    echo -e "${BLUE}🚫 Intentos de login fallidos (últimas 24h)...${NC}"
+    
+    failed_count=$(journalctl --since "24 hours ago" | grep -c "Failed password" 2>/dev/null || echo "0")
+    
+    if [ "$failed_count" -gt 10 ]; then
+        echo -e "  ${RED}❌ $failed_count intentos fallidos${NC}"
+    elif [ "$failed_count" -gt 0 ]; then
+        echo -e "  ${YELLOW}⚠️  $failed_count intentos fallidos${NC}"
+    else
+        echo -e "  ${GREEN}✅ Sin intentos fallidos${NC}"
+    fi
+}
+
+quick_check() {
+    echo "🔒 Verificación Rápida de Seguridad"
+    echo "=================================="
+    check_services
+    echo ""
+    check_ports
+    echo ""
+    check_disk_space
+}
+
+full_check() {
+    echo "🔒 Verificación Completa de Seguridad"
+    echo "===================================="
+    check_services
+    echo ""
+    check_ports
+    echo ""
+    check_users
+    echo ""
+    check_disk_space
+    echo ""
+    check_processes
+    echo ""
+    check_failed_logins
+    echo ""
+    echo -e "${GREEN}✅ Verificación completada${NC}"
+}
+
+generate_report() {
+    report_file="/var/tmp/security-report-$(date +%Y%m%d-%H%M).txt"
+    
+    {
+        echo "REPORTE DE SEGURIDAD - $(date)"
+        echo "=============================="
+        echo ""
+        full_check
+    } > "$report_file"
+    
+    echo "📄 Reporte generado: $report_file"
+}
+
+case "${1:-full}" in
+    "--quick")
+        quick_check
+        ;;
+    "--report")
+        generate_report
+        ;;
+    "--help")
+        show_help
+        ;;
+    *)
+        full_check
+        ;;
+esac

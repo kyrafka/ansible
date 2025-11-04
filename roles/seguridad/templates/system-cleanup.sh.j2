@@ -1,0 +1,64 @@
+#!/bin/bash
+# Script de limpieza automática del sistema
+
+DRY_RUN=false
+VERBOSE=false
+
+if [[ "$1" == "--dry-run" ]]; then
+    DRY_RUN=true
+    echo "🧪 MODO SIMULACIÓN - No se realizarán cambios"
+fi
+
+if [[ "$1" == "--verbose" || "$2" == "--verbose" ]]; then
+    VERBOSE=true
+fi
+
+log_action() {
+    if $VERBOSE || $DRY_RUN; then
+        echo "  $1"
+    fi
+}
+
+execute_or_simulate() {
+    if $DRY_RUN; then
+        log_action "SIMULAR: $1"
+    else
+        log_action "EJECUTAR: $1"
+        eval "$1"
+    fi
+}
+
+echo "🧹 Iniciando limpieza del sistema..."
+
+# 1. Limpiar logs antiguos
+echo "📋 Limpiando logs antiguos..."
+execute_or_simulate "find /var/log -name '*.log.*' -mtime +30 -delete"
+execute_or_simulate "find /var/log -name '*.gz' -mtime +30 -delete"
+
+# 2. Limpiar archivos temporales
+echo "🗂️  Limpiando archivos temporales..."
+execute_or_simulate "find /tmp -type f -mtime +7 -delete"
+execute_or_simulate "find /var/tmp -type f -mtime +7 -delete"
+
+# 3. Limpiar cache de paquetes
+echo "📦 Limpiando cache de paquetes..."
+execute_or_simulate "apt-get autoremove -y"
+execute_or_simulate "apt-get autoclean"
+
+# 4. Limpiar journald
+echo "📰 Limpiando journald..."
+execute_or_simulate "journalctl --vacuum-time=30d"
+execute_or_simulate "journalctl --vacuum-size=500M"
+
+# 5. Limpiar archivos de core dumps
+echo "💥 Limpiando core dumps..."
+execute_or_simulate "find /var/crash -name '*.crash' -mtime +7 -delete 2>/dev/null || true"
+
+# 6. Estadísticas finales
+if ! $DRY_RUN; then
+    echo ""
+    echo "📊 Espacio liberado:"
+    df -h / | tail -1 | awk '{print "  Disponible: " $4 " (" $5 " usado)"}'
+fi
+
+echo "✅ Limpieza completada"

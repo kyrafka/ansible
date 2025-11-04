@@ -1,0 +1,33 @@
+// Configuración de actualizaciones automáticas para proyecto IPv6
+Unattended-Upgrade::Allowed-Origins {
+    "${distro_id}:${distro_codename}";
+    "${distro_id}:${distro_codename}-security";
+    "${distro_id}ESMApps:${distro_codename}-apps-security";
+    "${distro_id}ESM:${distro_codename}-infra-security";
+};
+
+// Paquetes que NO se deben actualizar automáticamente
+Unattended-Upgrade::Package-Blacklist {
+    // "bind9";  // Descomenta si no quieres actualizar BIND automáticamente
+    // "isc-dhcp-server";  // Descomenta si no quieres actualizar DHCP automáticamente
+};
+
+// Reiniciar automáticamente si es necesario
+Unattended-Upgrade::Automatic-Reboot "false";
+
+// Reiniciar solo si no hay usuarios conectados
+Unattended-Upgrade::Automatic-Reboot-WithUsers "false";
+
+// Hora para reiniciar (si es necesario)
+Unattended-Upgrade::Automatic-Reboot-Time "03:00";
+
+// Enviar email en caso de errores
+Unattended-Upgrade::Mail "root";
+Unattended-Upgrade::MailOnlyOnError "true";
+
+// Limpiar paquetes descargados
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
+
+// Logging detallado
+Unattended-Upgrade::Debug "false";

@@ -8,7 +8,7 @@ virtualbox:
   
   # Red - debe estar en la misma red que ESXi
   network_mode: "bridged"  # Para acceder a la red física
-  network_adapter: "Intel(R) Ethernet Connection"  # Ajustar según tu adaptador
+  network_adapter: "auto"  # Se detecta automáticamente
   
   # Sistema operativo
   iso_path: "ubuntu-24.04.3-desktop-amd64.iso"

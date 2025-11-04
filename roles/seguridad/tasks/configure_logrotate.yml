@@ -1,0 +1,25 @@
+---
+# Configuración de rotación de logs
+
+- name: "Configurar rotación de logs del proyecto"
+  template:
+    src: proyecto-logs.j2
+    dest: /etc/logrotate.d/proyecto-ipv6
+    mode: '0644'
+
+- name: "Verificar configuración de logrotate"
+  command: logrotate -d /etc/logrotate.d/proyecto-ipv6
+  register: logrotate_test
+  changed_when: false
+  failed_when: false
+
+- name: "Mostrar configuración de logs"
+  debug:
+    msg: |
+      📋 Rotación de logs configurada:
+      - Logs de BIND9: rotación semanal, 4 semanas
+      - Logs de DHCP: rotación semanal, 2 semanas  
+      - Logs de fail2ban: rotación diaria, 7 días
+      - Compresión automática habilitada
+      
+      Ejecutar manualmente: logrotate -f /etc/logrotate.conf

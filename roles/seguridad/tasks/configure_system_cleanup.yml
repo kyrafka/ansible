@@ -1,0 +1,48 @@
+---
+# Configuración de limpieza automática del sistema
+
+- name: "Crear script de limpieza del sistema"
+  template:
+    src: system-cleanup.sh.j2
+    dest: /usr/local/bin/system-cleanup.sh
+    mode: '0755'
+
+- name: "Programar limpieza semanal"
+  cron:
+    name: "Limpieza automática del sistema"
+    minute: "0"
+    hour: "3"
+    weekday: "0"
+    job: "/usr/local/bin/system-cleanup.sh"
+    user: root
+
+- name: "Configurar límites de journald"
+  lineinfile:
+    path: /etc/systemd/journald.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    backup: yes
+  loop:
+    - { regexp: '^#?SystemMaxUse=', line: 'SystemMaxUse=500M' }
+    - { regexp: '^#?MaxRetentionSec=', line: 'MaxRetentionSec=1month' }
+  notify: restart systemd-journald
+
+- name: "Ejecutar limpieza inicial"
+  command: /usr/local/bin/system-cleanup.sh --dry-run
+  register: cleanup_initial
+  changed_when: false
+
+- name: "Mostrar configuración de limpieza"
+  debug:
+    msg: |
+      🧹 Limpieza automática configurada:
+      
+      Limpieza semanal (domingos 3:00 AM):
+      - Logs antiguos (>30 días)
+      - Archivos temporales
+      - Cache de paquetes
+      - Journald (máximo 500MB)
+      
+      Ejecutar manualmente:
+      - system-cleanup.sh --dry-run (simular)
+      - system-cleanup.sh (ejecutar)
