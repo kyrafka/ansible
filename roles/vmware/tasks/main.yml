@@ -1,6 +1,6 @@
 ---
 # ==========================================================
-# BLOQUE 1: CREAR Y CONFIGURAR VM EN VMWARE vSphere
+# CREAR VM UBUNTU EN VMWARE vSphere/ESXi
 # ==========================================================
 - name: Verificar si la VM ya existe
   community.vmware.vmware_vm_info:
@@ -13,7 +13,64 @@
   register: vm_info
   failed_when: false
 
-- name: Crear nueva VM Windows
+- name: Mostrar estado de la VM si existe
+  debug:
+    msg: "VM '{{ vmware.vm_name }}' ya existe. Estado: {{ vm_info.virtual_machines[0].power_state | default('unknown') }}"
+  when: vm_info.virtual_machines | length > 0
+
+- name: Verificar si existe clave SSH
+  stat:
+    path: "~/.ssh/id_ed25519.pub"
+  register: ssh_key_exists
+  delegate_to: localhost
+
+- name: Generar clave SSH si no existe
+  openssh_keypair:
+    path: "~/.ssh/id_ed25519"
+    type: ed25519
+    comment: "ansible-ubpc-key"
+  delegate_to: localhost
+  when: not ssh_key_exists.stat.exists
+
+- name: Leer clave SSH pública
+  slurp:
+    src: "~/.ssh/id_ed25519.pub"
+  register: ssh_public_key
+  delegate_to: localhost
+
+- name: Crear user-data personalizado con clave SSH
+  template:
+    src: user-data.j2
+    dest: "/tmp/user-data-{{ vmware.vm_name }}"
+  vars:
+    ssh_authorized_key: "{{ ssh_public_key.content | b64decode | trim }}"
+  delegate_to: localhost
+  when: vm_info.virtual_machines | length == 0
+
+- name: Crear archivo ISO de autoinstall
+  community.general.iso_create:
+    command: genisoimage
+    dest_iso: "/tmp/autoinstall-{{ vmware.vm_name }}.iso"
+    files:
+      - "/tmp/user-data-{{ vmware.vm_name }}"
+      - "{{ role_path }}/files/meta-data"
+    vol_ident: "cidata"
+  delegate_to: localhost
+  when: vm_info.virtual_machines | length == 0
+
+- name: Subir ISO de autoinstall al datastore
+  community.vmware.vsphere_copy:
+    hostname: "{{ vmware.vcenter_hostname }}"
+    username: "{{ vmware.vcenter_username }}"
+    password: "{{ vmware.vcenter_password }}"
+    validate_certs: false
+    src: "/tmp/autoinstall-{{ vmware.vm_name }}.iso"
+    datacenter: "{{ vmware.datacenter }}"
+    datastore: "{{ vmware.datastore }}"
+    path: "autoinstall-{{ vmware.vm_name }}.iso"
+  when: vm_info.virtual_machines | length == 0
+
+- name: Crear nueva VM Ubuntu con autoinstall
   community.vmware.vmware_guest:
     hostname: "{{ vmware.vcenter_hostname }}"
     username: "{{ vmware.vcenter_username }}"
@@ -21,7 +78,6 @@
     port: "{{ vmware.port | default(443) }}"
     validate_certs: false
     name: "{{ vmware.vm_name }}"
-    template: "{{ vmware.template_name | default(omit) }}"
     datacenter: "{{ vmware.datacenter | default('ha-datacenter') }}"
     folder: "{{ vmware.folder | default('/') }}"
     datastore: "{{ vmware.datastore }}"
@@ -44,9 +100,13 @@
         type: iso
         iso_path: "[{{ vmware.datastore }}] {{ vmware.iso_path }}"
         state: present
-    boot_firmware: "{{ vmware.boot_firmware | default('bios') }}"
+      - controller_number: 0
+        unit_number: 1
+        type: iso
+        iso_path: "[{{ vmware.datastore }}] autoinstall-{{ vmware.vm_name }}.iso"
+        state: present
+    boot_firmware: "{{ vmware.boot_firmware | default('efi') }}"
     secure_boot_enabled: "{{ vmware.secure_boot | default(false) }}"
-    virt_based_security: "{{ vmware.secure_boot | default(false) }}"
     state: present
     wait_for_ip_address: false
   when: vm_info.virtual_machines | length == 0
@@ -78,7 +138,30 @@
     state: powered-on
   register: vm_power_on
 
-- name: Esperar a que la VM obtenga IP (opcional)
+- name: Mostrar información de la VM creada
+  debug:
+    msg: |
+      🎉 VM Ubuntu '{{ vmware.vm_name }}' creada exitosamente:
+      
+      📍 Especificaciones:
+      - Nombre: {{ vmware.vm_name }}
+      - SO: Ubuntu 24.04 ({{ vmware.guest_id }})
+      - RAM: {{ vmware.memory }}MB
+      - CPU: {{ vmware.cpus }} core(s)
+      - Disco: {{ (vmware.disk_size_mb / 1024) | int }}GB
+      - Red: {{ vmware.network_name }}
+      
+      🤖 Instalación automática:
+      - ISO Ubuntu: {{ vmware.iso_path }}
+      - Autoinstall: Configurado con cloud-init
+      - Usuario: ubuntu / ubuntu123
+      - SSH: Habilitado automáticamente
+      - Red IPv6: DHCPv6 automático
+      
+      ⏳ La instalación tomará 10-15 minutos automáticamente
+      📋 Próximo paso: Esperar a que obtenga IP y ejecutar configuración
+
+- name: Esperar a que la instalación automática termine y obtenga IP
   community.vmware.vmware_guest_info:
     hostname: "{{ vmware.vcenter_hostname }}"
     username: "{{ vmware.vcenter_username }}"
@@ -89,35 +172,54 @@
   register: vm_facts
   until: vm_facts.instance.ipv4 is defined and vm_facts.instance.ipv4 | length > 0
   retries: 30
-  delay: 10
-  when: vmware.wait_for_ip | default(false)
+  delay: 60
+  when: vmware.wait_for_ip | default(true)
+  ignore_errors: true
 
-- name: Mostrar información de la VM creada
-  ansible.builtin.debug:
-    msg:
-      - "VM '{{ vmware.vm_name }}' creada/configurada exitosamente"
-      - "Estado: {{ vm_facts.instance.hw_power_status | default('unknown') }}"
-      - "IP: {{ vm_facts.instance.ipv4 | default('Pendiente de asignación') }}"
+- name: Esperar a que SSH esté disponible
+  wait_for:
+    host: "{{ vm_facts.instance.ipv4 | first }}"
+    port: 22
+    timeout: 300
+    delay: 30
+  when: 
+    - vm_facts is defined 
+    - vm_facts.instance.ipv4 is defined 
+    - vm_facts.instance.ipv4 | length > 0
+
+- name: Agregar VM al inventario dinámico para configuración automática
+  add_host:
+    name: "{{ vmware.vm_name | lower }}"
+    groups: nueva_vm_ubpc
+    ansible_host: "{{ vm_facts.instance.ipv4 | first }}"
+    ansible_user: "ubuntu"
+    ansible_ssh_private_key_file: "~/.ssh/id_ed25519"
+    ansible_python_interpreter: "/usr/bin/python3"
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+  when: 
+    - vm_facts is defined 
+    - vm_facts.instance.ipv4 is defined 
+    - vm_facts.instance.ipv4 | length > 0
+
+- name: Mostrar resultado final
+  debug:
+    msg: |
+      🎉 ¡VM Ubuntu completamente lista!
+      
+      🌐 IP asignada: {{ vm_facts.instance.ipv4 | default('Pendiente') }}
+      👤 Usuario: ubuntu / ubuntu123
+      🔑 SSH: Habilitado y listo
+      
+      🚀 La VM está lista para configuración automática de servicios
+      ⏭️  Continuando con instalación de servicios IPv6...
   when: vm_facts is defined
 
-# ==========================================================
-# BLOQUE 2: POST-CONFIGURACIÓN DE WINDOWS (INTEGRADO)
-# ==========================================================
-- name: Esperar a que WinRM esté disponible
-  ansible.builtin.wait_for:
-    host: "{{ vm_facts.instance.ipv4 | first }}"
-    port: 5985
-    timeout: 600
-  when: 
-    - vm_facts is defined 
-    - vm_facts.instance.ipv4 is defined 
-    - vm_facts.instance.ipv4 | length > 0
-    - vmware.configure_windows | default(false)
-
-- name: Configurar Windows en la VM recién creada
-  include_tasks: configure_windows.yml
-  when: 
-    - vm_facts is defined 
-    - vm_facts.instance.ipv4 is defined 
-    - vm_facts.instance.ipv4 | length > 0
-    - vmware.configure_windows | default(false)
+- name: Limpiar archivos temporales
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/autoinstall-{{ vmware.vm_name }}.iso"
+    - "/tmp/user-data-{{ vmware.vm_name }}"
+  delegate_to: localhost
+  ignore_errors: true

@@ -1,8 +1,8 @@
 vmware:
   vcenter_hostname: "172.17.25.11"
-  port: 10111
+  port: 443
   vcenter_username: "{{ vault_vcenter_username | default('root') }}"
-  vcenter_password: "{{ vault_vcenter_password | default('qwe123$') }}"
+  vcenter_password: "{{ vault_vcenter_password | default('qwe123') }}"
   datacenter: "ha-datacenter"
   folder: "/"
   datastore: "datastore1"
@@ -19,5 +19,17 @@ vmware:
   boot_firmware: "efi"
   secure_boot: false
 
-  wait_for_ip: false
+  wait_for_ip: true
+  wait_for_ip_timeout: 600
   configure_windows: false
+
+# Configuración específica para la nueva VM UBPC
+ubpc_config:
+  hostname: "ubpc-server"
+  domain: "gamecenter.local"
+  # NO configuramos IP estática - se asigna por DHCPv6
+  # La VM obtendrá IP del rango 2025:db8:10::10 en adelante
+  
+  # Usuario inicial para la VM
+  initial_user: "ubuntu"
+  ssh_key_path: "~/.ssh/id_ed25519.pub"

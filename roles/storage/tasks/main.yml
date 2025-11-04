@@ -14,6 +14,18 @@
   register: df_i
   changed_when: false
 
+- name: Collect LVM information
+  ansible.builtin.shell: |
+    echo "=== LVM Volume Groups ==="
+    vgs 2>/dev/null || echo "No LVM configured"
+    echo ""
+    echo "=== LVM Logical Volumes ==="
+    lvs 2>/dev/null || echo "No logical volumes"
+  register: lvm_info
+  changed_when: false
+  become: true
+  ignore_errors: true
+
 - name: Collect top sizes for watched paths
   ansible.builtin.shell: |
     set -o pipefail
@@ -26,6 +38,19 @@
   register: du_paths
   changed_when: false
   when: storage.watch_paths is defined and storage.watch_paths | length > 0
+
+- name: Check critical partitions usage
+  ansible.builtin.shell: |
+    echo "=== Critical Partitions Usage ==="
+    for mount in / /var /var/log /tmp /home /boot; do
+      if mountpoint -q "$mount" 2>/dev/null; then
+        echo "Partition: $mount"
+        df -h "$mount" | tail -1
+        echo ""
+      fi
+    done
+  register: critical_partitions
+  changed_when: false
 
 - name: Vacuum journald to configured retention
   ansible.builtin.command: >-
@@ -42,12 +67,19 @@
     content: |
       === Ansible Storage Report ===
       Generated: {{ ansible_date_time.iso8601 }}
+      Server: {{ ansible_hostname }}
 
       -- Disk usage (df -h) --
       {{ df_h.stdout }}
 
       -- Inode usage (df -i) --
       {{ df_i.stdout }}
+
+      -- LVM Information --
+      {{ lvm_info.stdout | default('LVM not available') }}
+
+      -- Critical Partitions --
+      {{ critical_partitions.stdout }}
 
       -- Watched paths sizes --
       {% if du_paths is defined %}{{ du_paths.stdout }}{% else %}(no watch_paths defined){% endif %}

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyecto de Sistemas Operativos</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 40px 0;
+        }
+        .header h1 {
+            font-size: 3em;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .header p {
+            font-size: 1.2em;
+            margin: 10px 0;
+            opacity: 0.9;
+        }
+        .services {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+        .service-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .service-card h3 {
+            margin-top: 0;
+            color: #ffd700;
+        }
+        .service-card ul {
+            list-style: none;
+            padding: 0;
+        }
+        .service-card li {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .service-card li:last-child {
+            border-bottom: none;
+        }
+        .info-section {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+        .status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .status.active {
+            background: #4CAF50;
+            color: white;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Proyecto de Sistemas Operativos</h1>
+            <p>Servidor: {{ ansible_hostname }}</p>
+            <p>Sistema: {{ ansible_distribution }} {{ ansible_distribution_version }}</p>
+            <p>Configurado automáticamente con Ansible</p>
+        </div>
+
+        <div class="info-section">
+            <h2>📊 Información del Servidor</h2>
+            <p><strong>Hostname:</strong> {{ ansible_hostname }}</p>
+            <p><strong>Dirección IPv6:</strong> {{ dns_server_ipv6 | default('2001:db8:1::10') }}</p>
+            <p><strong>Dominio:</strong> {{ dns_domain_name | default('gamecenter.local') }}</p>
+            <p><strong>Fecha de configuración:</strong> {{ ansible_date_time.date }}</p>
+            <p><strong>Hora actual:</strong> {{ ansible_date_time.time }}</p>
+        </div>
+
+        <div class="services">
+            <div class="service-card">
+                <h3>🌐 Servicios de Red</h3>
+                <ul>
+                    <li>DNS/BIND <span class="status active">ACTIVO</span></li>
+                    <li>Puerto: 53 (TCP/UDP)</li>
+                    <li>Dominio: {{ dns_domain_name | default('gamecenter.local') }}</li>
+                    <li>Forwarders: 8.8.8.8, 8.8.4.4</li>
+                </ul>
+            </div>
+
+            <div class="service-card">
+                <h3>🔧 Servidor DHCPv6</h3>
+                <ul>
+                    <li>isc-dhcp-server6 <span class="status active">ACTIVO</span></li>
+                    <li>Puerto: 547 (UDP)</li>
+                    <li>Red: {{ network_config.ipv6_network | default('2025:db8:10::/64') }}</li>
+                    <li>Rango: {{ network_config.dhcp_range_start | default('2025:db8:10::10') }} - {{ network_config.dhcp_range_end | default('2025:db8:10::FFFF') }}</li>
+                </ul>
+            </div>
+
+            <div class="service-card">
+                <h3>🌍 Servidor Web</h3>
+                <ul>
+                    <li>Apache2 <span class="status active">ACTIVO</span></li>
+                    <li>Puerto HTTP: {{ web_http_port | default('80') }}</li>
+                    <li>Puerto HTTPS: {{ web_https_port | default('443') }}</li>
+                    <li>Documento raíz: {{ web_document_root | default('/var/www/html') }}</li>
+                </ul>
+            </div>
+
+            <div class="service-card">
+                <h3>🔧 DHCPv6</h3>
+                <ul>
+                    <li>isc-dhcp-server6 <span class="status active">ACTIVO</span></li>
+                    <li>Puerto: 547 (UDP)</li>
+                    <li>Red: {{ networks[0].ipv6_network | default('2001:db8:1::/64') }}</li>
+                    <li>Rango: {{ networks[0].range_start | default('2001:db8:1::10') }} - {{ networks[0].range_end | default('2001:db8:1::FFFF') }}</li>
+                </ul>
+            </div>
+
+            <div class="service-card">
+                <h3>🛡️ Seguridad</h3>
+                <ul>
+                    <li>UFW Firewall <span class="status active">ACTIVO</span></li>
+                    <li>Fail2ban <span class="status active">ACTIVO</span></li>
+                    <li>SSH Rate Limiting <span class="status active">ACTIVO</span></li>
+                    <li>Filtros personalizados <span class="status active">ACTIVO</span></li>
+                </ul>
+            </div>
+
+            <div class="service-card">
+                <h3>📈 Monitoreo</h3>
+                <ul>
+                    <li>Firewall Monitor: <code>fw-monitor</code></li>
+                    <li>Logs de seguridad: <code>/var/log/</code></li>
+                    <li>Reportes automáticos disponibles</li>
+                    <li>Verificación de servicios activa</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>🔗 Enlaces Útiles</h2>
+            <p><a href="/info.php" style="color: #ffd700;">Información del servidor PHP</a></p>
+            <p><strong>DHCPv6:</strong> Asignación automática de IPs IPv6</p>
+            <p><strong>Monitoreo:</strong> Ejecutar <code>fw-monitor</code> en terminal</p>
+        </div>
+
+        <div class="footer">
+            <p>🎯 Proyecto configurado automáticamente con Ansible</p>
+            <p>💡 Para soporte técnico, contactar al administrador del sistema</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,40 @@
+# Archivos sensibles de seguridad
+.vault_pass
+*.pem
+*.key
+*_rsa
+*_ed25519
+*.p12
+*.pfx
+
+# Archivos temporales de Ansible
+*.retry
+.ansible/
+ansible.log
+
+# Archivos de backup
+*~
+*.bak
+*.orig
+*.tmp
+
+# Logs
+*.log
+logs/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de configuración local
+local_config.yml
+override.yml
+
+# Reportes de seguridad
+security_report_*.txt
+
+# Archivos ISO temporales
+/tmp/*.iso
+autoinstall-*.iso
+
+# inventory/production.ini

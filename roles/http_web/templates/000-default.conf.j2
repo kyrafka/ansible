@@ -1,0 +1,57 @@
+<VirtualHost *:{{ web_http_port }}>
+    ServerName {{ web_server_name }}
+    ServerAdmin {{ web_server_admin }}
+    DocumentRoot {{ web_document_root }}
+
+    # Configuración de directorios
+    <Directory {{ web_document_root }}>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # Configuración de logs
+    ErrorLog {{ web_error_log }}
+    CustomLog {{ web_access_log }} combined
+    LogLevel {{ web_log_level }}
+
+    # Configuración de seguridad
+    ServerTokens {{ web_server_tokens }}
+    ServerSignature {{ web_server_signature }}
+
+    # Headers de seguridad
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+
+    # Configuración para IPv6
+    <IfModule mod_rewrite.c>
+        RewriteEngine On
+        # Redirigir HTTP a HTTPS (opcional)
+        # RewriteCond %{HTTPS} off
+        # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    </IfModule>
+
+</VirtualHost>
+
+# Configuración para IPv6
+<VirtualHost [::]:{{ web_http_port }}>
+    ServerName {{ web_server_name }}
+    ServerAdmin {{ web_server_admin }}
+    DocumentRoot {{ web_document_root }}
+
+    # Configuración de directorios
+    <Directory {{ web_document_root }}>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # Configuración de logs
+    ErrorLog {{ web_error_log }}
+    CustomLog {{ web_access_log }} combined
+    LogLevel {{ web_log_level }}
+
+</VirtualHost>

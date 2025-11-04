@@ -47,51 +47,17 @@ win_admin_user: "gamepc1"
 win_admin_password: "{{ vault_win_admin_password }}"
 enable_rdp: true
 
-# Configuración de redes IPv6
-networks:
-  # Red 1 - Switch 1 (Servidor Ubuntu)
-  - name: red1_servidor1
-    ipv6_network: "2001:db8:1::/64"
-    ipv6_gateway: "2001:db8:1::1"
-    range_start: "2001:db8:1::10"     # Primera IP asignable
-    range_end: "2001:db8:1::FFFF"    # Última IP del rango
-    dns_servers: 
-      - "2001:4860:4860::8888"      # Google DNS 1
-      - "2001:4860:4860::8844"      # Google DNS 2
-    domain_name: "red1.local"
-    
-  # Red 2 - Switch 1 (Clientes)
-  - name: red2_switch1
-    ipv6_network: "2001:db8:2::/64"
-    ipv6_gateway: "2001:db8:2::1"
-    range_start: "2001:db8:2::10"
-    range_end: "2001:db8:2::FFFF"
-    dns_servers: 
-      - "2001:4860:4860::8888"
-      - "2001:4860:4860::8844"
-    domain_name: "red2.local"
-
-  # Red 3 - Switch 2 (Servidor 2)
-  - name: red3_servidor2
-    ipv6_network: "2001:db8:3::/64"
-    ipv6_gateway: "2001:db8:3::1"
-    range_start: "2001:db8:3::10"
-    range_end: "2001:db8:3::FFFF"
-    dns_servers: 
-      - "2001:4860:4860::8888"
-      - "2001:4860:4860::8844"
-    domain_name: "red3.local"
-
-  # Red 4 - Switch 2 (Clientes)
-  - name: red4_switch2
-    ipv6_network: "2001:db8:4::/64"
-    ipv6_gateway: "2001:db8:4::1"
-    range_start: "2001:db8:4::10"
-    range_end: "2001:db8:4::FFFF"
-    dns_servers: 
-      - "2001:4860:4860::8888"
-      - "2001:4860:4860::8844"
-    domain_name: "red4.local"
+# Configuración de red IPv6 (CORREGIDA)
+network_config:
+  # Red principal del proyecto
+  ipv6_network: "2025:db8:10::/64"
+  ipv6_gateway: "2025:db8:10::1"
+  dhcp_range_start: "2025:db8:10::10"     # Desde aquí asigna DHCP
+  dhcp_range_end: "2025:db8:10::FFFF"     # Hasta aquí
+  dns_servers: 
+    - "2001:4860:4860::8888"              # Google DNS IPv6
+    - "2001:4860:4860::8844"
+  domain_name: "gamecenter.local"
 
 # Configuración del servidor DHCPv6
 dhcp6_config:
@@ -146,13 +112,16 @@ virtualbox:
 # en  `group_vars/ubpc.yml` ps
 
 servicios_necesarios:
-  - ssh                  # Acceso remoto seguro por consola (SSH)
-  - cron                 # Programador de tareas en segundo plano (CRONnnn)
-  - NetworkManager       # Gestor de interfaces y configuración de red
-  - isc-dhcp-server6     # Servidor DHCPv6: asigna direcciones IPv6 a clientes
-  - radvd                # Prefijos y gateway IPv6
-  - systemd-timesyncd    # Sincronización de hora del sistema (NTP ligero)
-  - rsyslog              # Recolección y almacenamiento de logs del sistema
+  - ssh                  # Acceso remoto seguro
+  - cron                 # Programador de tareas
+  - NetworkManager       # Gestor de red
+  - isc-dhcp-server6     # Servidor DHCPv6
+  - systemd-timesyncd    # Sincronización de hora
+  - rsyslog              # Logs del sistema
+  - bind9                # Servidor DNS
+  - apache2              # Servidor web HTTP
+  - fail2ban             # Protección contra ataques
+  - ufw                  # Firewall
 
 # almacenamiento/monitoreo
 storage:
@@ -162,12 +131,24 @@ storage:
   inode_usage_critical: 95
   watch_paths:
     - /var/log
-    - /opt/game_servers
+    - /var
     - /tmp
     - /home
+    - /boot
+    - /etc
   journald_retention_days: 30
   syslog_retention_days: 14
   dhcp_log_retention_days: 7
+  
+  # Configuración específica para particiones LVM
+  lvm_monitoring: true
+  critical_partitions:
+    - "/"
+    - "/var"
+    - "/var/log"
+    - "/tmp"
+    - "/home"
+    - "/boot"
 
 # mantenimiento Windows programado
 windows_maintenance:
@@ -184,3 +165,15 @@ windows_maintenance:
   reboot:
     frequency: Daily
     time: '05:00'
+
+# Configuración DNS
+dns_domain_name: "{{ network_config.domain_name }}"
+dns_forwarders:
+  - "8.8.8.8"
+  - "8.8.4.4"
+  - "2001:4860:4860::8888"
+  - "2001:4860:4860::8844"
+
+# Configuración Web
+web_document_root: "/var/www/html"
+web_http_port: 80

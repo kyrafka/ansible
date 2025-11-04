@@ -1,0 +1,17 @@
+---
+# Handlers para firewall
+
+- name: restart fail2ban
+  systemd:
+    name: fail2ban
+    state: restarted
+
+- name: reload fail2ban
+  systemd:
+    name: fail2ban
+    state: reloaded
+
+- name: restart ufw
+  systemd:
+    name: ufw
+    state: restarted

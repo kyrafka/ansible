@@ -1,9 +1,119 @@
-- name: Crear VM Ubuntu UBPC en ESXi
-  hosts: localhost
+---
+# Playbook para crear y configurar completamente la VM UBPC
+
+- name: "PASO 1: Crear VM UBPC en VMware vSphere"
+  hosts: vmware_servers
+  connection: local
   gather_facts: false
-  collections:
-    - community.vmware
   vars_files:
     - ../group_vars/ubpc.yml
+  tasks:
+    - name: Crear VM UBPC en ESXi
+      include_role:
+        name: vmware
+      tags: create_vm
+
+    - name: Esperar a que la VM obtenga IP
+      pause:
+        seconds: 60
+        prompt: "Esperando a que la VM UBPC arranque y obtenga IP..."
+      tags: wait_ip
+
+    - name: Obtener información de la VM creada
+      community.vmware.vmware_guest_info:
+        hostname: "{{ vmware.vcenter_hostname }}"
+        username: "{{ vmware.vcenter_username }}"
+        password: "{{ vmware.vcenter_password }}"
+        datacenter: "{{ vmware.datacenter }}"
+        name: "{{ vmware.vm_name }}"
+        validate_certs: false
+      register: vm_info
+      tags: get_vm_info
+
+    - name: Mostrar información de la VM
+      debug:
+        msg: |
+          VM creada exitosamente:
+          - Nombre: {{ vm_info.instance.hw_name }}
+          - Estado: {{ vm_info.instance.hw_power_status }}
+          - IP: {{ vm_info.instance.ipv4 | default('Pendiente') }}
+      tags: show_info
+
+    - name: Agregar VM al inventario dinámico
+      add_host:
+        name: "{{ vmware.vm_name | lower }}"
+        groups: nueva_vm_ubpc
+        ansible_host: "{{ vm_info.instance.ipv4 | default('2025:db8:10::10') }}"
+        ansible_user: "{{ ubpc_config.initial_user }}"
+        ansible_ssh_private_key_file: "~/.ssh/id_ed25519"
+        ansible_python_interpreter: "/usr/bin/python3"
+        ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+      when: vm_info.instance.ipv4 is defined
+      tags: add_to_inventory
+
+- name: "PASO 2: Configurar servicios completos en VM UBPC"
+  hosts: nueva_vm_ubpc
+  become: true
+  gather_facts: true
+  # La VM obtendrá IP automáticamente por DHCPv6
+  pre_tasks:
+    - name: Esperar a que SSH esté disponible
+      wait_for_connection:
+        timeout: 300
+        delay: 10
+      tags: wait_ssh
+
+    - name: Actualizar cache de paquetes
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+      tags: update_cache
+
   roles:
-    - role: ../roles/vmware
+    - role: common
+      tags: common
+    - role: dns_bind
+      tags: dns
+    - role: dhcpv6
+      tags: dhcp
+    - role: http_web
+      tags: web
+    - role: firewall
+      tags: firewall
+    - role: procesos
+      tags: services
+    - role: storage
+      tags: storage
+
+  post_tasks:
+    - name: Verificar servicios instalados
+      service_facts:
+      tags: verify
+
+    - name: Mostrar resumen de servicios
+      debug:
+        msg: |
+          🎉 VM UBPC configurada exitosamente:
+          
+          📍 Información de red:
+          - Hostname: {{ ansible_hostname }}
+          - Red: 2025:db8:10::/64
+          - IP: Asignada por DHCPv6 (desde 2025:db8:10::10)
+          - Dominio: {{ ubpc_config.domain }}
+          
+          🌐 Servicios disponibles:
+          - DNS (BIND9): puerto 53
+          - Web (Apache2): puerto 80
+          - DHCPv6: puerto 547
+          - SSH: puerto 22
+          
+          🔒 Seguridad:
+          - Firewall UFW: {{ ansible_facts.services['ufw.service'].state | default('unknown') }}
+          - Fail2ban: {{ ansible_facts.services['fail2ban.service'].state | default('unknown') }}
+          
+          📊 Acceso:
+          - Web: http://[IP_asignada_por_DHCP]
+          - SSH: ssh ubuntu@[IP_asignada_por_DHCP]
+          
+          💡 Para ver la IP asignada: ip -6 addr show
+      tags: summary

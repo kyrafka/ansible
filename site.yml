@@ -1,44 +1,52 @@
-- name: Validar variables críticas
+---
+# Playbook principal para configurar servicios IPv6
+# Red: 2025:db8:10::/64
+# Servidor: 2025:db8:10::2 (IP ya asignada por DHCP)
+
+- name: Mostrar información de la configuración
   hosts: all
   gather_facts: false
   tasks:
-    - name: Verificar que vault_win_admin_password esté definida
-      ansible.builtin.assert:
-        that:
-          - vault_win_admin_password is defined
-          - vault_win_admin_password | length > 0
-        fail_msg: "vault_win_admin_password no está definida en el vault"
-        success_msg: "Credenciales del vault verificadas"
-      when: "'windows_vms' in group_names or 'vmware_host' in group_names"
+    - name: Información de red IPv6
+      debug:
+        msg: |
+          🌐 Configuración de red:
+          - Red: {{ network_config.ipv6_network }}
+          - Gateway: {{ network_config.ipv6_gateway }}
+          - DHCP desde: {{ network_config.dhcp_range_start }}
+          - Dominio: {{ network_config.domain_name }}
 
-- name: Configurar red IPv6 en servidor Ubuntu
-  hosts: ubuntu_server
-  become: true
-  vars:
-    network_ipv6_interface: "ens33"
-    network_ipv6_address: "2001:db8:1::10"
-    network_ipv6_netmask: "64"
-    network_ipv6_gateway: "2001:db8:1::1"
-    network_ipv6_dns_servers:
-      - "2001:4860:4860::8888"
-      - "2001:4860:4860::8844"
-    network_ipv6_domain: "localdomain"
-  roles:
-    - role: network_ipv6
-
-- name: Configurar ajustes comunes y DHCP en servidor Ubuntu
-  hosts: ubuntu_server
+- name: Configurar servicios completos en servidor Ubuntu
+  hosts: servidores_ubuntu
   become: true
   roles:
     - role: common
+    - role: dns_bind
     - role: dhcpv6
+    - role: http_web
+    - role: firewall
     - role: procesos
     - role: storage
-    - role: firewall
 
-- name: Crear VM Ubuntu en VMware vSphere
-  hosts: vmware_host
+- name: Crear VM Ubuntu en VMware ESXi
+  hosts: vmware_servers
   connection: local
   gather_facts: false
+  vars_files:
+    - group_vars/ubpc.yml
   roles:
     - role: vmware
+  tags: create_vm
+
+- name: Configurar servicios en nueva VM UBPC (después de instalación manual)
+  hosts: nueva_vm_ubpc
+  become: true
+  roles:
+    - role: common
+    - role: dns_bind
+    - role: dhcpv6
+    - role: http_web
+    - role: firewall
+    - role: procesos
+    - role: storage
+  tags: configure_vm

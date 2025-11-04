@@ -1,0 +1,28 @@
+$TTL    604800
+@       IN      SOA     {{ dns_domain_name }}. admin.{{ dns_domain_name }}. (
+                     {{ ansible_date_time.epoch }}         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+
+; Servidores de nombres
+@       IN      NS      servidor.{{ dns_domain_name }}.
+
+; Registros AAAA (IPv6)
+{% for record in dns_records %}
+{% if record.type == 'AAAA' %}
+{{ record.name }}    IN      AAAA    {{ record.value }}
+{% endif %}
+{% endfor %}
+
+; Registros CNAME
+{% for record in dns_records %}
+{% if record.type == 'CNAME' %}
+{{ record.name }}    IN      CNAME   {{ record.value }}.{{ dns_domain_name }}.
+{% endif %}
+{% endfor %}
+
+; Registros adicionales para servicios
+dhcp     IN      AAAA    {{ dns_server_ipv6 }}
+router   IN      AAAA    {{ dns_server_ipv6 }}

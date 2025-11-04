@@ -1,0 +1,17 @@
+---
+# Handlers para DNS/BIND
+
+- name: restart bind9
+  systemd:
+    name: bind9
+    state: restarted
+
+- name: reload bind9
+  systemd:
+    name: bind9
+    state: reloaded
+
+- name: restart systemd-resolved
+  systemd:
+    name: systemd-resolved
+    state: restarted

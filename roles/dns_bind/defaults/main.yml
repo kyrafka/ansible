@@ -1,0 +1,37 @@
+---
+# Variables por defecto para DNS/BIND
+
+# Configuración del dominio
+dns_domain_name: "gamecenter.local"
+dns_ipv6_reverse_zone: "1.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa"
+
+# Servidores DNS externos (forwarders)
+dns_forwarders:
+  - "8.8.8.8"
+  - "8.8.4.4"
+  - "2001:4860:4860::8888"
+  - "2001:4860:4860::8844"
+
+# Configuración de la red (CORREGIDA)
+dns_network_ipv6: "{{ network_config.ipv6_network }}"
+dns_ipv6_reverse_zone: "0.1.0.0.8.b.d.0.5.2.0.2.ip6.arpa"  # Para 2025:db8:10::/64
+
+# Registros DNS básicos
+dns_records:
+  - name: "servidor"
+    type: "AAAA" 
+    value: "2025:db8:10::2"  # IP del servidor Ubuntu existente
+  - name: "ubpc"
+    type: "AAAA"
+    value: "2025:db8:10::10"  # Primera IP asignable para UBPC
+  - name: "www"
+    type: "CNAME"
+    value: "servidor"
+  - name: "dns"
+    type: "CNAME"
+    value: "servidor"
+
+# Configuración de logging
+dns_log_queries: true
+dns_log_level: "info"
+dns_log_file: "/var/log/named/query.log"

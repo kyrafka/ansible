@@ -1,0 +1,221 @@
+#cloud-config
+autoinstall:
+  version: 1
+  
+  # Configuración de red automática (DHCPv6)
+  network:
+    version: 2
+    ethernets:
+      ens160:
+        dhcp6: true
+        accept-ra: true
+        dhcp4: true  # También IPv4 por si acaso
+  
+  # Configuración de usuario
+  identity:
+    hostname: ubpc-server
+    username: {{ vault_ubuntu_user }}
+    password: '{{ vault_ubuntu_password | password_hash("sha512", "randomsalt") }}'
+    realname: Ubuntu User
+  
+  # SSH habilitado con clave pública
+  ssh:
+    install-server: true
+    allow-pw: true
+    disable_root: false
+    authorized-keys:
+      - {{ ssh_authorized_key }}
+  
+  # Configuración de particiones para servidor
+  storage:
+    layout:
+      name: custom
+    config:
+      # Disco principal
+      - type: disk
+        id: disk0
+        match:
+          size: largest
+        wipe: superblock-recursive
+        preserve: false
+        grub_device: false
+        
+      # Partición EFI (512MB)
+      - type: partition
+        id: efi-partition
+        device: disk0
+        size: 512MB
+        wipe: superblock
+        flag: boot
+        number: 1
+        preserve: false
+        grub_device: false
+        
+      # Partición /boot (1GB)
+      - type: partition
+        id: boot-partition
+        device: disk0
+        size: 1GB
+        wipe: superblock
+        number: 2
+        preserve: false
+        grub_device: false
+        
+      # Partición LVM (resto del disco)
+      - type: partition
+        id: lvm-partition
+        device: disk0
+        size: -1
+        wipe: superblock
+        number: 3
+        preserve: false
+        grub_device: false
+        
+      # Grupo de volúmenes LVM
+      - type: lvm_volgroup
+        id: vg0
+        name: vg0
+        devices: [lvm-partition]
+        preserve: false
+        
+      # Volumen lógico para / (8GB)
+      - type: lvm_partition
+        id: lv-root
+        volgroup: vg0
+        name: root
+        size: 8GB
+        preserve: false
+        
+      # Volumen lógico para /var (4GB)
+      - type: lvm_partition
+        id: lv-var
+        volgroup: vg0
+        name: var
+        size: 4GB
+        preserve: false
+        
+      # Volumen lógico para /var/log (2GB)
+      - type: lvm_partition
+        id: lv-varlog
+        volgroup: vg0
+        name: varlog
+        size: 2GB
+        preserve: false
+        
+      # Volumen lógico para /tmp (1GB)
+      - type: lvm_partition
+        id: lv-tmp
+        volgroup: vg0
+        name: tmp
+        size: 1GB
+        preserve: false
+        
+      # Volumen lógico para /home (resto)
+      - type: lvm_partition
+        id: lv-home
+        volgroup: vg0
+        name: home
+        size: -1
+        preserve: false
+        
+      # Sistemas de archivos
+      - type: format
+        id: efi-format
+        volume: efi-partition
+        fstype: fat32
+        preserve: false
+        
+      - type: format
+        id: boot-format
+        volume: boot-partition
+        fstype: ext4
+        preserve: false
+        
+      - type: format
+        id: root-format
+        volume: lv-root
+        fstype: ext4
+        preserve: false
+        
+      - type: format
+        id: var-format
+        volume: lv-var
+        fstype: ext4
+        preserve: false
+        
+      - type: format
+        id: varlog-format
+        volume: lv-varlog
+        fstype: ext4
+        preserve: false
+        
+      - type: format
+        id: tmp-format
+        volume: lv-tmp
+        fstype: ext4
+        preserve: false
+        
+      - type: format
+        id: home-format
+        volume: lv-home
+        fstype: ext4
+        preserve: false
+        
+      # Puntos de montaje
+      - type: mount
+        id: efi-mount
+        device: efi-format
+        path: /boot/efi
+        
+      - type: mount
+        id: boot-mount
+        device: boot-format
+        path: /boot
+        
+      - type: mount
+        id: root-mount
+        device: root-format
+        path: /
+        
+      - type: mount
+        id: var-mount
+        device: var-format
+        path: /var
+        
+      - type: mount
+        id: varlog-mount
+        device: varlog-format
+        path: /var/log
+        
+      - type: mount
+        id: tmp-mount
+        device: tmp-format
+        path: /tmp
+        options: 'defaults,nodev,nosuid,noexec'
+        
+      - type: mount
+        id: home-mount
+        device: home-format
+        path: /home
+  
+  # Paquetes esenciales para Ansible
+  packages:
+    - openssh-server
+    - python3
+    - python3-pip
+    - curl
+    - wget
+    - net-tools
+    - iputils-ping
+    - sudo
+  
+  # Comandos post-instalación
+  late-commands:
+    - 'echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /target/etc/sudoers.d/ubuntu'
+    - 'chmod 440 /target/etc/sudoers.d/ubuntu'
+    - 'chroot /target systemctl enable ssh'
+    - 'chroot /target systemctl enable systemd-networkd'
+    - 'chroot /target systemctl enable systemd-resolved'
+  
+  # Reiniciar después de instalación
+  shutdown: reboot

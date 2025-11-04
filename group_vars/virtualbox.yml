@@ -1,0 +1,27 @@
+# Configuración para VirtualBox local
+virtualbox:
+  # Configuración de la VM local desde donde ejecutar Ansible
+  vm_name: "ansible-controller"
+  memory: 2048
+  cpus: 2
+  disk_size: 20480
+  
+  # Red - debe estar en la misma red que ESXi
+  network_mode: "bridged"  # Para acceder a la red física
+  network_adapter: "Intel(R) Ethernet Connection"  # Ajustar según tu adaptador
+  
+  # Sistema operativo
+  iso_path: "ubuntu-24.04.3-desktop-amd64.iso"
+  guest_os: "Ubuntu_64"
+
+# Configuración de red para la VM local
+local_network:
+  # Red física donde está ESXi
+  network_range: "172.17.25.0/24"
+  gateway: "172.17.25.1"
+  dns_servers:
+    - "8.8.8.8"
+    - "8.8.4.4"
+  
+  # IP que debería obtener tu VM local (DHCP o estática)
+  expected_ip_range: "172.17.25.100-172.17.25.200"
