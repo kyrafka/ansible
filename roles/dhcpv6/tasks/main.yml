@@ -38,9 +38,3 @@
     name: isc-dhcp6-server
     state: started
     enabled: yes
-
-# Handlers
-- name: restart isc-dhcp6-server
-  service:
-    name: isc-dhcp6-server
-    state: restarted
