@@ -8,6 +8,7 @@ users:
   - name: gamer01
     state: present
     primary_group: pcgamers
+    groups: [pcgamers]
     shell: /bin/bash
     
   - name: steam_epic_svc
