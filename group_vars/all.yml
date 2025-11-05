@@ -113,11 +113,10 @@ virtualbox:
 servicios_necesarios:
   - ssh                  # Acceso remoto seguro
   - cron                 # Programador de tareas
-  - NetworkManager       # Gestor de red
-  - isc-dhcp-server6     # Servidor DHCPv6
   - systemd-timesyncd    # Sincronización de hora
   - rsyslog              # Logs del sistema
   - bind9                # Servidor DNS
+  - isc-dhcp-server      # Servidor DHCP (IPv4/IPv6)
   - fail2ban             # Protección contra ataques
   - ufw                  # Firewall
 
@@ -197,6 +196,7 @@ windows_maintenance:
 
 # Configuración DNS
 dns_domain_name: "{{ network_config.domain_name }}"
+dns_ipv6_reverse_zone: "0.1.0.8.b.d.5.2.0.2.ip6.arpa"
 dns_forwarders:
   - "8.8.8.8"
   - "8.8.4.4"
