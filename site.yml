@@ -1,7 +1,7 @@
 ---
 # Playbook principal para configurar servicios IPv6
 # Red: 2025:db8:10::/64
-# nota importante - 2025:db8:10::2 
+# Nota importante - 2025:db8:10::2 
 
 - name: Mostrar información de la configuración
   hosts: all
@@ -10,11 +10,11 @@
     - name: Información de red IPv6
       debug:
         msg: |
-           Configuración de red:
-          - Red: "{{ network_config.ipv6_network }}"
-          - Gateway: "{{ network_config.ipv6_gateway }}"
-          - DHCP desde: "{{ network_config.dhcp_range_start }}"
-          - Dominio: "{{ network_config.domain_name }}"
+          Configuración de red:
+            - Red: "{{ network_config.ipv6_network }}"
+            - Gateway: "{{ network_config.ipv6_gateway }}"
+            - DHCP desde: "{{ network_config.dhcp_range_start }}"
+            - Dominio: "{{ network_config.domain_name }}"
 
 - name: Configurar servicios completos en servidor Ubuntu
   hosts: servidores_ubuntu
