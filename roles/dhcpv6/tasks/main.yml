@@ -1,11 +1,10 @@
 ---
-- name: Instalar ISC DHCPv6 Server
+- name: Instalar ISC DHCP Server
   apt:
     name: isc-dhcp-server
     state: present
     update_cache: yes
 
-# Configurar interfaz para DHCPv6
 - name: Configurar interfaz para DHCPv6
   lineinfile:
     path: /etc/default/isc-dhcp-server
@@ -14,7 +13,6 @@
     create: yes
   notify: restart isc-dhcp-server
 
-# Configurar archivo principal DHCPv6
 - name: Configurar DHCPv6
   template:
     src: dhcpd6.conf.j2
@@ -24,7 +22,6 @@
     mode: '0644'
   notify: restart isc-dhcp-server
 
-# Habilitar IPv6 forwarding
 - name: Habilitar IPv6 forwarding
   sysctl:
     name: net.ipv6.conf.all.forwarding
@@ -32,7 +29,6 @@
     state: present
     reload: yes
 
-# Asegurar que el servicio DHCPv6 esté habilitado y activo
 - name: Asegurar que el servicio isc-dhcp-server esté habilitado y en ejecución
   service:
     name: isc-dhcp-server

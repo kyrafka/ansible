@@ -5,20 +5,9 @@ option dhcp6.domain-name "{{ network_config.domain_name }}";
 
 # Configuración de la red principal
 subnet6 {{ network_config.ipv6_network }} {
-    # Rango de direcciones asignables
     range6 {{ network_config.dhcp_range_start }} {{ network_config.dhcp_range_end }};
-
-    # Configuración DNS
     option dhcp6.name-servers {{ network_config.ipv6_gateway }};
     option dhcp6.domain-name "{{ network_config.domain_name }}";
-
-    # Otras opciones
     option dhcp6.preference 255;
     option dhcp6.rapid-commit;
 }
-
-# Ejemplo de host estático (opcional)
-# host servidor1 {
-#     host-identifier option dhcp6.client-id 00:01:00:01:27:71:4e:a1:00:0c:29:2c:9c:27;
-#     fixed-address6 2025:db8:10::10;
-# }
