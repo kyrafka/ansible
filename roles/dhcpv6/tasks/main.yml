@@ -14,14 +14,13 @@
     mode: '0644'
 
 - name: Configurar interfaces para DHCP
-  lineinfile:
-    path: /etc/default/isc-dhcp-server
-    regexp: "{{ item.regexp }}"
-    line: "{{ item.line }}"
-    create: yes
-  loop:
-    - { regexp: '^INTERFACESv4=', line: 'INTERFACESv4=""' }
-    - { regexp: '^INTERFACESv6=', line: 'INTERFACESv6="ens34"' }
+  template:
+    src: isc-dhcp-server.j2
+    dest: /etc/default/isc-dhcp-server
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
   notify: restart isc-dhcp-server
 
 - name: Configurar DHCPv6
@@ -40,8 +39,15 @@
     state: present
     reload: yes
 
-- name: Asegurar que el servicio isc-dhcp-server esté habilitado y en ejecución
+- name: Deshabilitar servicio IPv4 si existe
   service:
     name: isc-dhcp-server
+    state: stopped
+    enabled: no
+  ignore_errors: yes
+
+- name: Asegurar que el servicio isc-dhcp-server6 esté habilitado y en ejecución
+  service:
+    name: isc-dhcp-server6
     state: started
     enabled: yes

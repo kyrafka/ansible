@@ -19,7 +19,7 @@
       - dnsutils
     state: present
   retries: 3
-  delay: 10
+  dela
 
 - name: "Crear directorio para zonas DNS"
   file:
