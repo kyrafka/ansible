@@ -3,7 +3,6 @@
 
 # Configuración del dominio
 dns_domain_name: "gamecenter.local"
-dns_ipv6_reverse_zone: "1.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa"
 
 # Servidores DNS externos (forwarders)
 dns_forwarders:
@@ -12,9 +11,9 @@ dns_forwarders:
   - "2001:4860:4860::8888"
   - "2001:4860:4860::8844"
 
-# Configuración de la red (CORREGIDA)
+# Configuración de la red
 dns_network_ipv6: "{{ network_config.ipv6_network }}"
-dns_ipv6_reverse_zone: "0.1.0.0.8.b.d.0.5.2.0.2.ip6.arpa"  # Para 2025:db8:10::/64
+dns_ipv6_reverse_zone: "0.1.0.8.b.d.5.2.0.2.ip6.arpa"  # Para 2025:db8:10::/64
 
 # Registros DNS básicos
 dns_records:
