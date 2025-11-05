@@ -24,5 +24,5 @@ $TTL    604800
 {% endfor %}
 
 ; Registros adicionales para servicios
-dhcp     IN      AAAA    {{ dns_server_ipv6 }}
-router   IN      AAAA    {{ dns_server_ipv6 }}
+dhcp     IN      AAAA    {{ network_config.ipv6_gateway }}
+router   IN      AAAA    {{ network_config.ipv6_gateway }}

@@ -1,0 +1,13 @@
+/var/log/named/*.log {
+    daily
+    missingok
+    rotate {{ storage.dns_log_retention_days | default(14) }}
+    compress
+    delaycompress
+    notifempty
+    create 0644 bind bind
+    sharedscripts
+    postrotate
+        /usr/sbin/rndc reload > /dev/null 2>&1 || true
+    endscript
+}

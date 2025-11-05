@@ -1,0 +1,18 @@
+$TTL    604800
+@       IN      SOA     ns1.{{ dns_domain_name }}. admin.{{ dns_domain_name }}. (
+                              2         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+@       IN      NS      ns1.{{ dns_domain_name }}.
+
+; Zona inversa IPv6 para {{ dns_network_ipv6 }}
+; Formato: últimos dígitos de la IP en orden inverso
+
+; 2025:db8:10::2 (servidor)
+2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0    IN    PTR    servidor.{{ dns_domain_name }}.
+
+; 2025:db8:10::10 (ubpc)
+0.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0    IN    PTR    ubpc.{{ dns_domain_name }}.
