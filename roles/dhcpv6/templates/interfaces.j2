@@ -1,32 +1,16 @@
-# Configuración de interfaces de red
-# La interfaz de gestión (ens33) - Conectada a la red de gestión
-auto ens33
-iface ens33 inet6 static
-    address {{ networks[0].ipv6_network | regex_replace('/64$', '') }}10/64
-    gateway {{ networks[0].ipv6_gateway }}
-    dns-nameservers {{ networks[0].dns_servers | join(' ') }}
-    dns-search {{ networks[0].domain_name }}
-
-# Interfaz para la red de clientes (ens34) - Conectada al switch 1
-auto ens34
-iface ens34 inet6 static
-    address {{ networks[1].ipv6_network | regex_replace('/64$', '') }}10/64
-    dns-nameservers {{ networks[1].dns_servers | join(' ') }}
-    dns-search {{ networks[1].domain_name }}
-
-# Interfaz para la red del servidor 2 (ens35) - Conectada al switch 2
-auto ens35
-iface ens35 inet6 static
-    address {{ networks[2].ipv6_network | regex_replace('/64$', '') }}10/64
-    dns-nameservers {{ networks[2].dns_servers | join(' ') }}
-    dns-search {{ networks[2].domain_name }}
-
-# Interfaz para la red de clientes del switch 2 (ens36)
-auto ens36
-iface ens36 inet6 static
-    address {{ networks[3].ipv6_network | regex_replace('/64$', '') }}10/64
-    dns-nameservers {{ networks[3].dns_servers | join(' ') }}
-    dns-search {{ networks[3].domain_name }}
-
-# Configuración de IPv6
-iface lo inet6 loopback
+# Configuración de red IPv6 para Game Center
+network:
+  version: 2
+  ethernets:
+    ens160:
+      dhcp4: true
+      dhcp6: true
+      accept-ra: true
+      addresses:
+        - 2025:db8:10::2/64
+      gateway6: 2025:db8:10::1
+      nameservers:
+        addresses:
+          - 2025:db8:10::1
+        search:
+          - gamecenter.local

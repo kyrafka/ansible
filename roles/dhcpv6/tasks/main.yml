@@ -4,17 +4,7 @@
     name: isc-dhcp-server
     state: present
 
-- name: Crear directorio de configuración de red
-  file:
-    path: /etc/network/interfaces.d
-    state: directory
-    mode: '0755'
-
-- name: Configurar interfaces de red
-  template:
-    src: interfaces.j2
-    dest: /etc/network/interfaces.d/50-cloud-init.cfg
-  notify: restart networking
+# Red ya configurada - solo DHCPv6
 
 - name: Configurar DHCPv6
   template:

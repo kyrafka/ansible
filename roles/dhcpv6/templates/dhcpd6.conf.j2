@@ -1,16 +1,16 @@
 # Configuración global de DHCPv6
-default-lease-time {{ dhcp6_config.default_lease_time | default(600) }};
-max-lease-time {{ dhcp6_config.max_lease_time | default(7200) }};
-option dhcp6.domain-name "{{ network_config.domain_name }}";
+default-lease-time 600;
+max-lease-time 7200;
+option dhcp6.domain-name "gamecenter.local";
 
 # Configuración de la red principal
-subnet6 {{ network_config.ipv6_network }} {
+subnet6 2025:db8:10::/64 {
     # Rango de direcciones asignables (desde ::10 en adelante)
-    range6 {{ network_config.dhcp_range_start }} {{ network_config.dhcp_range_end }};
+    range6 2025:db8:10::10 2025:db8:10::FFFF;
 
     # Configuración DNS
-    option dhcp6.name-servers {{ network_config.dns_servers | join(', ') }};
-    option dhcp6.domain-name "{{ network_config.domain_name }}";
+    option dhcp6.name-servers 2025:db8:10::1;
+    option dhcp6.domain-name "gamecenter.local";
 
     # Otras opciones
     option dhcp6.preference 255;
