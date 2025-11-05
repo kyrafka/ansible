@@ -6,6 +6,14 @@
 
 # Red ya configurada - solo DHCPv6
 
+- name: Configurar interfaz para DHCPv6
+  lineinfile:
+    path: /etc/default/isc-dhcp-server
+    regexp: '^INTERFACESv6='
+    line: 'INTERFACESv6="ens34"'
+    create: yes
+  notify: restart isc-dhcp-server
+
 - name: Configurar DHCPv6
   template:
     src: dhcpd6.conf.j2

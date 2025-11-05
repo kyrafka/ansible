@@ -64,8 +64,6 @@ network_config:
 dhcp6_config:
   default_lease_time: 600
   max_lease_time: 7200
-  domain_name_servers: "{{ networks[0].dns_servers | join(',') }}"
-  domain_name: "{{ networks[0].domain_name }}"
 
 # Configuración para bertvv.radvd role
 radvd_interfaces:
