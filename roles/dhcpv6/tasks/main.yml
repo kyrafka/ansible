@@ -5,10 +5,10 @@
     state: present
     update_cache: yes
 
-- name: Crear archivo dhcpd.conf vacío para IPv4
-  file:
-    path: /etc/dhcp/dhcpd.conf
-    state: touch
+- name: Crear archivo dhcpd.conf mínimo para IPv4
+  template:
+    src: dhcpd.conf.j2
+    dest: /etc/dhcp/dhcpd.conf
     owner: root
     group: root
     mode: '0644'
@@ -39,15 +39,8 @@
     state: present
     reload: yes
 
-- name: Deshabilitar servicio IPv4 si existe
+- name: Asegurar que el servicio isc-dhcp-server esté habilitado y en ejecución
   service:
     name: isc-dhcp-server
-    state: stopped
-    enabled: no
-  ignore_errors: yes
-
-- name: Asegurar que el servicio isc-dhcp-server6 esté habilitado y en ejecución
-  service:
-    name: isc-dhcp-server6
     state: started
     enabled: yes
