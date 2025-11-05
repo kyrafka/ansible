@@ -21,7 +21,7 @@
     group: root
     mode: '0644'
     backup: yes
-  notify: restart isc-dhcp-server
+  notify: restart isc-dhcp-server6
 
 - name: Configurar DHCPv6
   template:
@@ -30,7 +30,7 @@
     owner: root
     group: root
     mode: '0644'
-  notify: restart isc-dhcp-server
+  notify: restart isc-dhcp-server6
 
 - name: Habilitar IPv6 forwarding
   sysctl:
@@ -39,8 +39,8 @@
     state: present
     reload: yes
 
-- name: Asegurar que el servicio isc-dhcp-server esté habilitado y en ejecución
+- name: Asegurar que el servicio isc-dhcp-server6 esté habilitado y en ejecución
   service:
-    name: isc-dhcp-server
+    name: isc-dhcp-server6
     state: started
     enabled: yes
