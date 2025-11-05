@@ -1,0 +1,14 @@
+---
+# Handlers para el rol common
+
+- name: restart rsyslog
+  systemd:
+    name: rsyslog
+    state: restarted
+  listen: restart rsyslog
+
+- name: reload rsyslog
+  systemd:
+    name: rsyslog
+    state: reloaded
+  listen: reload rsyslog

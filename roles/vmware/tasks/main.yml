@@ -141,9 +141,9 @@
 - name: Mostrar información de la VM creada
   debug:
     msg: |
-      🎉 VM Ubuntu '{{ vmware.vm_name }}' creada exitosamente:
+       VM Ubuntu '{{ vmware.vm_name }}' creada exitosamente:
       
-      📍 Especificaciones:
+       Especificaciones:
       - Nombre: {{ vmware.vm_name }}
       - SO: Ubuntu 24.04 ({{ vmware.guest_id }})
       - RAM: {{ vmware.memory }}MB
@@ -151,15 +151,15 @@
       - Disco: {{ (vmware.disk_size_mb / 1024) | int }}GB
       - Red: {{ vmware.network_name }}
       
-      🤖 Instalación automática:
+       Instalación automática:
       - ISO Ubuntu: {{ vmware.iso_path }}
       - Autoinstall: Configurado con cloud-init
       - Usuario: ubuntu / ubuntu123
       - SSH: Habilitado automáticamente
       - Red IPv6: DHCPv6 automático
       
-      ⏳ La instalación tomará 10-15 minutos automáticamente
-      📋 Próximo paso: Esperar a que obtenga IP y ejecutar configuración
+       La instalación tomará 10-15 minutos automáticamente
+       Próximo paso: Esperar a que obtenga IP y ejecutar configuración
 
 - name: Esperar a que la instalación automática termine y obtenga IP
   community.vmware.vmware_guest_info:
@@ -204,14 +204,14 @@
 - name: Mostrar resultado final
   debug:
     msg: |
-      🎉 ¡VM Ubuntu completamente lista!
+       ¡VM Ubuntu completamente lista!
       
-      🌐 IP asignada: {{ vm_facts.instance.ipv4 | default('Pendiente') }}
-      👤 Usuario: ubuntu / ubuntu123
-      🔑 SSH: Habilitado y listo
+       IP asignada: {{ vm_facts.instance.ipv4 | default('Pendiente') }}
+       Usuario: ubuntu / ubuntu123
+       SSH: Habilitado y listo
       
-      🚀 La VM está lista para configuración automática de servicios
-      ⏭️  Continuando con instalación de servicios IPv6...
+       La VM está lista para configuración automática de servicios
+         Continuando con instalación de servicios IPv6...
   when: vm_facts is defined
 
 - name: Limpiar archivos temporales

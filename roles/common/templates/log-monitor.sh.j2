@@ -1,0 +1,169 @@
+#!/bin/bash
+# Script de monitoreo de logs en tiempo real
+# Generado por Ansible para {{ ansible_hostname }}
+# Fecha: {{ ansible_date_time.iso8601 }}
+
+# Configuración
+LOG_DIRS=(
+    "/var/log/dns"
+    "/var/log/dhcp" 
+    "/var/log/security"
+    "/var/log/ansible"
+)
+
+COLORS=(
+    '\033[0;32m'  # Verde - DNS
+    '\033[0;34m'  # Azul - DHCP
+    '\033[0;31m'  # Rojo - Security
+    '\033[0;35m'  # Magenta - Ansible
+)
+NC='\033[0m'
+
+show_help() {
+    echo "🔍 Monitor de Logs del Proyecto IPv6"
+    echo "===================================="
+    echo "Servidor: {{ ansible_hostname }}"
+    echo "Red: {{ network_config.ipv6_network | default('2025:db8:10::/64') }}"
+    echo ""
+    echo "Uso: $0 [opción]"
+    echo ""
+    echo "Opciones:"
+    echo "  dns       - Solo logs DNS/BIND9"
+    echo "  dhcp      - Solo logs DHCPv6"
+    echo "  security  - Solo logs de seguridad"
+    echo "  ansible   - Solo logs de Ansible"
+    echo "  all       - Todos los logs (por defecto)"
+    echo "  errors    - Solo errores críticos"
+    echo "  stats     - Estadísticas de logs"
+}
+
+monitor_dns() {
+    echo -e "${COLORS[0]}🌐 Monitoreando DNS/BIND9...${NC}"
+    tail -f /var/log/dns/*.log 2>/dev/null | while read line; do
+        echo -e "${COLORS[0]}[DNS]${NC} $line"
+    done
+}
+
+monitor_dhcp() {
+    echo -e "${COLORS[1]}🔧 Monitoreando DHCPv6...${NC}"
+    tail -f /var/log/dhcp/*.log 2>/dev/null | while read line; do
+        echo -e "${COLORS[1]}[DHCP]${NC} $line"
+    done
+}
+
+monitor_security() {
+    echo -e "${COLORS[2]}🛡️ Monitoreando Seguridad...${NC}"
+    tail -f /var/log/security/*.log 2>/dev/null | while read line; do
+        echo -e "${COLORS[2]}[SEC]${NC} $line"
+    done
+}
+
+monitor_ansible() {
+    echo -e "${COLORS[3]}🤖 Monitoreando Ansible...${NC}"
+    tail -f /var/log/ansible/*.log 2>/dev/null | while read line; do
+        echo -e "${COLORS[3]}[ANS]${NC} $line"
+    done
+}
+
+monitor_all() {
+    echo "🔍 Monitoreando todos los logs del proyecto..."
+    echo "Servidor: {{ ansible_hostname }}"
+    echo "Presiona Ctrl+C para salir"
+    echo ""
+    
+    # Usar multitail si está disponible, sino tail múltiple
+    if command -v multitail >/dev/null 2>&1; then
+        multitail \
+            -ci green -l "tail -f /var/log/dns/*.log 2>/dev/null" \
+            -ci blue -l "tail -f /var/log/dhcp/*.log 2>/dev/null" \
+            -ci red -l "tail -f /var/log/security/*.log 2>/dev/null" \
+            -ci magenta -l "tail -f /var/log/ansible/*.log 2>/dev/null"
+    else
+        # Fallback a tail simple
+        tail -f /var/log/dns/*.log /var/log/dhcp/*.log /var/log/security/*.log /var/log/ansible/*.log 2>/dev/null
+    fi
+}
+
+monitor_errors() {
+    echo -e "${COLORS[2]}🚨 Monitoreando solo ERRORES críticos...${NC}"
+    tail -f /var/log/dns/*.log /var/log/dhcp/*.log /var/log/security/*.log 2>/dev/null | \
+    grep -i --line-buffered -E "(error|fail|critical|emergency|alert)" | \
+    while read line; do
+        echo -e "${COLORS[2]}[ERROR]${NC} $line"
+    done
+}
+
+show_stats() {
+    echo "📊 Estadísticas de Logs - {{ ansible_hostname }}"
+    echo "=============================================="
+    echo ""
+    
+    for i in "${!LOG_DIRS[@]}"; do
+        dir="${LOG_DIRS[$i]}"
+        color="${COLORS[$i]}"
+        service=$(basename "$dir")
+        
+        if [ -d "$dir" ]; then
+            echo -e "${color}📁 $service (${dir}):${NC}"
+            
+            # Contar archivos de log
+            log_count=$(find "$dir" -name "*.log" 2>/dev/null | wc -l)
+            echo "   Archivos de log: $log_count"
+            
+            # Tamaño total
+            total_size=$(du -sh "$dir" 2>/dev/null | cut -f1)
+            echo "   Tamaño total: $total_size"
+            
+            # Líneas en logs activos
+            if [ "$log_count" -gt 0 ]; then
+                lines=$(find "$dir" -name "*.log" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}')
+                echo "   Líneas totales: $lines"
+                
+                # Actividad reciente (última hora)
+                recent=$(find "$dir" -name "*.log" -exec grep -c "$(date '+%Y-%m-%d %H:')" {} + 2>/dev/null | paste -sd+ | bc 2>/dev/null || echo "0")
+                echo "   Entradas última hora: $recent"
+            fi
+            echo ""
+        else
+            echo -e "${color}📁 $service: ${NC}Directorio no existe"
+            echo ""
+        fi
+    done
+    
+    # Espacio en disco
+    echo "💾 Espacio en disco:"
+    df -h /var/log | tail -1 | awk '{print "   /var/log: " $4 " disponible (" $5 " usado)"}'
+}
+
+# Crear directorios de logs si no existen
+for dir in "${LOG_DIRS[@]}"; do
+    [ ! -d "$dir" ] && mkdir -p "$dir"
+done
+
+# Función principal
+case "${1:-all}" in
+    "dns")
+        monitor_dns
+        ;;
+    "dhcp")
+        monitor_dhcp
+        ;;
+    "security")
+        monitor_security
+        ;;
+    "ansible")
+        monitor_ansible
+        ;;
+    "errors")
+        monitor_errors
+        ;;
+    "stats")
+        show_stats
+        ;;
+    "help")
+        show_help
+        ;;
+    *)
+        monitor_all
+        ;;
+esac

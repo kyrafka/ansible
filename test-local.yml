@@ -1,0 +1,73 @@
+---
+# Playbook para pruebas locales (sin ESXi)
+- name: Pruebas locales del proyecto
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: true
+  
+  vars:
+    # Variables de prueba
+    test_mode: true
+    network_config:
+      ipv6_network: "2025:db8:10::/64"
+      ipv6_gateway: "2025:db8:10::1"
+      dhcp_range_start: "2025:db8:10::10"
+      dhcp_range_end: "2025:db8:10::FFFF"
+      dns_servers: 
+        - "2001:4860:4860::8888"
+        - "2001:4860:4860::8844"
+      domain_name: "gamecenter.local"
+    
+    # Servicios para prueba local
+    servicios_necesarios:
+      - ssh
+      - cron
+      - rsyslog
+    
+    # Configuración de storage para prueba
+    storage:
+      disk_usage_warning: 80
+      disk_usage_critical: 90
+      watch_paths:
+        - /tmp
+        - /var/log
+      journald_retention_days: 30
+
+  tasks:
+    - name: "Mostrar información del sistema local"
+      debug:
+        msg: |
+          🖥️ Sistema de prueba:
+          - OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          - Arquitectura: {{ ansible_architecture }}
+          - Hostname: {{ ansible_hostname }}
+          - Usuario: {{ ansible_user_id }}
+          
+          🌐 Red configurada para prueba:
+          - Red IPv6: {{ network_config.ipv6_network }}
+          - Gateway: {{ network_config.ipv6_gateway }}
+          - Dominio: {{ network_config.domain_name }}
+
+    # Probar rol common (sin privilegios)
+    - name: "Probar configuraciones básicas"
+      include_role:
+        name: common
+      vars:
+        # Variables de prueba para common
+        unix_groups: []
+        users: []
+        filesystem_permissions: []
+      tags: test_common
+
+    # Probar rol procesos (solo lectura)
+    - name: "Probar monitoreo de procesos"
+      include_role:
+        name: procesos
+      tags: test_procesos
+
+    # Probar rol storage (solo lectura)
+    - name: "Probar monitoreo de almacenamiento"
+      include_role:
+        name: storage
+      tags: test_storage

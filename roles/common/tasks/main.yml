@@ -47,6 +47,51 @@
     posix_available: "{{ ansible_collections.ansible.posix is defined }}"
   ignore_errors: true
 
+- name: "Crear directorios de logs del proyecto"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: adm
+    mode: '0755'
+  loop:
+    - /var/log/dns
+    - /var/log/dhcp
+    - /var/log/security
+    - /var/log/ansible
+
+- name: "Configurar logging centralizado del proyecto"
+  template:
+    src: rsyslog-proyecto.conf.j2
+    dest: /etc/rsyslog.d/30-proyecto-ipv6.conf
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  notify: restart rsyslog
+
+- name: "Configurar rotación de logs del proyecto"
+  template:
+    src: logrotate-proyecto.conf.j2
+    dest: /etc/logrotate.d/proyecto-ipv6
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: "Crear script de monitoreo de logs"
+  template:
+    src: log-monitor.sh.j2
+    dest: /usr/local/bin/log-monitor.sh
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: "Crear enlace simbólico para monitoreo de logs"
+  file:
+    src: /usr/local/bin/log-monitor.sh
+    dest: /usr/local/bin/logs
+    state: link
+
 - name: Ensure default ACLs for collaboration (optional)
   ansible.posix.acl:
     path: "{{ item.path }}"

@@ -138,6 +138,37 @@ storage:
   journald_retention_days: 30
   syslog_retention_days: 14
   dhcp_log_retention_days: 7
+  dns_log_retention_days: 14
+  security_log_retention_days: 30
+
+# Configuración de logging avanzado
+logging:
+  # Logs personalizados de aplicaciones
+  custom_app_logs:
+    - name: "proyecto-monitor"
+      path: "/var/log/ansible/proyecto-monitor.log"
+      frequency: "weekly"
+      retain: 4
+      mode: "0640"
+      owner: "root"
+      group: "adm"
+    - name: "security-checks"
+      path: "/var/log/security/security-checks.log"
+      frequency: "daily"
+      retain: 30
+      mode: "0640"
+      owner: "root"
+      group: "adm"
+      postrotate: "systemctl reload fail2ban"
+  
+  # Configuración de syslog
+  syslog_server: "localhost"
+  syslog_port: 514
+  log_level: "info"
+  
+  # Alertas por email (opcional)
+  email_alerts: false
+  admin_email: "admin@{{ network_config.domain_name }}"
   
   # Configuración específica para particiones LVM
   lvm_monitoring: true

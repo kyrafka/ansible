@@ -1,0 +1,48 @@
+# Configuración de logging centralizado para proyecto IPv6
+# Generado automáticamente por Ansible - {{ ansible_date_time.iso8601 }}
+
+# Configuración de logging por servicio
+{% for servicio in servicios_necesarios %}
+{% if servicio == 'bind9' %}
+# DNS/BIND9 Logging
+$template DnsLogFormat,"[%timestamp:::date-rfc3339%] %hostname% DNS[%procid%]: %syslogtag% %msg%\n"
+:programname, isequal, "named" /var/log/dns/named.log;DnsLogFormat
+:programname, isequal, "named" stop
+
+{% elif servicio == 'isc-dhcp-server6' %}
+# DHCPv6 Logging
+$template DhcpLogFormat,"[%timestamp:::date-rfc3339%] %hostname% DHCP[%procid%]: %syslogtag% %msg%\n"
+:programname, isequal, "dhcpd" /var/log/dhcp/dhcpd6.log;DhcpLogFormat
+:programname, isequal, "dhcpd" stop
+
+{% elif servicio == 'fail2ban' %}
+# Fail2ban Logging
+$template SecurityLogFormat,"[%timestamp:::date-rfc3339%] %hostname% SECURITY[%procid%]: %syslogtag% %msg%\n"
+:programname, isequal, "fail2ban" /var/log/security/fail2ban.log;SecurityLogFormat
+:programname, isequal, "fail2ban" stop
+
+{% endif %}
+{% endfor %}
+
+# Logging de Ansible
+$template AnsibleLogFormat,"[%timestamp:::date-rfc3339%] %hostname% ANSIBLE: %msg%\n"
+:syslogtag, contains, "ansible" /var/log/ansible/ansible.log;AnsibleLogFormat
+:syslogtag, contains, "ansible" stop
+
+# Logging de SSH (seguridad)
+$template SshLogFormat,"[%timestamp:::date-rfc3339%] %hostname% SSH[%procid%]: %msg%\n"
+:programname, isequal, "sshd" /var/log/security/ssh.log;SshLogFormat
+
+# Logging de UFW (firewall)
+$template FirewallLogFormat,"[%timestamp:::date-rfc3339%] %hostname% UFW: %msg%\n"
+:msg, contains, "[UFW" /var/log/security/ufw.log;FirewallLogFormat
+
+# Configuración de rotación automática
+$WorkDirectory /var/spool/rsyslog
+$ActionFileDefaultTemplate RSYSLOG_TraditionalFileFormat
+$RepeatedMsgReduction on
+$FileOwner syslog
+$FileGroup adm
+$FileCreateMode 0640
+$DirCreateMode 0755
+$Umask 0022

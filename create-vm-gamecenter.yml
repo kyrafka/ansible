@@ -1,0 +1,127 @@
+---
+# Playbook para crear VM Ubuntu en tu ESXi específico
+- name: Crear VM Ubuntu GameCenter en ESXi
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - group_vars/all.yml
+    - group_vars/all.vault.yml
+    - esxi-config.yml
+  
+  pre_tasks:
+    - name: Verificar conectividad con ESXi
+      uri:
+        url: "https://{{ vmware.vcenter_hostname }}:{{ vmware.port }}/ui/"
+        method: GET
+        validate_certs: false
+        timeout: 10
+      register: esxi_check
+      ignore_errors: true
+    
+    - name: Mostrar estado de ESXi
+      debug:
+        msg: |
+          🖥️ ESXi Status: {{ 'ACCESIBLE' if esxi_check.status == 200 else 'NO ACCESIBLE' }}
+          📡 URL: https://{{ vmware.vcenter_hostname }}:{{ vmware.port }}
+          👤 Usuario: {{ vmware.vcenter_username }}
+    
+    - name: Verificar dependencias Python
+      pip:
+        name:
+          - pyvmomi>=7.0.0
+          - requests
+        state: present
+      ignore_errors: true
+    
+    - name: Instalar colección VMware si no existe
+      ansible.builtin.shell: |
+        ansible-galaxy collection install community.vmware --force
+      ignore_errors: true
+
+  tasks:
+    - name: Mostrar configuración de la VM a crear
+      debug:
+        msg: |
+          🚀 CREANDO VM UBUNTU EN ESXi
+          
+          📋 Configuración:
+          - Nombre: {{ vmware.vm_name }}
+          - ESXi: {{ vmware.vcenter_hostname }}:{{ vmware.port }}
+          - Datastore: {{ vmware.datastore }}
+          - RAM: {{ vmware.memory }}MB ({{ (vmware.memory/1024)|int }}GB)
+          - CPU: {{ vmware.cpus }} cores
+          - Disco: {{ (vmware.disk_size_mb/1024)|int }}GB
+          - Red: {{ vmware.network_name }}
+          - ISO: {{ vmware.iso_path }}
+          
+          🌐 Red IPv6:
+          - Red: {{ network_config.ipv6_network }}
+          - IP objetivo: {{ network_config.target_ip }}
+          - Gateway: {{ network_config.ipv6_gateway }}
+    
+    - name: Crear VM Ubuntu con servicios IPv6
+      include_role:
+        name: vmware
+      tags: create_vm
+    
+    - name: Esperar a que la VM esté completamente lista
+      pause:
+        prompt: |
+          
+          ⏳ La VM se está creando e instalando automáticamente...
+          
+          📋 Mientras esperas, puedes:
+          1. Monitorear desde ESXi: https://{{ vmware.vcenter_hostname }}:{{ vmware.port }}
+          2. La instalación tomará 10-15 minutos
+          3. Presiona ENTER cuando veas que la VM tiene IP asignada
+        
+    - name: Verificar que la VM está lista para configuración
+      community.vmware.vmware_guest_info:
+        hostname: "{{ vmware.vcenter_hostname }}"
+        username: "{{ vmware.vcenter_username }}"
+        password: "{{ vmware.vcenter_password }}"
+        port: "{{ vmware.port }}"
+        validate_certs: false
+        name: "{{ vmware.vm_name }}"
+      register: vm_final_info
+    
+    - name: Mostrar información final de la VM
+      debug:
+        msg: |
+          🎉 ¡VM CREADA EXITOSAMENTE!
+          
+          📊 Información de la VM:
+          - Nombre: {{ vmware.vm_name }}
+          - Estado: {{ vm_final_info.instance.hw_power_status }}
+          - IP IPv4: {{ vm_final_info.instance.ipv4 | default('Pendiente') }}
+          - IP IPv6: {{ vm_final_info.instance.ipv6 | default('Pendiente') }}
+          - SO: {{ vm_final_info.instance.hw_guest_full_name | default('Ubuntu 24.04') }}
+          
+          🔑 Credenciales:
+          - Usuario: ubuntu
+          - Password: ubuntu123
+          - SSH: Habilitado automáticamente
+          
+          📋 PRÓXIMOS PASOS:
+          1. Actualizar inventory/hosts.ini con la IP real
+          2. Ejecutar: ./scripts/deploy-to-server.sh
+          3. Configurar servicios IPv6 automáticamente
+          
+          💡 La VM está lista para recibir la configuración de servicios
+
+  post_tasks:
+    - name: Crear script de conexión rápida
+      copy:
+        content: |
+          #!/bin/bash
+          # Script para conectar a la nueva VM
+          echo "🔗 Conectando a {{ vmware.vm_name }}..."
+          {% if vm_final_info.instance.ipv4 is defined %}
+          ssh -o StrictHostKeyChecking=no ubuntu@{{ vm_final_info.instance.ipv4 | first }}
+          {% else %}
+          echo "⚠️ IP no disponible aún. Verifica desde ESXi."
+          {% endif %}
+        dest: "./connect-to-vm.sh"
+        mode: '0755'
+      when: vm_final_info.instance.ipv4 is defined

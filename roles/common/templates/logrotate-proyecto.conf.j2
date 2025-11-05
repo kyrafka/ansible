@@ -1,0 +1,81 @@
+# Configuración de rotación de logs para proyecto IPv6
+# Generado por Ansible el {{ ansible_date_time.iso8601 }}
+# Servidor: {{ ansible_hostname }} ({{ ansible_default_ipv4.address | default('N/A') }})
+
+# DNS/BIND9 Logs
+/var/log/dns/*.log {
+    daily
+    missingok
+    rotate {{ storage.dns_log_retention_days | default(14) }}
+    compress
+    delaycompress
+    notifempty
+    create 0640 bind bind
+    postrotate
+        /usr/sbin/rndc reload > /dev/null 2>&1 || true
+        logger -t logrotate "DNS logs rotated on {{ ansible_hostname }}"
+    endscript
+}
+
+# DHCP Logs
+/var/log/dhcp/*.log {
+    weekly
+    missingok
+    rotate {{ storage.dhcp_log_retention_days | default(7) }}
+    compress
+    delaycompress
+    notifempty
+    create 0640 root root
+    postrotate
+        systemctl reload isc-dhcp-server6 > /dev/null 2>&1 || true
+        logger -t logrotate "DHCP logs rotated on {{ ansible_hostname }}"
+    endscript
+}
+
+# Security Logs (fail2ban, SSH, UFW)
+/var/log/security/*.log {
+    daily
+    missingok
+    rotate {{ storage.security_log_retention_days | default(30) }}
+    compress
+    delaycompress
+    notifempty
+    create 0640 root adm
+    postrotate
+        systemctl reload fail2ban > /dev/null 2>&1 || true
+        logger -t logrotate "Security logs rotated on {{ ansible_hostname }}"
+    endscript
+}
+
+# Ansible Logs
+/var/log/ansible/*.log {
+    weekly
+    missingok
+    rotate 4
+    compress
+    delaycompress
+    notifempty
+    create 0640 root root
+    postrotate
+        logger -t logrotate "Ansible logs rotated on {{ ansible_hostname }}"
+    endscript
+}
+
+# Logs del proyecto (aplicaciones personalizadas)
+{% for app_log in custom_app_logs | default([]) %}
+{{ app_log.path }} {
+    {{ app_log.frequency | default('daily') }}
+    missingok
+    rotate {{ app_log.retain | default(7) }}
+    compress
+    delaycompress
+    notifempty
+    create {{ app_log.mode | default('0640') }} {{ app_log.owner | default('root') }} {{ app_log.group | default('root') }}
+    {% if app_log.postrotate is defined %}
+    postrotate
+        {{ app_log.postrotate }}
+        logger -t logrotate "{{ app_log.name }} logs rotated on {{ ansible_hostname }}"
+    endscript
+    {% endif %}
+}
+{% endfor %}
