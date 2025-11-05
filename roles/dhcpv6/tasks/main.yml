@@ -5,12 +5,23 @@
     state: present
     update_cache: yes
 
-- name: Configurar interfaz para DHCPv6
+- name: Crear archivo dhcpd.conf vacío para IPv4
+  file:
+    path: /etc/dhcp/dhcpd.conf
+    state: touch
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Configurar interfaces para DHCP
   lineinfile:
     path: /etc/default/isc-dhcp-server
-    regexp: '^INTERFACESv6='
-    line: 'INTERFACESv6="ens34"'
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
     create: yes
+  loop:
+    - { regexp: '^INTERFACESv4=', line: 'INTERFACESv4=""' }
+    - { regexp: '^INTERFACESv6=', line: 'INTERFACESv6="ens34"' }
   notify: restart isc-dhcp-server
 
 - name: Configurar DHCPv6
