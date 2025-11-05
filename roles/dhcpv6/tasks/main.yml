@@ -10,7 +10,7 @@
   lineinfile:
     path: /etc/default/isc-dhcp-server
     regexp: '^INTERFACESv6='
-    line: 'INTERFACESv6="ens160"'
+    line: 'INTERFACESv6="ens34"'
     create: yes
   notify: restart isc-dhcp6-server
 
