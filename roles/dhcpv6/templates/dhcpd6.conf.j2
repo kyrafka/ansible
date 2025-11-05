@@ -8,5 +8,5 @@ option dhcp6.domain-search "{{ network_config.domain_name }}"; # <--- CORREGIDO
 subnet6 {{ network_config.ipv6_network }} {
     range6 {{ network_config.dhcp_range_start }} {{ network_config.dhcp_range_end }};
     option dhcp6.name-servers 2025:db8:10::2;
-    option dhcp6.domain-search "{{ network_config.domain_name }}"; # <--- CORREGIDO
+    option dhcp6.domain-search "{{ network_config.domain_name }}";
 }
