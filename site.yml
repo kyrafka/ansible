@@ -11,10 +11,10 @@
       debug:
         msg: |
            Configuración de red:
-          - Red: {{ network_config.ipv6_network }}
-          - Gateway: {{ network_config.ipv6_gateway }}
-          - DHCP desde: {{ network_config.dhcp_range_start }}
-          - Dominio: {{ network_config.domain_name }}
+          - Red: "{{ network_config.ipv6_network }}"
+          - Gateway: "{{ network_config.ipv6_gateway }}"
+          - DHCP desde: "{{ network_config.dhcp_range_start }}"
+          - Dominio: "{{ network_config.domain_name }}"
 
 - name: Configurar servicios completos en servidor Ubuntu
   hosts: servidores_ubuntu
