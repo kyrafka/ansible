@@ -1,7 +1,7 @@
 ---
-- name: restart isc-dhcp6-server
+- name: restart isc-dhcp-server
   service:
-    name: isc-dhcp6-server
+    name: isc-dhcp-server
     state: restarted
     enabled: yes
 

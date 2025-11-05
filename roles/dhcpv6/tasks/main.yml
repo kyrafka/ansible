@@ -12,7 +12,7 @@
     regexp: '^INTERFACESv6='
     line: 'INTERFACESv6="ens34"'
     create: yes
-  notify: restart isc-dhcp6-server
+  notify: restart isc-dhcp-server
 
 # Configurar archivo principal DHCPv6
 - name: Configurar DHCPv6
@@ -22,7 +22,7 @@
     owner: root
     group: root
     mode: '0644'
-  notify: restart isc-dhcp6-server
+  notify: restart isc-dhcp-server
 
 # Habilitar IPv6 forwarding
 - name: Habilitar IPv6 forwarding
@@ -33,8 +33,8 @@
     reload: yes
 
 # Asegurar que el servicio DHCPv6 esté habilitado y activo
-- name: Asegurar que el servicio isc-dhcp6-server esté habilitado y en ejecución
+- name: Asegurar que el servicio isc-dhcp-server esté habilitado y en ejecución
   service:
-    name: isc-dhcp6-server
+    name: isc-dhcp-server
     state: started
     enabled: yes
