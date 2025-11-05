@@ -19,7 +19,8 @@
     home: "{{ item.home | default(omit) }}"
     password: "{{ item.password | default(omit) }}"
     remove: "{{ item.remove | default(false) }}"
-  loop: "{{ users }}"
+  loop: "{{ users | default([]) }}"
+  when: users is defined and users | length > 0
 
 
 - name: Croncroncron
@@ -30,7 +31,8 @@
     day: "{{ (cron_time.split()[2]) | default('*') }}"
     month: "{{ (cron_time.split()[3]) | default('*') }}"
     weekday: "{{ (cron_time.split()[4]) | default('*') }}"
-    job: "systemctl restart {{ cron_restart_service }}"
+    job: "systemctl restart {{ cron_restart_service | default('cron') }}"
+  when: cron_time is defined and cron_restart_service is defined
 
 - name: Ensure filesystem permissions (generic)
   ansible.builtin.file:
