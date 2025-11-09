@@ -1,0 +1,12 @@
+network:
+  version: 2
+  ethernets:
+    {{ wan_interface }}:
+      dhcp4: true
+      dhcp6: false
+    
+    {{ lan_interface }}:
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - {{ network_config.ipv6_network | regex_replace('::/.*', '::2/64') }}

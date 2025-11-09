@@ -1,0 +1,60 @@
+---
+# Configuración de red para servidor con 2 interfaces
+
+- name: Detectar interfaces de red
+  ansible.builtin.set_fact:
+    wan_interface: "ens33"
+    lan_interface: "ens34"
+
+- name: Configurar IPv6 en interfaz LAN (ens34)
+  ansible.builtin.command: ip -6 addr add 2025:db8:10::2/64 dev {{ lan_interface }}
+  become: true
+  ignore_errors: yes  # Por si ya existe
+
+- name: Levantar interfaz LAN
+  ansible.builtin.command: ip link set {{ lan_interface }} up
+  become: true
+
+- name: Habilitar IP forwarding IPv4
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+    reload: yes
+  become: true
+
+- name: Habilitar IP forwarding IPv6
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.forwarding
+    value: '1'
+    state: present
+    reload: yes
+  become: true
+
+- name: Configurar NAT para IPv6 a IPv4
+  ansible.builtin.iptables:
+    table: nat
+    chain: POSTROUTING
+    source: "{{ network_config.ipv6_network }}"
+    out_interface: "{{ wan_interface }}"
+    jump: MASQUERADE
+    ip_version: ipv6
+  become: true
+
+- name: Guardar reglas de iptables
+  ansible.builtin.shell: |
+    ip6tables-save > /etc/iptables/rules.v6
+  become: true
+
+- name: Verificar configuración de red
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════"
+      - "Configuración de red aplicada"
+      - "════════════════════════════════════════"
+      - "WAN ({{ wan_interface }}): IPv4 DHCP (internet)"
+      - "LAN ({{ lan_interface }}): IPv6 {{ network_config.ipv6_network }}"
+      - "IP del servidor: 2025:db8:10::2"
+      - "Forwarding: Habilitado"
+      - "NAT66: Configurado"
+      - "════════════════════════════════════════"

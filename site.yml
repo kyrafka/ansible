@@ -22,6 +22,7 @@
   
   roles:
     - role: common
+    - role: network
     - role: dns_bind
     - role: dhcpv6
     - role: firewall
