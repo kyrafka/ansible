@@ -1,6 +1,11 @@
 ---
 # Configuración avanzada del firewall con fail2ban y monitoreo
 
+- name: "🔄 Actualizando caché de APT"
+  apt:
+    update_cache: yes
+  tags: firewall
+
 - name: "📦 Instalar firewall y herramientas de seguridad"
   apt:
     name:
@@ -9,7 +14,12 @@
       - iptables-persistent
       - netfilter-persistent
     state: present
-    update_cache: yes
+  register: apt_install_result
+  tags: firewall
+
+- name: "✓ Resultado de instalación (Debug)"
+  debug:
+    var: apt_install_result
   tags: firewall
 
 - name: "✓ Paquetes instalados"
