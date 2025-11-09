@@ -11,6 +11,7 @@
     state: present
     update_cache: yes
   become: true
+  tags: common
 
 - name: Existe el grupo
   ansible.builtin.group:
@@ -19,6 +20,7 @@
     gid: "{{ item.gid | default(omit) }}"
   loop: "{{ unix_groups | default([]) }}"
   become: true
+  tags: common
 
 - name: usuario donde andas
   ansible.builtin.user:
@@ -37,6 +39,7 @@
   loop: "{{ users | default([]) }}"
   when: users is defined and users | length > 0
   become: true
+  tags: common
 
 - name: Croncroncron
   ansible.builtin.cron:
@@ -49,6 +52,7 @@
     job: "systemctl restart {{ cron_restart_service | default('cron') }}"
   when: cron_time is defined and cron_restart_service is defined
   become: true
+  tags: common
 
 - name: Ensure filesystem permissions (generic)
   ansible.builtin.file:
@@ -60,11 +64,13 @@
      recurse: "{{ item.recurse | default(false) }}"
   loop: "{{ filesystem_permissions | default([]) }}"
   become: true
+  tags: common
 
 - name: Check if ansible.posix collection is available
   ansible.builtin.set_fact:
     posix_available: "{{ ansible_collections.ansible.posix is defined }}"
   ignore_errors: true
+  tags: common
 
 - name: "Crear directorios de logs del proyecto"
   ansible.builtin.file:
@@ -79,6 +85,7 @@
     - /var/log/security
     - /var/log/ansible
   become: true
+  tags: common
 
 - name: "Configurar logging centralizado del proyecto"
   template:
@@ -90,6 +97,7 @@
     backup: yes
   notify: restart rsyslog
   become: true
+  tags: common
 
 - name: "Configurar rotación de logs del proyecto"
   template:
@@ -99,6 +107,7 @@
     group: root
     mode: '0644'
   become: true
+  tags: common
 
 - name: "Crear script de monitoreo de logs"
   template:
@@ -108,6 +117,7 @@
     group: root
     mode: '0755'
   become: true
+  tags: common
 
 - name: "Crear enlace simbólico para monitoreo de logs"
   file:
@@ -115,6 +125,7 @@
     dest: /usr/local/bin/logs
     state: link
   become: true
+  tags: common
 
 - name: Ensure default ACLs for collaboration (optional)
   ansible.posix.acl:
@@ -126,3 +137,4 @@
     state: present
   loop: "{{ filesystem_default_acls | default([]) }}"
   when: posix_available | default(false)
+  tags: common

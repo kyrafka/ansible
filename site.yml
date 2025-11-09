@@ -24,8 +24,14 @@
   
   roles:
     - role: common
+      tags: common
     - role: network
+      tags: network
     - role: dns_bind
+      tags: dns
     - role: dhcpv6
+      tags: dhcp
     - role: firewall
+      tags: firewall
     - role: storage
+      tags: storage
