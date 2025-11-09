@@ -12,6 +12,12 @@
     update_cache: yes
   tags: firewall
 
+- name: "Asegurar que ufw esté en el PATH"
+  ansible.builtin.set_fact:
+    ansible_env:
+      PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  tags: firewall
+
 - name: "Resetear configuración UFW"
   ufw:
     state: reset
