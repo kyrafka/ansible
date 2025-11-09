@@ -1,0 +1,8 @@
+network:
+  version: 2
+  ethernets:
+    {{ lan_interface }}:
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - 2025:db8:10::2/64
