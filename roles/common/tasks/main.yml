@@ -18,6 +18,7 @@
     state: "{{ item.state | default('present') }}"
     gid: "{{ item.gid | default(omit) }}"
   loop: "{{ unix_groups | default([]) }}"
+  become: true
 
 - name: usuario donde andas
   ansible.builtin.user:
@@ -35,7 +36,7 @@
     remove: "{{ item.remove | default(false) }}"
   loop: "{{ users | default([]) }}"
   when: users is defined and users | length > 0
-
+  become: true
 
 - name: Croncroncron
   ansible.builtin.cron:
@@ -47,6 +48,7 @@
     weekday: "{{ (cron_time.split()[4]) | default('*') }}"
     job: "systemctl restart {{ cron_restart_service | default('cron') }}"
   when: cron_time is defined and cron_restart_service is defined
+  become: true
 
 - name: Ensure filesystem permissions (generic)
   ansible.builtin.file:
@@ -57,6 +59,7 @@
      mode: "{{ item.mode | default(omit) }}"
      recurse: "{{ item.recurse | default(false) }}"
   loop: "{{ filesystem_permissions | default([]) }}"
+  become: true
 
 - name: Check if ansible.posix collection is available
   ansible.builtin.set_fact:
@@ -75,6 +78,7 @@
     - /var/log/dhcp
     - /var/log/security
     - /var/log/ansible
+  become: true
 
 - name: "Configurar logging centralizado del proyecto"
   template:
@@ -85,6 +89,7 @@
     mode: '0644'
     backup: yes
   notify: restart rsyslog
+  become: true
 
 - name: "Configurar rotación de logs del proyecto"
   template:
@@ -93,6 +98,7 @@
     owner: root
     group: root
     mode: '0644'
+  become: true
 
 - name: "Crear script de monitoreo de logs"
   template:
@@ -101,12 +107,14 @@
     owner: root
     group: root
     mode: '0755'
+  become: true
 
 - name: "Crear enlace simbólico para monitoreo de logs"
   file:
     src: /usr/local/bin/log-monitor.sh
     dest: /usr/local/bin/logs
     state: link
+  become: true
 
 - name: Ensure default ACLs for collaboration (optional)
   ansible.posix.acl:

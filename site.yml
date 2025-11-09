@@ -1,6 +1,8 @@
 ---
 # Playbook principal para configurar servicios IPv6 en el servidor local
 # Red: 2025:db8:10::/64
+# IMPORTANTE: Ejecutar DENTRO del servidor Ubuntu (no desde PC remoto)
+# Comando: ansible-playbook site.yml --connection=local --become --ask-become-pass
 
 - name: Configurar servidor Ubuntu con servicios de red
   hosts: localhost
