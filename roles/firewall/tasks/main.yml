@@ -1,7 +1,14 @@
 ---
 # Configuración avanzada del firewall con fail2ban y monitoreo
 
-- name: "Instalar firewall y herramientas de seguridad"
+- name: "🔍 Verificando si UFW está instalado"
+  command: dpkg -l ufw
+  register: ufw_check
+  failed_when: false
+  changed_when: false
+  tags: firewall
+
+- name: "📦 Instalar firewall y herramientas de seguridad"
   apt:
     name:
       - ufw
@@ -11,14 +18,21 @@
     state: present
     update_cache: yes
   tags: firewall
+  register: apt_result
 
 - name: "✓ Paquetes instalados"
   debug:
     msg: "→ UFW, fail2ban e iptables-persistent instalados"
   tags: firewall
 
+- name: "⏸️  Esperando que UFW esté disponible"
+  wait_for:
+    path: /usr/sbin/ufw
+    timeout: 30
+  tags: firewall
+
 - name: "🔍 Detectando ubicación de ufw"
-  command: which ufw
+  shell: which ufw || echo "/usr/sbin/ufw"
   register: ufw_path
   changed_when: false
   tags: firewall
@@ -26,6 +40,17 @@
 - name: "📍 UFW encontrado"
   debug:
     msg: "→ Ubicación: {{ ufw_path.stdout }}"
+  tags: firewall
+
+- name: "✅ Verificando que UFW funciona"
+  command: "{{ ufw_path.stdout }} version"
+  register: ufw_version
+  changed_when: false
+  tags: firewall
+
+- name: "📋 Versión de UFW"
+  debug:
+    msg: "→ {{ ufw_version.stdout_lines[0] }}"
   tags: firewall
 
 - name: "🔄 Deshabilitando UFW temporalmente"
