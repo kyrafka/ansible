@@ -1,13 +1,6 @@
 ---
 # Configuración avanzada del firewall con fail2ban y monitoreo
 
-- name: "🔍 Verificando si UFW está instalado"
-  command: dpkg -l ufw
-  register: ufw_check
-  failed_when: false
-  changed_when: false
-  tags: firewall
-
 - name: "📦 Instalar firewall y herramientas de seguridad"
   apt:
     name:
@@ -18,43 +11,39 @@
     state: present
     update_cache: yes
   tags: firewall
-  register: apt_result
 
 - name: "✓ Paquetes instalados"
   debug:
     msg: "→ UFW, fail2ban e iptables-persistent instalados"
   tags: firewall
 
-- name: "⏸️  Esperando que UFW esté disponible"
-  wait_for:
-    path: /usr/sbin/ufw
-    timeout: 30
+- name: "📍 Configurar ruta de UFW"
+  set_fact:
+    ufw_bin: "/usr/sbin/ufw"
   tags: firewall
 
-- name: "🔍 Detectando ubicación de ufw"
-  shell: which ufw || echo "/usr/sbin/ufw"
-  register: ufw_path
-  changed_when: false
+- name: "✅ Verificar que UFW existe"
+  stat:
+    path: "{{ ufw_bin }}"
+  register: ufw_check
+  failed_when: not ufw_check.stat.exists
   tags: firewall
 
-- name: "📍 UFW encontrado"
-  debug:
-    msg: "→ Ubicación: {{ ufw_path.stdout }}"
-  tags: firewall
-
-- name: "✅ Verificando que UFW funciona"
-  command: "{{ ufw_path.stdout }} version"
+- name: "📋 Verificar versión de UFW"
+  command: "{{ ufw_bin }} version"
   register: ufw_version
   changed_when: false
   tags: firewall
 
-- name: "📋 Versión de UFW"
+- name: "✓ UFW listo"
   debug:
-    msg: "→ {{ ufw_version.stdout_lines[0] }}"
+    msg:
+      - "→ Ubicación: {{ ufw_bin }}"
+      - "→ {{ ufw_version.stdout_lines[0] }}"
   tags: firewall
 
 - name: "🔄 Deshabilitando UFW temporalmente"
-  command: "{{ ufw_path.stdout }} --force disable"
+  command: "{{ ufw_bin }} --force disable"
   tags: firewall
 
 - name: "✓ UFW deshabilitado"
@@ -63,7 +52,7 @@
   tags: firewall
 
 - name: "🔄 Reseteando configuración UFW"
-  command: "{{ ufw_path.stdout }} --force reset"
+  command: "{{ ufw_bin }} --force reset"
   tags: firewall
 
 - name: "✓ UFW reseteado"
@@ -72,11 +61,11 @@
   tags: firewall
 
 - name: "🛡️  Configurando política: denegar entrada"
-  command: "{{ ufw_path.stdout }} default deny incoming"
+  command: "{{ ufw_bin }} default deny incoming"
   tags: firewall
 
 - name: "🛡️  Configurando política: permitir salida"
-  command: "{{ ufw_path.stdout }} default allow outgoing"
+  command: "{{ ufw_bin }} default allow outgoing"
   tags: firewall
 
 - name: "✓ Políticas configuradas"
@@ -87,7 +76,7 @@
   tags: firewall
 
 - name: "🔐 Permitiendo SSH con rate limiting"
-  command: "{{ ufw_path.stdout }} limit 22/tcp comment 'SSH con rate limiting'"
+  command: "{{ ufw_bin }} limit 22/tcp comment 'SSH con rate limiting'"
   tags: firewall
 
 - name: "✓ SSH protegido"
@@ -96,11 +85,11 @@
   tags: firewall
 
 - name: "🌐 Permitiendo DNS TCP (puerto 53)"
-  command: "{{ ufw_path.stdout }} allow 53/tcp comment 'DNS TCP'"
+  command: "{{ ufw_bin }} allow 53/tcp comment 'DNS TCP'"
   tags: firewall
 
 - name: "🌐 Permitiendo DNS UDP (puerto 53)"
-  command: "{{ ufw_path.stdout }} allow 53/udp comment 'DNS UDP'"
+  command: "{{ ufw_bin }} allow 53/udp comment 'DNS UDP'"
   tags: firewall
 
 - name: "✓ DNS habilitado"
@@ -109,11 +98,11 @@
   tags: firewall
 
 - name: "📡 Permitiendo DHCPv6 Server (puerto 547)"
-  command: "{{ ufw_path.stdout }} allow 547/udp comment 'DHCPv6 Server'"
+  command: "{{ ufw_bin }} allow 547/udp comment 'DHCPv6 Server'"
   tags: firewall
 
 - name: "📡 Permitiendo DHCPv6 Client (puerto 546)"
-  command: "{{ ufw_path.stdout }} allow 546/udp comment 'DHCPv6 Client'"
+  command: "{{ ufw_bin }} allow 546/udp comment 'DHCPv6 Client'"
   tags: firewall
 
 - name: "✓ DHCP habilitado"
@@ -122,7 +111,7 @@
   tags: firewall
 
 - name: "📁 Permitiendo puertos pasivos FTP"
-  command: "{{ ufw_path.stdout }} allow 21000:21010/tcp comment 'FTP Passive Ports'"
+  command: "{{ ufw_bin }} allow 21000:21010/tcp comment 'FTP Passive Ports'"
   tags: firewall
 
 - name: "✓ FTP configurado"
@@ -136,7 +125,7 @@
   tags: firewall
 
 - name: "🔥 Habilitando UFW"
-  command: "{{ ufw_path.stdout }} --force enable"
+  command: "{{ ufw_bin }} --force enable"
   changed_when: true
   tags: firewall
 
@@ -187,7 +176,7 @@
   tags: [firewall, seguridad]
 
 - name: "Mostrar estado del firewall"
-  command: ufw status verbose
+  command: "{{ ufw_bin }} status verbose"
   register: firewall_status
   changed_when: false
   tags: firewall
