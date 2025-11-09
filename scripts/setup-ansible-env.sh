@@ -48,144 +48,311 @@ check_ansible() {
         return 0
     else
         echo -e "${RED}✗${NC} Ansible no instalado"
+        echo -e "  ${YELLOW}→ Ejecuta opción 3 para instalar${NC}"
         return 1
     fi
 }
 
-# Función para verificar pyvmomi
-check_pyvmomi() {
+# Función para verificar paquete Python
+check_python_package() {
+    local package=$1
+    local import_name=$2
+    
     if [ -f "$VENV_DIR/bin/python" ]; then
-        if "$VENV_DIR/bin/python" -c "import pyVim" 2>/dev/null; then
-            VERSION=$("$VENV_DIR/bin/pip" show pyvmomi 2>/dev/null | grep Version | awk '{print $2}')
-            echo -e "${GREEN}✓${NC} pyvmomi instalado: $VERSION"
+        if "$VENV_DIR/bin/python" -c "import $import_name" 2>/dev/null; then
+            VERSION=$("$VENV_DIR/bin/pip" show $package 2>/dev/null | grep Version | awk '{print $2}')
+            echo -e "${GREEN}✓${NC} $package instalado: $VERSION"
             return 0
         fi
     fi
-    echo -e "${RED}✗${NC} pyvmomi no instalado"
+    echo -e "${RED}✗${NC} $package no instalado"
+    echo -e "  ${YELLOW}→ Ejecuta opción 3 para instalar${NC}"
     return 1
+}
+
+# Función para verificar pyvmomi
+check_pyvmomi() {
+    check_python_package "pyvmomi" "pyVim"
+}
+
+# Función para verificar requests
+check_requests() {
+    check_python_package "requests" "requests"
+}
+
+# Función para verificar jinja2
+check_jinja2() {
+    check_python_package "jinja2" "jinja2"
 }
 
 # Función para verificar colección
 check_collection() {
     local collection=$1
-    if [ -f "$VENV_DIR/bin/ansible-galaxy" ]; then
-        if "$VENV_DIR/bin/ansible-galaxy" collection list 2>/dev/null | grep -q "$collection"; then
-            VERSION=$("$VENV_DIR/bin/ansible-galaxy" collection list 2>/dev/null | grep "$collection" | awk '{print $2}')
-            echo -e "${GREEN}✓${NC} $collection instalado: $VERSION"
-            return 0
-        fi
+    local required=$2  # "required" o "optional"
+    
+    if [ ! -f "$VENV_DIR/bin/ansible-galaxy" ]; then
+        echo -e "${RED}✗${NC} $collection - Ansible no instalado"
+        echo -e "  ${YELLOW}→ Ejecuta opción 3 primero${NC}"
+        return 1
     fi
-    echo -e "${RED}✗${NC} $collection no instalado"
-    return 1
+    
+    if "$VENV_DIR/bin/ansible-galaxy" collection list 2>/dev/null | grep -q "$collection"; then
+        VERSION=$("$VENV_DIR/bin/ansible-galaxy" collection list 2>/dev/null | grep "$collection" | awk '{print $2}')
+        echo -e "${GREEN}✓${NC} $collection: $VERSION"
+        return 0
+    else
+        if [ "$required" == "optional" ]; then
+            echo -e "${YELLOW}⚠${NC} $collection no instalado (opcional)"
+        else
+            echo -e "${RED}✗${NC} $collection no instalado"
+            echo -e "  ${YELLOW}→ Ejecuta opción 4 para instalar${NC}"
+        fi
+        return 1
+    fi
+}
+
+# Función para verificar ansible.cfg
+check_ansible_cfg() {
+    if [ -f "ansible.cfg" ]; then
+        if grep -q "ansible_python_interpreter.*ansible-venv" ansible.cfg 2>/dev/null; then
+            echo -e "${GREEN}✓${NC} ansible.cfg configurado correctamente"
+            return 0
+        else
+            echo -e "${YELLOW}⚠${NC} ansible.cfg existe pero puede necesitar actualización"
+            echo -e "  ${YELLOW}→ Ejecuta opción 5 para actualizar${NC}"
+            return 1
+        fi
+    else
+        echo -e "${RED}✗${NC} ansible.cfg no existe"
+        echo -e "  ${YELLOW}→ Ejecuta opción 5 para crear${NC}"
+        return 1
+    fi
+}
+
+# Función para verificar activate script
+check_activate_script() {
+    if [ -f "activate-ansible.sh" ]; then
+        echo -e "${GREEN}✓${NC} activate-ansible.sh existe"
+        return 0
+    else
+        echo -e "${RED}✗${NC} activate-ansible.sh no existe"
+        echo -e "  ${YELLOW}→ Ejecuta opción 5 para crear${NC}"
+        return 1
+    fi
 }
 
 # Función para mostrar tabla de estado
 show_status() {
+    local total=0
+    local installed=0
+    
     echo ""
-    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
-    echo -e "${YELLOW}Estado de Dependencias${NC}"
-    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║              📊 Estado de Dependencias                        ║${NC}"
+    echo -e "${BLUE}╚═══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     
-    echo "Sistema Base:"
-    check_python
-    check_venv
+    echo -e "${BLUE}┌─ Sistema Base ────────────────────────────────────────────────┐${NC}"
+    check_python && ((installed++)); ((total++))
+    check_venv && ((installed++)); ((total++))
+    echo -e "${BLUE}└───────────────────────────────────────────────────────────────┘${NC}"
     echo ""
     
-    echo "Paquetes Python:"
-    check_ansible
-    check_pyvmomi
+    echo -e "${BLUE}┌─ Paquetes Python ─────────────────────────────────────────────┐${NC}"
+    check_ansible && ((installed++)); ((total++))
+    check_pyvmomi && ((installed++)); ((total++))
+    check_requests && ((installed++)); ((total++))
+    check_jinja2 && ((installed++)); ((total++))
+    echo -e "${BLUE}└───────────────────────────────────────────────────────────────┘${NC}"
     echo ""
     
-    echo "Colecciones Ansible:"
-    check_collection "community.vmware"
-    check_collection "community.general"
-    check_collection "ansible.posix"
-    check_collection "community.windows"
-    check_collection "vmware.vmware"
+    echo -e "${BLUE}┌─ Colecciones Ansible (Requeridas) ────────────────────────────┐${NC}"
+    check_collection "community.vmware" "required" && ((installed++)); ((total++))
+    check_collection "community.general" "required" && ((installed++)); ((total++))
+    check_collection "ansible.posix" "required" && ((installed++)); ((total++))
+    check_collection "community.windows" "required" && ((installed++)); ((total++))
+    echo -e "${BLUE}└───────────────────────────────────────────────────────────────┘${NC}"
     echo ""
     
-    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}┌─ Colecciones Opcionales ──────────────────────────────────────┐${NC}"
+    check_collection "vmware.vmware" "optional"
+    echo -e "${BLUE}└───────────────────────────────────────────────────────────────┘${NC}"
+    echo ""
+    
+    echo -e "${BLUE}┌─ Configuración ───────────────────────────────────────────────┐${NC}"
+    check_ansible_cfg && ((installed++)); ((total++))
+    check_activate_script && ((installed++)); ((total++))
+    echo -e "${BLUE}└───────────────────────────────────────────────────────────────┘${NC}"
+    echo ""
+    
+    # Resumen
+    local percentage=$((installed * 100 / total))
+    echo -e "${BLUE}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    if [ $installed -eq $total ]; then
+        echo -e "${GREEN}║  ✅ TODO INSTALADO: $installed/$total componentes ($percentage%)${NC}"
+        echo -e "${GREEN}║  Listo para usar Ansible!${NC}"
+    elif [ $installed -gt 0 ]; then
+        echo -e "${YELLOW}║  ⚠ PARCIALMENTE INSTALADO: $installed/$total ($percentage%)${NC}"
+        echo -e "${YELLOW}║  Faltan $((total - installed)) componentes${NC}"
+    else
+        echo -e "${RED}║  ✗ NADA INSTALADO: $installed/$total ($percentage%)${NC}"
+        echo -e "${RED}║  Ejecuta opción 6 para instalar todo${NC}"
+    fi
+    echo -e "${BLUE}╚═══════════════════════════════════════════════════════════════╝${NC}"
 }
 
 # Función para instalar venv
 install_venv() {
     echo ""
-    echo -e "${YELLOW}Instalando entorno virtual...${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${YELLOW}📦 Instalando entorno virtual...${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     
     if ! dpkg -l | grep -q python3-venv; then
-        echo "📦 Instalando python3-venv..."
-        sudo apt update
-        sudo apt install python3-venv -y
+        echo "→ Instalando python3-venv..."
+        if sudo apt update && sudo apt install python3-venv -y; then
+            echo -e "${GREEN}✓ python3-venv instalado${NC}"
+        else
+            echo -e "${RED}✗ Error al instalar python3-venv${NC}"
+            return 1
+        fi
+    else
+        echo -e "${GREEN}✓ python3-venv ya instalado${NC}"
     fi
     
     if [ ! -d "$VENV_DIR" ]; then
-        echo "📦 Creando entorno virtual en $VENV_DIR..."
-        $PYTHON_BIN -m venv "$VENV_DIR"
-        echo -e "${GREEN}✓ Entorno virtual creado${NC}"
+        echo "→ Creando entorno virtual en $VENV_DIR..."
+        if $PYTHON_BIN -m venv "$VENV_DIR"; then
+            echo -e "${GREEN}✓ Entorno virtual creado exitosamente${NC}"
+        else
+            echo -e "${RED}✗ Error al crear entorno virtual${NC}"
+            return 1
+        fi
     else
         echo -e "${GREEN}✓ Entorno virtual ya existe${NC}"
     fi
+    
+    echo -e "${GREEN}✅ Entorno virtual listo${NC}"
 }
 
 # Función para instalar Ansible
 install_ansible() {
     echo ""
-    echo -e "${YELLOW}Instalando Ansible y dependencias Python...${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${YELLOW}📦 Instalando Ansible y dependencias Python...${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     
     if [ ! -d "$VENV_DIR" ]; then
-        echo -e "${RED}Error: Primero debes crear el entorno virtual${NC}"
+        echo -e "${RED}✗ Error: Primero debes crear el entorno virtual (opción 2)${NC}"
         return 1
     fi
     
     source "$VENV_DIR/bin/activate"
     
-    echo "📦 Actualizando pip..."
-    pip install --upgrade pip setuptools wheel --quiet
+    echo "→ Actualizando pip, setuptools, wheel..."
+    if pip install --upgrade pip setuptools wheel --quiet; then
+        echo -e "${GREEN}✓ pip actualizado${NC}"
+    else
+        echo -e "${RED}✗ Error al actualizar pip${NC}"
+        return 1
+    fi
     
-    echo "📦 Instalando Ansible, pyvmomi, requests, jinja2..."
-    pip install --upgrade ansible pyvmomi requests jinja2 --quiet
+    echo "→ Instalando Ansible..."
+    if pip install --upgrade ansible --quiet; then
+        VERSION=$(ansible --version | head -1 | awk '{print $2}')
+        echo -e "${GREEN}✓ Ansible $VERSION instalado${NC}"
+    else
+        echo -e "${RED}✗ Error al instalar Ansible${NC}"
+        return 1
+    fi
     
-    echo -e "${GREEN}✓ Paquetes Python instalados${NC}"
+    echo "→ Instalando pyvmomi (VMware SDK)..."
+    if pip install --upgrade pyvmomi --quiet; then
+        echo -e "${GREEN}✓ pyvmomi instalado${NC}"
+    else
+        echo -e "${RED}✗ Error al instalar pyvmomi${NC}"
+        return 1
+    fi
+    
+    echo "→ Instalando requests y jinja2..."
+    if pip install --upgrade requests jinja2 --quiet; then
+        echo -e "${GREEN}✓ requests y jinja2 instalados${NC}"
+    else
+        echo -e "${RED}✗ Error al instalar requests/jinja2${NC}"
+        return 1
+    fi
+    
+    echo -e "${GREEN}✅ Todos los paquetes Python instalados correctamente${NC}"
 }
 
 # Función para instalar colecciones
 install_collections() {
     echo ""
-    echo -e "${YELLOW}Instalando colecciones Ansible...${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${YELLOW}📦 Instalando colecciones Ansible...${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     
     if [ ! -f "$VENV_DIR/bin/ansible-galaxy" ]; then
-        echo -e "${RED}Error: Primero debes instalar Ansible${NC}"
+        echo -e "${RED}✗ Error: Primero debes instalar Ansible (opción 3)${NC}"
         return 1
     fi
     
     source "$VENV_DIR/bin/activate"
     
+    local failed=0
+    
     if [ -f "collections/requirements.yml" ]; then
-        echo "📦 Instalando desde collections/requirements.yml..."
-        ansible-galaxy collection install -r collections/requirements.yml --force
+        echo "→ Instalando desde collections/requirements.yml..."
+        if ansible-galaxy collection install -r collections/requirements.yml --force; then
+            echo -e "${GREEN}✓ Colecciones desde requirements.yml instaladas${NC}"
+        else
+            echo -e "${RED}✗ Error al instalar desde requirements.yml${NC}"
+            failed=1
+        fi
     else
-        echo "📦 Instalando colecciones individualmente..."
-        ansible-galaxy collection install community.vmware --force
-        ansible-galaxy collection install community.general --force
-        ansible-galaxy collection install ansible.posix --force
-        ansible-galaxy collection install community.windows --force
+        echo -e "${YELLOW}⚠ collections/requirements.yml no encontrado${NC}"
+        echo "→ Instalando colecciones individualmente..."
+        
+        echo "  → community.vmware..."
+        ansible-galaxy collection install community.vmware --force && echo -e "    ${GREEN}✓${NC}" || { echo -e "    ${RED}✗${NC}"; failed=1; }
+        
+        echo "  → community.general..."
+        ansible-galaxy collection install community.general --force && echo -e "    ${GREEN}✓${NC}" || { echo -e "    ${RED}✗${NC}"; failed=1; }
+        
+        echo "  → ansible.posix..."
+        ansible-galaxy collection install ansible.posix --force && echo -e "    ${GREEN}✓${NC}" || { echo -e "    ${RED}✗${NC}"; failed=1; }
+        
+        echo "  → community.windows..."
+        ansible-galaxy collection install community.windows --force && echo -e "    ${GREEN}✓${NC}" || { echo -e "    ${RED}✗${NC}"; failed=1; }
     fi
     
-    echo "📦 Instalando vmware.vmware..."
-    ansible-galaxy collection install vmware.vmware --force 2>/dev/null || echo -e "${YELLOW}⚠ vmware.vmware no disponible (opcional)${NC}"
+    echo "→ Instalando vmware.vmware (opcional)..."
+    if ansible-galaxy collection install vmware.vmware --force 2>/dev/null; then
+        echo -e "${GREEN}✓ vmware.vmware instalado${NC}"
+    else
+        echo -e "${YELLOW}⚠ vmware.vmware no disponible (opcional, no es crítico)${NC}"
+    fi
     
-    echo -e "${GREEN}✓ Colecciones instaladas${NC}"
+    if [ $failed -eq 0 ]; then
+        echo -e "${GREEN}✅ Todas las colecciones instaladas correctamente${NC}"
+        return 0
+    else
+        echo -e "${RED}✗ Algunas colecciones fallaron${NC}"
+        return 1
+    fi
 }
 
 # Función para configurar ansible.cfg
 configure_ansible_cfg() {
     echo ""
-    echo -e "${YELLOW}Configurando ansible.cfg...${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${YELLOW}⚙️  Configurando ansible.cfg...${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     
     VENV_PYTHON="$VENV_DIR/bin/python3"
     
     if [ ! -f "ansible.cfg" ]; then
+        echo "→ Creando ansible.cfg..."
         cat > ansible.cfg << EOF
 [defaults]
 ansible_python_interpreter=$VENV_PYTHON
@@ -208,6 +375,7 @@ become_ask_pass = False
 EOF
         echo -e "${GREEN}✓ ansible.cfg creado${NC}"
     else
+        echo "→ ansible.cfg ya existe, actualizando..."
         if grep -q "ansible_python_interpreter" ansible.cfg; then
             sed -i "s|ansible_python_interpreter=.*|ansible_python_interpreter=$VENV_PYTHON|" ansible.cfg
             echo -e "${GREEN}✓ ansible_python_interpreter actualizado${NC}"
@@ -218,6 +386,7 @@ EOF
     fi
     
     # Crear script de activación
+    echo "→ Creando activate-ansible.sh..."
     cat > activate-ansible.sh << 'EOF'
 #!/bin/bash
 source ~/.ansible-venv/bin/activate
@@ -226,6 +395,8 @@ echo "Ahora puedes ejecutar: ansible-playbook create-vm-gamecenter.yml"
 EOF
     chmod +x activate-ansible.sh
     echo -e "${GREEN}✓ activate-ansible.sh creado${NC}"
+    
+    echo -e "${GREEN}✅ Configuración completada${NC}"
 }
 
 # Función para instalar todo
