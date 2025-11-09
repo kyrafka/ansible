@@ -12,8 +12,24 @@
     update_cache: yes
   tags: firewall
 
+- name: "✓ Paquetes instalados"
+  debug:
+    msg: "→ UFW, fail2ban e iptables-persistent instalados"
+  tags: firewall
+
+- name: "🔍 Detectando ubicación de ufw"
+  command: which ufw
+  register: ufw_path
+  changed_when: false
+  tags: firewall
+
+- name: "📍 UFW encontrado"
+  debug:
+    msg: "→ Ubicación: {{ ufw_path.stdout }}"
+  tags: firewall
+
 - name: "🔄 Deshabilitando UFW temporalmente"
-  command: /usr/sbin/ufw --force disable
+  command: "{{ ufw_path.stdout }} --force disable"
   tags: firewall
 
 - name: "✓ UFW deshabilitado"
@@ -22,7 +38,7 @@
   tags: firewall
 
 - name: "🔄 Reseteando configuración UFW"
-  command: /usr/sbin/ufw --force reset
+  command: "{{ ufw_path.stdout }} --force reset"
   tags: firewall
 
 - name: "✓ UFW reseteado"
@@ -31,11 +47,11 @@
   tags: firewall
 
 - name: "🛡️  Configurando política: denegar entrada"
-  command: /usr/sbin/ufw default deny incoming
+  command: "{{ ufw_path.stdout }} default deny incoming"
   tags: firewall
 
 - name: "🛡️  Configurando política: permitir salida"
-  command: /usr/sbin/ufw default allow outgoing
+  command: "{{ ufw_path.stdout }} default allow outgoing"
   tags: firewall
 
 - name: "✓ Políticas configuradas"
@@ -46,7 +62,7 @@
   tags: firewall
 
 - name: "🔐 Permitiendo SSH con rate limiting"
-  command: /usr/sbin/ufw limit 22/tcp comment 'SSH con rate limiting'
+  command: "{{ ufw_path.stdout }} limit 22/tcp comment 'SSH con rate limiting'"
   tags: firewall
 
 - name: "✓ SSH protegido"
@@ -55,11 +71,11 @@
   tags: firewall
 
 - name: "🌐 Permitiendo DNS TCP (puerto 53)"
-  command: /usr/sbin/ufw allow 53/tcp comment 'DNS TCP'
+  command: "{{ ufw_path.stdout }} allow 53/tcp comment 'DNS TCP'"
   tags: firewall
 
 - name: "🌐 Permitiendo DNS UDP (puerto 53)"
-  command: /usr/sbin/ufw allow 53/udp comment 'DNS UDP'
+  command: "{{ ufw_path.stdout }} allow 53/udp comment 'DNS UDP'"
   tags: firewall
 
 - name: "✓ DNS habilitado"
@@ -68,11 +84,11 @@
   tags: firewall
 
 - name: "📡 Permitiendo DHCPv6 Server (puerto 547)"
-  command: /usr/sbin/ufw allow 547/udp comment 'DHCPv6 Server'
+  command: "{{ ufw_path.stdout }} allow 547/udp comment 'DHCPv6 Server'"
   tags: firewall
 
 - name: "📡 Permitiendo DHCPv6 Client (puerto 546)"
-  command: /usr/sbin/ufw allow 546/udp comment 'DHCPv6 Client'
+  command: "{{ ufw_path.stdout }} allow 546/udp comment 'DHCPv6 Client'"
   tags: firewall
 
 - name: "✓ DHCP habilitado"
@@ -81,7 +97,7 @@
   tags: firewall
 
 - name: "📁 Permitiendo puertos pasivos FTP"
-  command: /usr/sbin/ufw allow 21000:21010/tcp comment 'FTP Passive Ports'
+  command: "{{ ufw_path.stdout }} allow 21000:21010/tcp comment 'FTP Passive Ports'"
   tags: firewall
 
 - name: "✓ FTP configurado"
@@ -95,7 +111,7 @@
   tags: firewall
 
 - name: "🔥 Habilitando UFW"
-  command: /usr/sbin/ufw --force enable
+  command: "{{ ufw_path.stdout }} --force enable"
   changed_when: true
   tags: firewall
 
