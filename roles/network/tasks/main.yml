@@ -1,12 +1,18 @@
 ---
 # Configuración de red para servidor con 2 interfaces
 
-- name: Detectar interfaces de red
+- name: "🔍 Detectando interfaces de red"
   ansible.builtin.set_fact:
     wan_interface: "ens33"
     lan_interface: "ens34"
 
-- name: Configurar netplan para ens34
+- name: "📋 Interfaces detectadas"
+  ansible.builtin.debug:
+    msg:
+      - "→ Interfaz WAN: {{ wan_interface }} (internet)"
+      - "→ Interfaz LAN: {{ lan_interface }} (red interna IPv6)"
+
+- name: "📝 Creando configuración netplan para {{ lan_interface }}"
   ansible.builtin.template:
     src: netplan-ens34.yaml.j2
     dest: /etc/netplan/99-ens34-ipv6.yaml
@@ -15,11 +21,20 @@
     mode: '0600'
   become: true
 
-- name: Aplicar configuración de netplan
+- name: "✓ Configuración netplan creada"
+  ansible.builtin.debug:
+    msg: "→ Archivo: /etc/netplan/99-ens34-ipv6.yaml"
+
+- name: "🔄 Aplicando configuración de netplan"
   ansible.builtin.command: netplan apply
   become: true
+  register: netplan_result
 
-- name: Habilitar IP forwarding IPv4
+- name: "✓ Netplan aplicado"
+  ansible.builtin.debug:
+    msg: "→ IPv6 configurada en {{ lan_interface }}: 2025:db8:10::2/64"
+
+- name: "🔀 Habilitando IP forwarding IPv4"
   ansible.posix.sysctl:
     name: net.ipv4.ip_forward
     value: '1'
@@ -27,7 +42,11 @@
     reload: yes
   become: true
 
-- name: Habilitar IP forwarding IPv6
+- name: "✓ IPv4 forwarding habilitado"
+  ansible.builtin.debug:
+    msg: "→ net.ipv4.ip_forward = 1"
+
+- name: "🔀 Habilitando IP forwarding IPv6"
   ansible.posix.sysctl:
     name: net.ipv6.conf.all.forwarding
     value: '1'
@@ -35,14 +54,18 @@
     reload: yes
   become: true
 
-- name: Crear directorio para reglas de iptables
+- name: "✓ IPv6 forwarding habilitado"
+  ansible.builtin.debug:
+    msg: "→ net.ipv6.conf.all.forwarding = 1 (el servidor ahora es un router)"
+
+- name: "📁 Creando directorio para reglas de iptables"
   ansible.builtin.file:
     path: /etc/iptables
     state: directory
     mode: '0755'
   become: true
 
-- name: Configurar NAT para IPv6 a IPv4
+- name: "🛡️  Configurando NAT66 (IPv6 → IPv4)"
   ansible.builtin.iptables:
     table: nat
     chain: POSTROUTING
@@ -52,12 +75,23 @@
     ip_version: ipv6
   become: true
 
-- name: Guardar reglas de iptables
+- name: "✓ NAT66 configurado"
+  ansible.builtin.debug:
+    msg:
+      - "→ Red origen: {{ network_config.ipv6_network }}"
+      - "→ Interfaz salida: {{ wan_interface }}"
+      - "→ Las VMs podrán salir a internet a través del servidor"
+
+- name: "💾 Guardando reglas de iptables"
   ansible.builtin.shell: |
     ip6tables-save > /etc/iptables/rules.v6
   become: true
   args:
     creates: /etc/iptables/rules.v6
+
+- name: "✓ Reglas guardadas"
+  ansible.builtin.debug:
+    msg: "→ Archivo: /etc/iptables/rules.v6"
 
 - name: Verificar configuración de red
   ansible.builtin.debug:

@@ -12,70 +12,81 @@
     update_cache: yes
   tags: firewall
 
-- name: "Asegurar que ufw esté en el PATH"
-  ansible.builtin.set_fact:
-    ansible_env:
-      PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+- name: "🔄 Deshabilitando UFW temporalmente"
+  command: ufw --force disable
   tags: firewall
 
-- name: "Resetear configuración UFW"
-  ufw:
-    state: reset
-  tags: firewall
-
-- name: "Configurar políticas por defecto"
-  ufw:
-    direction: "{{ item.direction }}"
-    policy: "{{ item.policy }}"
-  loop:
-    - { direction: 'incoming', policy: 'deny' }
-    - { direction: 'outgoing', policy: 'allow' }
-  tags: firewall
-
-- name: "Permitir SSH con limitación de conexiones"
-  ufw:
-    rule: limit
-    port: '22'
-    proto: tcp
-    comment: "SSH con rate limiting"
-  tags: firewall
-
-- name: "Permitir servicios del proyecto"
-  ufw:
-    rule: allow
-    port: "{{ item.port }}"
-    proto: "{{ item.proto }}"
-    comment: "{{ item.comment }}"
-  loop:
-    - { port: '53', proto: 'tcp', comment: 'DNS TCP' }
-    - { port: '53', proto: 'udp', comment: 'DNS UDP' }
-    - { port: '547', proto: 'udp', comment: 'DHCPv6 Server' }
-    - { port: '546', proto: 'udp', comment: 'DHCPv6 Client' }
-  tags: firewall
-
-- name: "Permitir puertos pasivos FTP"
-  ufw:
-    rule: allow
-    port: "21000:21010"
-    proto: tcp
-    comment: "FTP Passive Ports"
-  tags: firewall
-
-- name: "Configuración de firewall completada"
+- name: "✓ UFW deshabilitado"
   debug:
-    msg: "Firewall configurado para servicios IPv6"
+    msg: "→ Preparando para configuración limpia"
   tags: firewall
 
-- name: "Permitir ping (ICMP)"
-  ufw:
-    rule: allow
-    proto: icmp
+- name: "🔄 Reseteando configuración UFW"
+  command: ufw --force reset
   tags: firewall
 
-- name: "Permitir ICMPv6"
-  ufw:
-    rule: allow
-    proto: ipv6-icmp
+- name: "✓ UFW reseteado"
+  debug:
+    msg: "→ Configuración anterior eliminada"
+  tags: firewall
+
+- name: "🛡️  Configurando política: denegar entrada"
+  command: ufw default deny incoming
+  tags: firewall
+
+- name: "🛡️  Configurando política: permitir salida"
+  command: ufw default allow outgoing
+  tags: firewall
+
+- name: "✓ Políticas configuradas"
+  debug:
+    msg:
+      - "→ Entrada: DENY (seguro por defecto)"
+      - "→ Salida: ALLOW (sin restricciones)"
+  tags: firewall
+
+- name: "🔐 Permitiendo SSH con rate limiting"
+  command: ufw limit 22/tcp comment 'SSH con rate limiting'
+  tags: firewall
+
+- name: "✓ SSH protegido"
+  debug:
+    msg: "→ Puerto 22/tcp con limitación de conexiones"
+  tags: firewall
+
+- name: "🌐 Permitiendo DNS TCP (puerto 53)"
+  command: ufw allow 53/tcp comment 'DNS TCP'
+  tags: firewall
+
+- name: "🌐 Permitiendo DNS UDP (puerto 53)"
+  command: ufw allow 53/udp comment 'DNS UDP'
+  tags: firewall
+
+- name: "✓ DNS habilitado"
+  debug:
+    msg: "→ Puerto 53 TCP/UDP abierto"
+  tags: firewall
+
+- name: "📡 Permitiendo DHCPv6 Server (puerto 547)"
+  command: ufw allow 547/udp comment 'DHCPv6 Server'
+  tags: firewall
+
+- name: "📡 Permitiendo DHCPv6 Client (puerto 546)"
+  command: ufw allow 546/udp comment 'DHCPv6 Client'
+  tags: firewall
+
+- name: "✓ DHCP habilitado"
+  debug:
+    msg: "→ Puertos 546-547 UDP abiertos"
+  tags: firewall
+
+- name: "📁 Permitiendo puertos pasivos FTP"
+  command: ufw allow 21000:21010/tcp comment 'FTP Passive Ports'
+  tags: firewall
+
+- name: "✓ FTP configurado"
+  debug:
+    msg: "→ Puertos 21000-21010 TCP abiertos"
   tags: firewall
 
 - name: "Aplicar reglas por rol de VM"
@@ -83,9 +94,14 @@
   when: groups['ubuntu_desktops'] is defined
   tags: firewall
 
-- name: "Habilitar UFW"
+- name: "🔥 Habilitando UFW"
   command: ufw --force enable
   changed_when: true
+  tags: firewall
+
+- name: "✓ UFW habilitado"
+  debug:
+    msg: "→ Firewall activo y funcionando"
   tags: firewall
 
 - name: "Copiar filtros personalizados de fail2ban"

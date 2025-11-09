@@ -1,0 +1,276 @@
+---
+# Playbook interactivo para configurar servicios IPv6 en el servidor local
+# Red: 2025:db8:10::/64
+
+- name: Configurar servidor Ubuntu con servicios de red (Modo Interactivo)
+  hosts: localhost
+  connection: local
+  become: true
+  
+  vars:
+    interactive_mode: true
+  
+  tasks:
+    - name: "🎯 Bienvenida"
+      debug:
+        msg:
+          - "╔═══════════════════════════════════════════════════════════════╗"
+          - "║        🎮 GameCenter - Configuración del Servidor           ║"
+          - "╚═══════════════════════════════════════════════════════════════╝"
+          - ""
+          - "Este playbook configurará:"
+          - "  1. Paquetes comunes del sistema"
+          - "  2. Red IPv6 en ens34"
+          - "  3. Servidor DNS (BIND9)"
+          - "  4. Servidor DHCP IPv6"
+          - "  5. Firewall (UFW + fail2ban)"
+          - "  6. Almacenamiento NFS"
+          - ""
+          - "Configuración:"
+          - "  Red IPv6: {{ network_config.ipv6_network }}"
+          - "  Gateway: {{ network_config.ipv6_gateway }}"
+          - "  DHCP desde: {{ network_config.dhcp_range_start }}"
+          - "  Dominio: {{ network_config.domain_name }}"
+          - ""
+    
+    - name: "⏸️  Pausa antes de comenzar"
+      pause:
+        prompt: "Presiona ENTER para comenzar la configuración..."
+      when: interactive_mode | default(false)
+    
+    # ═══════════════════════════════════════════════════════════════
+    # ROL 1: COMMON
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "📦 Paso 1/6: Instalando paquetes comunes"
+      debug:
+        msg:
+          - "╔═══════════════════════════════════════════════════════════════╗"
+          - "║  📦 Paso 1: Paquetes Comunes del Sistema                    ║"
+          - "╚═══════════════════════════════════════════════════════════════╝"
+          - ""
+          - "Instalará:"
+          - "  • vim, git, curl, wget"
+          - "  • net-tools, dnsutils"
+          - "  • python3-pip"
+          - "  • Actualizará el sistema"
+    
+    - name: "⏸️  Continuar con instalación de paquetes?"
+      pause:
+        prompt: "Presiona ENTER para instalar paquetes comunes..."
+      when: interactive_mode | default(false)
+    
+    - name: "Ejecutar rol: common"
+      include_role:
+        name: common
+    
+    - name: "✅ Paquetes comunes instalados"
+      debug:
+        msg:
+          - "✅ Paquetes comunes instalados correctamente"
+          - ""
+    
+    # ═══════════════════════════════════════════════════════════════
+    # ROL 2: NETWORK
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "🌐 Paso 2/6: Configurando red IPv6"
+      debug:
+        msg:
+          - "╔═══════════════════════════════════════════════════════════════╗"
+          - "║  🌐 Paso 2: Configuración de Red IPv6                       ║"
+          - "╚═══════════════════════════════════════════════════════════════╝"
+          - ""
+          - "Configurará:"
+          - "  • Interfaz WAN (ens33): IPv4 DHCP (internet)"
+          - "  • Interfaz LAN (ens34): IPv6 {{ network_config.ipv6_network }}"
+          - "  • IP del servidor: 2025:db8:10::2/64"
+          - "  • IP forwarding habilitado"
+          - "  • NAT66 para que las VMs salgan a internet"
+          - ""
+          - "⚠️  IMPORTANTE: Esto aplicará cambios de red con netplan"
+    
+    - name: "⏸️  Continuar con configuración de red?"
+      pause:
+        prompt: "Presiona ENTER para configurar la red..."
+      when: interactive_mode | default(false)
+    
+    - name: "Ejecutar rol: network"
+      include_role:
+        name: network
+    
+    - name: "✅ Red configurada"
+      debug:
+        msg:
+          - "✅ Red IPv6 configurada correctamente"
+          - ""
+          - "Verifica con: ip -6 addr show ens34"
+          - ""
+    
+    # ═══════════════════════════════════════════════════════════════
+    # ROL 3: DNS
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "🔍 Paso 3/6: Configurando DNS"
+      debug:
+        msg:
+          - "╔═══════════════════════════════════════════════════════════════╗"
+          - "║  🔍 Paso 3: Servidor DNS (BIND9)                            ║"
+          - "╚═══════════════════════════════════════════════════════════════╝"
+          - ""
+          - "Configurará:"
+          - "  • BIND9 como servidor DNS"
+          - "  • Zona: {{ network_config.domain_name }}"
+          - "  • Resolución de nombres para VMs"
+          - "  • Forwarders a DNS públicos"
+          - ""
+    
+    - name: "⏸️  Continuar con DNS?"
+      pause:
+        prompt: "Presiona ENTER para configurar DNS..."
+      when: interactive_mode | default(false)
+    
+    - name: "Ejecutar rol: dns_bind"
+      include_role:
+        name: dns_bind
+    
+    - name: "✅ DNS configurado"
+      debug:
+        msg:
+          - "✅ Servidor DNS configurado correctamente"
+          - ""
+          - "Verifica con: sudo systemctl status named"
+          - ""
+    
+    # ═══════════════════════════════════════════════════════════════
+    # ROL 4: DHCP
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "📡 Paso 4/6: Configurando DHCP IPv6"
+      debug:
+        msg:
+          - "╔═══════════════════════════════════════════════════════════════╗"
+          - "║  📡 Paso 4: Servidor DHCP IPv6                              ║"
+          - "╚═══════════════════════════════════════════════════════════════╝"
+          - ""
+          - "Configurará:"
+          - "  • ISC DHCP Server para IPv6"
+          - "  • Rango: {{ network_config.dhcp_range_start }} - {{ network_config.dhcp_range_end }}"
+          - "  • Asignación automática de IPs a VMs"
+          - "  • DNS automático"
+          - ""
+    
+    - name: "⏸️  Continuar con DHCP?"
+      pause:
+        prompt: "Presiona ENTER para configurar DHCP..."
+      when: interactive_mode | default(false)
+    
+    - name: "Ejecutar rol: dhcpv6"
+      include_role:
+        name: dhcpv6
+    
+    - name: "✅ DHCP configurado"
+      debug:
+        msg:
+          - "✅ Servidor DHCP IPv6 configurado correctamente"
+          - ""
+          - "Verifica con: sudo systemctl status isc-dhcp-server6"
+          - ""
+    
+    # ═══════════════════════════════════════════════════════════════
+    # ROL 5: FIREWALL
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "🔥 Paso 5/6: Configurando Firewall"
+      debug:
+        msg:
+          - "╔═══════════════════════════════════════════════════════════════╗"
+          - "║  🔥 Paso 5: Firewall (UFW + fail2ban)                       ║"
+          - "╚═══════════════════════════════════════════════════════════════╝"
+          - ""
+          - "Configurará:"
+          - "  • UFW (Uncomplicated Firewall)"
+          - "  • Reglas para SSH, DNS, DHCP"
+          - "  • fail2ban para protección contra ataques"
+          - "  • Rate limiting en SSH"
+          - ""
+          - "⚠️  IMPORTANTE: Asegúrate de tener acceso SSH antes de continuar"
+    
+    - name: "⏸️  Continuar con Firewall?"
+      pause:
+        prompt: "Presiona ENTER para configurar el firewall..."
+      when: interactive_mode | default(false)
+    
+    - name: "Ejecutar rol: firewall"
+      include_role:
+        name: firewall
+    
+    - name: "✅ Firewall configurado"
+      debug:
+        msg:
+          - "✅ Firewall configurado correctamente"
+          - ""
+          - "Verifica con: sudo ufw status verbose"
+          - ""
+    
+    # ═══════════════════════════════════════════════════════════════
+    # ROL 6: STORAGE
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "💾 Paso 6/6: Configurando almacenamiento"
+      debug:
+        msg:
+          - "╔═══════════════════════════════════════════════════════════════╗"
+          - "║  💾 Paso 6: Almacenamiento NFS                              ║"
+          - "╚═══════════════════════════════════════════════════════════════╝"
+          - ""
+          - "Configurará:"
+          - "  • Servidor NFS"
+          - "  • Compartir directorios para VMs"
+          - "  • Permisos adecuados"
+          - ""
+    
+    - name: "⏸️  Continuar con Storage?"
+      pause:
+        prompt: "Presiona ENTER para configurar almacenamiento..."
+      when: interactive_mode | default(false)
+    
+    - name: "Ejecutar rol: storage"
+      include_role:
+        name: storage
+    
+    - name: "✅ Storage configurado"
+      debug:
+        msg:
+          - "✅ Almacenamiento NFS configurado correctamente"
+          - ""
+    
+    # ═══════════════════════════════════════════════════════════════
+    # RESUMEN FINAL
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "🎉 Configuración completada"
+      debug:
+        msg:
+          - ""
+          - "╔═══════════════════════════════════════════════════════════════╗"
+          - "║              ✅ CONFIGURACIÓN COMPLETADA                     ║"
+          - "╚═══════════════════════════════════════════════════════════════╝"
+          - ""
+          - "Servicios configurados:"
+          - "  ✅ Paquetes comunes instalados"
+          - "  ✅ Red IPv6 en ens34 (2025:db8:10::2/64)"
+          - "  ✅ DNS (BIND9) funcionando"
+          - "  ✅ DHCP IPv6 asignando IPs"
+          - "  ✅ Firewall activo y configurado"
+          - "  ✅ Almacenamiento NFS disponible"
+          - ""
+          - "Comandos útiles:"
+          - "  • Ver IPv6: ip -6 addr show ens34"
+          - "  • Ver firewall: sudo ufw status verbose"
+          - "  • Ver DNS: sudo systemctl status named"
+          - "  • Ver DHCP: sudo systemctl status isc-dhcp-server6"
+          - "  • Ver NAT: sudo ip6tables -t nat -L -v"
+          - ""
+          - "El servidor está listo para crear VMs! 🚀"
+          - ""
