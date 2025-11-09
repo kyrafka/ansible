@@ -71,7 +71,6 @@ windows11_users:
   cliente:
     username: "Gamer01"
     password: "{{ vault_windows11_cliente_password }}"
-    password: "{{ vault_ubuntu_desktop_cliente_password }}"
 
 # Configuración de red IPv6 (CORREGIDA)
 network_config:

@@ -1,48 +1,28 @@
 ---
-# Playbook principal para configurar servicios IPv6
+# Playbook principal para configurar servicios IPv6 en el servidor local
 # Red: 2025:db8:10::/64
-# Nota importante - 2025:db8:10::2 
 
-- name: Mostrar información de la configuración
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: Información de red IPv6
-      debug:
-        msg: |
-          Configuración de red:
-            - Red: "{{ network_config.ipv6_network }}"
-            - Gateway: "{{ network_config.ipv6_gateway }}"
-            - DHCP desde: "{{ network_config.dhcp_range_start }}"
-            - Dominio: "{{ network_config.domain_name }}"
-
-- name: Configurar servicios completos en servidor Ubuntu
-  hosts: servers
-  become: true
-  roles:
-    - role: common
-    - role: dns_bind
-    - role: dhcpv6
-    - role: firewall
-    - role: storage
-
-- name: Crear VM Ubuntu en VMware ESXi
-  hosts: vmware_servers
+- name: Configurar servidor Ubuntu con servicios de red
+  hosts: localhost
   connection: local
-  gather_facts: false
-  vars_files:
-    - group_vars/ubpc.yml
-  roles:
-    - role: vmware
-  tags: create_vm
-
-- name: Configurar servicios en nueva VM UBPC (después de instalación manual)
-  hosts: servers
   become: true
+  
+  tasks:
+    - name: Mostrar información de la configuración
+      debug:
+        msg:
+          - "════════════════════════════════════════"
+          - "Configurando servidor GameCenter"
+          - "════════════════════════════════════════"
+          - "Red IPv6: {{ network_config.ipv6_network }}"
+          - "Gateway: {{ network_config.ipv6_gateway }}"
+          - "DHCP desde: {{ network_config.dhcp_range_start }}"
+          - "Dominio: {{ network_config.domain_name }}"
+          - "════════════════════════════════════════"
+  
   roles:
     - role: common
     - role: dns_bind
     - role: dhcpv6
     - role: firewall
     - role: storage
-  tags: configure_vm
