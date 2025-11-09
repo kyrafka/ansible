@@ -1,3 +1,17 @@
+- name: Instalar paquetes base del sistema
+  ansible.builtin.apt:
+    name:
+      - ufw
+      - fail2ban
+      - net-tools
+      - curl
+      - wget
+      - vim
+      - git
+    state: present
+    update_cache: yes
+  become: true
+
 - name: Existe el grupo
   ansible.builtin.group:
     name: "{{ item.name }}"
