@@ -48,6 +48,31 @@ win_admin_user: "gamepc1"
 win_admin_password: "{{ vault_win_admin_password }}"
 enable_rdp: true
 
+# Usuarios Ubuntu Desktop por rol
+ubuntu_desktop_users:
+  admin:
+    username: "admin"
+    password: "{{ vault_ubuntu_desktop_admin_password }}"
+  auditor:
+    username: "auditor"
+    password: "{{ vault_ubuntu_desktop_auditor_password }}"
+  cliente:
+    username: "gamer01"
+    password: "{{ vault_ubuntu_desktop_cliente_password }}"
+
+# Usuarios Windows 11 por rol
+windows11_users:
+  admin:
+    username: "Administrador"
+    password: "{{ vault_windows11_admin_password }}"
+  auditor:
+    username: "Auditor"
+    password: "{{ vault_windows11_auditor_password }}"
+  cliente:
+    username: "Gamer01"
+    password: "{{ vault_windows11_cliente_password }}"
+    password: "{{ vault_ubuntu_desktop_cliente_password }}"
+
 # Configuración de red IPv6 (CORREGIDA)
 network_config:
   # Red principal del proyecto

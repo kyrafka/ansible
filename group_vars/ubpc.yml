@@ -7,6 +7,7 @@ vmware:
   folder: "/"
   datastore: "datastore1"
   network_name: "VM Network"
+  internal_network_name: "M_vm's"
 
   vm_name: "UBPC"
   guest_id: "ubuntu64Guest"
@@ -15,7 +16,7 @@ vmware:
   cores_per_socket: 1
   disk_size_mb: 20480
 
-  iso_path: "ubuntu-24.04.3-desktop-amd64.iso"
+  iso_path: "[datastore1] ubuntu-24.04.3-live-server-amd64.iso"
   boot_firmware: "efi"
   secure_boot: false
 

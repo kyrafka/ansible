@@ -1,0 +1,87 @@
+---
+- name: Detectar rol de la VM
+  ansible.builtin.set_fact:
+    vm_role: "{{ hostvars[inventory_hostname].vm_role | default('cliente') }}"
+
+- name: Validar rol
+  ansible.builtin.assert:
+    that:
+      - vm_role in ['admin', 'auditor', 'cliente']
+    fail_msg: "Rol debe ser: admin, auditor o cliente"
+
+- name: Actualizar sistema
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: dist
+  become: true
+
+- name: Instalar paquetes base
+  ansible.builtin.apt:
+    name:
+      - openssh-server
+      - ufw
+      - net-tools
+      - curl
+      - wget
+    state: present
+  become: true
+
+- name: Crear grupo pcgamers
+  ansible.builtin.group:
+    name: pcgamers
+    state: present
+  become: true
+
+# Crear TODOS los usuarios
+- name: Crear usuario admin
+  ansible.builtin.user:
+    name: "{{ ubuntu_desktop_users.admin.username }}"
+    password: "{{ ubuntu_desktop_users.admin.password | password_hash('sha512') }}"
+    groups: sudo,adm,systemd-journal
+    shell: /bin/bash
+    create_home: true
+  become: true
+
+- name: Crear usuario auditor
+  ansible.builtin.user:
+    name: "{{ ubuntu_desktop_users.auditor.username }}"
+    password: "{{ ubuntu_desktop_users.auditor.password | password_hash('sha512') }}"
+    groups: adm,systemd-journal
+    shell: /bin/bash
+    create_home: true
+  become: true
+
+- name: Crear usuario cliente
+  ansible.builtin.user:
+    name: "{{ ubuntu_desktop_users.cliente.username }}"
+    password: "{{ ubuntu_desktop_users.cliente.password | password_hash('sha512') }}"
+    groups: pcgamers
+    shell: /bin/bash
+    create_home: true
+  become: true
+
+# Crear carpetas compartidas
+- name: Crear carpetas base
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: '/srv/admin', owner: 'admin', group: 'admin', mode: '0755' }
+    - { path: '/srv/audits', owner: 'auditor', group: 'auditor', mode: '0755' }
+    - { path: '/srv/games', owner: 'root', group: 'pcgamers', mode: '0775' }
+    - { path: '/srv/instaladores', owner: 'root', group: 'root', mode: '0755' }
+  become: true
+
+# Configurar permisos específicos según rol activo
+- name: Configurar permisos según rol activo
+  ansible.builtin.include_tasks: "{{ vm_role }}.yml"
+
+- name: Habilitar SSH
+  ansible.builtin.service:
+    name: ssh
+    state: started
+    enabled: true
+  become: true

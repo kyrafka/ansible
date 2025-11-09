@@ -140,26 +140,27 @@
 
 - name: Mostrar información de la VM creada
   debug:
-    msg: |
-       VM Ubuntu '{{ vmware.vm_name }}' creada exitosamente:
-      
-       Especificaciones:
-      - Nombre: {{ vmware.vm_name }}
-      - SO: Ubuntu 24.04 ({{ vmware.guest_id }})
-      - RAM: {{ vmware.memory }}MB
-      - CPU: {{ vmware.cpus }} core(s)
-      - Disco: {{ (vmware.disk_size_mb / 1024) | int }}GB
-      - Red: {{ vmware.network_name }}
-      
-       Instalación automática:
-      - ISO Ubuntu: {{ vmware.iso_path }}
-      - Autoinstall: Configurado con cloud-init
-      - Usuario: ubuntu / ubuntu123
-      - SSH: Habilitado automáticamente
-      - Red IPv6: DHCPv6 automático
-      
-       La instalación tomará 10-15 minutos automáticamente
-       Próximo paso: Esperar a que obtenga IP y ejecutar configuración
+    msg:
+      - "VM Ubuntu '{{ vmware.vm_name }}' creada exitosamente"
+      - ""
+      - "Especificaciones:"
+      - "  - Nombre: {{ vmware.vm_name }}"
+      - "  - SO: Ubuntu 24.04 ({{ vmware.guest_id }})"
+      - "  - RAM: {{ vmware.memory }}MB"
+      - "  - CPU: {{ vmware.cpus }} core(s)"
+      - "  - Disco: {{ (vmware.disk_size_mb / 1024) | int }}GB"
+      - "  - Red: {{ vmware.network_name }}"
+      - ""
+      - "Instalación automática:"
+      - "  - ISO Ubuntu: {{ vmware.iso_path }}"
+      - ""
+      - "Autoinstall: Configurado con cloud-init"
+      - "Usuario: ubuntu / ubuntu123"
+      - "SSH: Habilitado automáticamente"
+      - "Red IPv6: DHCPv6 automático"
+      - ""
+      - "La instalación tomará 10-15 minutos automáticamente"
+      - "Próximo paso: Esperar a que obtenga IP y ejecutar configuración"
 
 - name: Esperar a que la instalación automática termine y obtenga IP
   community.vmware.vmware_guest_info:

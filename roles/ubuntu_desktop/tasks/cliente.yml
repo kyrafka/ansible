@@ -1,0 +1,63 @@
+---
+# Configuración específica para VM con rol CLIENTE
+
+- name: Permisos de solo lectura en games para clientes
+  ansible.builtin.file:
+    path: /srv/games
+    owner: root
+    group: pcgamers
+    mode: '0755'
+  become: true
+
+- name: Configurar firewall para cliente (solo salida web)
+  community.general.ufw:
+    rule: allow
+    direction: out
+    port: "{{ item }}"
+  loop:
+    - '53'    # DNS
+    - '80'    # HTTP
+    - '443'   # HTTPS
+    - '546'   # DHCPv6 client
+    - '547'   # DHCPv6 server
+  become: true
+
+- name: Denegar SSH saliente (no puede conectar al servidor)
+  community.general.ufw:
+    rule: deny
+    direction: out
+    port: '22'
+  become: true
+
+- name: Habilitar firewall
+  community.general.ufw:
+    state: enabled
+  become: true
+
+- name: Asegurar que cliente no tenga sudo
+  ansible.builtin.file:
+    path: /etc/sudoers.d/cliente
+    state: absent
+  become: true
+
+- name: Mensaje de configuración
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════"
+      - "Configuración CLIENTE completada"
+      - "════════════════════════════════════════"
+      - "Usuarios creados:"
+      - "  - admin (sudo, acceso total)"
+      - "  - auditor (solo lectura)"
+      - "  - gamer01 (sin privilegios)"
+      - ""
+      - "Carpetas:"
+      - "  - /srv/admin (sin acceso)"
+      - "  - /srv/audits (sin acceso)"
+      - "  - /srv/games (solo lectura)"
+      - "  - /srv/instaladores (solo lectura)"
+      - ""
+      - "Rol activo: CLIENTE"
+      - "  - NO puede SSH al servidor ❌"
+      - "  - Sin sudo ❌"
+      - "  - Solo juegos y navegación ✅"

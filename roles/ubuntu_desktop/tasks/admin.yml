@@ -1,0 +1,57 @@
+---
+# Configuración específica para VM con rol ADMIN
+
+- name: Permisos de escritura en games e instaladores para admin
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: root
+    group: pcgamers
+    mode: '0775'
+  loop:
+    - /srv/games
+    - /srv/instaladores
+  become: true
+
+- name: Configurar firewall para admin (permite todo)
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+  loop:
+    - '22'    # SSH
+    - '80'    # HTTP
+    - '443'   # HTTPS
+  become: true
+
+- name: Habilitar firewall
+  community.general.ufw:
+    state: enabled
+  become: true
+
+- name: Configurar SSH seguro
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin'
+    line: 'PermitRootLogin no'
+  become: true
+  notify: restart ssh
+
+- name: Mensaje de configuración
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════"
+      - "Configuración ADMIN completada"
+      - "════════════════════════════════════════"
+      - "Usuarios creados:"
+      - "  - admin (sudo, acceso total)"
+      - "  - auditor (solo lectura)"
+      - "  - gamer01 (sin privilegios)"
+      - ""
+      - "Carpetas:"
+      - "  - /srv/admin (privada admin)"
+      - "  - /srv/audits (privada auditor)"
+      - "  - /srv/games (compartida RW)"
+      - "  - /srv/instaladores (compartida RW)"
+      - ""
+      - "Rol activo: ADMIN"
+      - "  - Puede SSH al servidor ✅"
+      - "  - Acceso total al sistema ✅"

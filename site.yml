@@ -17,14 +17,13 @@
             - Dominio: "{{ network_config.domain_name }}"
 
 - name: Configurar servicios completos en servidor Ubuntu
-  hosts: servidores_ubuntu
+  hosts: servers
   become: true
   roles:
     - role: common
     - role: dns_bind
     - role: dhcpv6
     - role: firewall
-    - role: procesos
     - role: storage
 
 - name: Crear VM Ubuntu en VMware ESXi
@@ -38,13 +37,12 @@
   tags: create_vm
 
 - name: Configurar servicios en nueva VM UBPC (después de instalación manual)
-  hosts: nueva_vm_ubpc
+  hosts: servers
   become: true
   roles:
     - role: common
     - role: dns_bind
     - role: dhcpv6
     - role: firewall
-    - role: procesos
     - role: storage
   tags: configure_vm

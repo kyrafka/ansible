@@ -1,0 +1,86 @@
+---
+- name: Detectar rol de la VM
+  ansible.builtin.set_fact:
+    vm_role: "{{ hostvars[inventory_hostname].vm_role | default('cliente') }}"
+
+- name: Validar rol
+  ansible.builtin.assert:
+    that:
+      - vm_role in ['admin', 'auditor', 'cliente']
+    fail_msg: "Rol debe ser: admin, auditor o cliente"
+
+- name: Instalar características base de Windows
+  ansible.windows.win_feature:
+    name:
+      - NET-Framework-Core
+      - NET-Framework-Features
+    state: present
+
+- name: Crear grupo PCGamers
+  ansible.windows.win_group:
+    name: PCGamers
+    state: present
+
+# Crear TODOS los usuarios
+- name: Crear usuario Administrador
+  ansible.windows.win_user:
+    name: "{{ windows11_users.admin.username }}"
+    password: "{{ windows11_users.admin.password }}"
+    state: present
+    groups:
+      - Administradores
+      - Usuarios de escritorio remoto
+    password_never_expires: true
+
+- name: Crear usuario Auditor
+  ansible.windows.win_user:
+    name: "{{ windows11_users.auditor.username }}"
+    password: "{{ windows11_users.auditor.password }}"
+    state: present
+    groups:
+      - Usuarios
+      - Usuarios de escritorio remoto
+      - Lectores del registro de eventos
+    password_never_expires: true
+
+- name: Crear usuario Cliente (Gamer01)
+  ansible.windows.win_user:
+    name: "{{ windows11_users.cliente.username }}"
+    password: "{{ windows11_users.cliente.password }}"
+    state: present
+    groups:
+      - Usuarios
+      - Usuarios de escritorio remoto
+      - PCGamers
+    password_never_expires: true
+
+# Crear carpetas compartidas
+- name: Crear carpetas base
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - C:\Admin
+    - C:\Audits
+    - C:\Games
+    - C:\Instaladores
+
+- name: Configurar permisos según rol activo
+  ansible.builtin.include_tasks: "{{ vm_role }}.yml"
+
+- name: Habilitar RDP
+  ansible.windows.win_regedit:
+    path: HKLM:\System\CurrentControlSet\Control\Terminal Server
+    name: fDenyTSConnections
+    data: 0
+    type: dword
+
+- name: Permitir RDP en firewall
+  community.windows.win_firewall_rule:
+    name: Remote Desktop
+    enabled: true
+    state: present
+    action: allow
+    direction: in
+    protocol: tcp
+    localport: 3389

@@ -1,0 +1,69 @@
+---
+# Reglas de firewall en el servidor para filtrar acceso según rol de VM
+
+- name: Obtener lista de VMs admin (Ubuntu y Windows)
+  ansible.builtin.set_fact:
+    admin_vms: "{{ (groups['ubuntu_desktops'] | default([]) + groups['windows_desktops'] | default([])) | 
+                   select('in', hostvars) | 
+                   selectattr('vm_role', 'defined') | 
+                   selectattr('vm_role', 'equalto', 'admin') | 
+                   map(attribute='ansible_host') | 
+                   select('defined') | 
+                   list }}"
+
+- name: Obtener lista de VMs no-admin (Ubuntu y Windows)
+  ansible.builtin.set_fact:
+    non_admin_vms: "{{ (groups['ubuntu_desktops'] | default([]) + groups['windows_desktops'] | default([])) | 
+                       select('in', hostvars) | 
+                       selectattr('vm_role', 'defined') | 
+                       rejectattr('vm_role', 'equalto', 'admin') | 
+                       map(attribute='ansible_host') | 
+                       select('defined') | 
+                       list }}"
+
+- name: Permitir SSH solo desde VMs admin
+  community.general.ufw:
+    rule: allow
+    port: '22'
+    proto: tcp
+    from_ip: "{{ item }}"
+    comment: "SSH desde admin"
+  loop: "{{ admin_vms }}"
+  when: admin_vms | length > 0
+  become: true
+
+- name: Denegar SSH desde auditor y cliente
+  community.general.ufw:
+    rule: deny
+    port: '22'
+    proto: tcp
+    from_ip: "{{ item }}"
+    comment: "Bloquear SSH desde no-admin"
+  loop: "{{ non_admin_vms }}"
+  when: non_admin_vms | length > 0
+  become: true
+
+- name: Permitir DNS desde todos
+  community.general.ufw:
+    rule: allow
+    port: '53'
+    proto: any
+  become: true
+
+- name: Permitir DHCPv6 desde todos
+  community.general.ufw:
+    rule: allow
+    port: '547'
+    proto: udp
+  become: true
+
+- name: Mensaje de reglas aplicadas
+  ansible.builtin.debug:
+    msg:
+      - "Reglas de firewall por rol aplicadas:"
+      - "- Admin (Ubuntu/Windows): Puede SSH al servidor"
+      - "- Auditor: NO puede SSH"
+      - "- Cliente: NO puede SSH"
+      - "- Todos: Pueden usar DNS y DHCP"
+      - "VMs Admin permitidas: {{ admin_vms | default([]) | length }}"
+      - "VMs bloqueadas: {{ non_admin_vms | default([]) | length }}"

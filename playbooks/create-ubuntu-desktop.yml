@@ -1,0 +1,97 @@
+---
+- name: Crear VM Ubuntu Desktop con rol específico
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  
+  vars_prompt:
+    - name: vm_name
+      prompt: "Nombre de la VM"
+      private: false
+      
+    - name: vm_role
+      prompt: "Rol (admin/auditor/cliente)"
+      private: false
+      default: "cliente"
+  
+  vars:
+    # Recursos según rol
+    role_resources:
+      admin:
+        cpu: 2
+        ram: 4096
+        disk: 80
+      auditor:
+        cpu: 2
+        ram: 3072
+        disk: 40
+      cliente:
+        cpu: 2
+        ram: 4096
+        disk: 60
+    
+    # ISO de Ubuntu Desktop
+    iso_path: "[datastore1] ubuntu-24.04.3-desktop-amd64.iso"
+    network_name: "M_vm's"
+  
+  tasks:
+    - name: Validar rol
+      ansible.builtin.assert:
+        that:
+          - vm_role in ['admin', 'auditor', 'cliente']
+        fail_msg: "Rol debe ser: admin, auditor o cliente"
+    
+    - name: Crear VM Ubuntu Desktop
+      community.vmware.vmware_guest:
+        hostname: "{{ vmware.vcenter_hostname }}"
+        username: "{{ vmware.vcenter_username }}"
+        password: "{{ vmware.vcenter_password }}"
+        validate_certs: false
+        datacenter: "{{ vmware.datacenter }}"
+        folder: "/{{ vmware.datacenter }}/vm"
+        name: "{{ vm_name }}"
+        state: poweredon
+        guest_id: ubuntu64Guest
+        
+        hardware:
+          memory_mb: "{{ role_resources[vm_role].ram }}"
+          num_cpus: "{{ role_resources[vm_role].cpu }}"
+          scsi: paravirtual
+          boot_firmware: efi
+        
+        disk:
+          - size_gb: "{{ role_resources[vm_role].disk }}"
+            type: thin
+            datastore: "{{ vmware.datastore }}"
+        
+        networks:
+          - name: "{{ network_name }}"
+            device_type: vmxnet3
+        
+        cdrom:
+          - controller_number: 0
+            unit_number: 0
+            type: iso
+            iso_path: "{{ iso_path }}"
+            state: present
+        
+        customvalues:
+          - key: "guestinfo.role"
+            value: "{{ vm_role }}"
+      
+      register: vm_created
+    
+    - name: Mostrar información de la VM
+      ansible.builtin.debug:
+        msg:
+          - "VM creada: {{ vm_name }}"
+          - "Rol: {{ vm_role }}"
+          - "CPU: {{ role_resources[vm_role].cpu }}"
+          - "RAM: {{ role_resources[vm_role].ram }} MB"
+          - "Disco: {{ role_resources[vm_role].disk }} GB"
+          - "Red: {{ network_name }}"
+          - ""
+          - "Siguiente paso:"
+          - "1. Instalar Ubuntu Desktop desde la ISO"
+          - "2. Agregar a inventory/hosts.ini en [ubuntu_desktops]"
+          - "3. Ejecutar: ansible-playbook playbooks/configure-ubuntu-role.yml --limit {{ vm_name }}"

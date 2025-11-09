@@ -72,6 +72,11 @@
     proto: ipv6-icmp
   tags: firewall
 
+- name: "Aplicar reglas por rol de VM"
+  include_tasks: filter-by-role.yml
+  when: groups['ubuntu_desktops'] is defined
+  tags: firewall
+
 - name: "Habilitar UFW"
   ufw:
     state: enabled

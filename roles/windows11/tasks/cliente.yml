@@ -1,0 +1,105 @@
+---
+- name: Crear usuario Cliente
+  ansible.windows.win_user:
+    name: "{{ windows11_users.cliente.username }}"
+    password: "{{ windows11_users.cliente.password }}"
+    state: present
+    groups:
+      - Usuarios
+      - Usuarios de escritorio remoto
+    password_never_expires: true
+
+- name: Crear grupo PCGamers
+  ansible.windows.win_group:
+    name: PCGamers
+    state: present
+
+- name: Agregar usuario a PCGamers
+  ansible.windows.win_group_membership:
+    name: PCGamers
+    members:
+      - "{{ windows11_users.cliente.username }}"
+    state: present
+
+- name: Crear carpetas compartidas
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - C:\Games
+    - C:\Instaladores
+
+- name: Permisos de lectura en Games
+  ansible.windows.win_acl:
+    path: C:\Games
+    user: PCGamers
+    rights: ReadAndExecute
+    type: allow
+    state: present
+
+- name: Permisos de lectura en Instaladores
+  ansible.windows.win_acl:
+    path: C:\Instaladores
+    user: PCGamers
+    rights: Read
+    type: allow
+    state: present
+
+- name: Configurar firewall para cliente (solo salida web)
+  community.windows.win_firewall_rule:
+    name: "Cliente - {{ item.name }}"
+    enabled: true
+    state: present
+    action: allow
+    direction: out
+    protocol: "{{ item.protocol }}"
+    remoteport: "{{ item.port }}"
+  loop:
+    - { name: 'DNS', port: '53', protocol: 'udp' }
+    - { name: 'HTTP', port: '80', protocol: 'tcp' }
+    - { name: 'HTTPS', port: '443', protocol: 'tcp' }
+    - { name: 'DHCPv6', port: '546', protocol: 'udp' }
+
+- name: Bloquear SSH saliente para cliente
+  community.windows.win_firewall_rule:
+    name: "Cliente - Bloquear SSH"
+    enabled: true
+    state: present
+    action: block
+    direction: out
+    protocol: tcp
+    remoteport: 22
+
+- name: Permitir RDP entrante
+  community.windows.win_firewall_rule:
+    name: "Cliente - RDP"
+    enabled: true
+    state: present
+    action: allow
+    direction: in
+    protocol: tcp
+    localport: 3389
+
+- name: Restringir instalación de software
+  ansible.windows.win_regedit:
+    path: HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer
+    name: NoRun
+    data: 1
+    type: dword
+
+- name: Deshabilitar acceso a CMD y PowerShell
+  ansible.windows.win_regedit:
+    path: HKCU:\Software\Policies\Microsoft\Windows\System
+    name: DisableCMD
+    data: 2
+    type: dword
+
+- name: Mensaje de configuración
+  ansible.builtin.debug:
+    msg:
+      - "Configuración CLIENTE completada"
+      - "Usuario: {{ windows11_users.cliente.username }}"
+      - "Carpetas: C:\\Games (solo lectura), C:\\Instaladores (solo lectura)"
+      - "Permisos: Sin instalación de software"
+      - "NO puede SSH al servidor"
+      - "Solo navegación web y juegos"

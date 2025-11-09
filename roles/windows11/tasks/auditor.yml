@@ -1,0 +1,71 @@
+---
+- name: Crear usuario Auditor
+  ansible.windows.win_user:
+    name: "{{ windows11_users.auditor.username }}"
+    password: "{{ windows11_users.auditor.password }}"
+    state: present
+    groups:
+      - Usuarios
+      - Usuarios de escritorio remoto
+      - Lectores del registro de eventos
+    password_never_expires: true
+
+- name: Crear carpetas de auditor
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - C:\Audits
+    - C:\Logs
+
+- name: Permisos de lectura en logs
+  ansible.windows.win_acl:
+    path: C:\Windows\System32\winevt\Logs
+    user: "{{ windows11_users.auditor.username }}"
+    rights: Read
+    type: allow
+    state: present
+
+- name: Permisos completos en carpeta audits
+  ansible.windows.win_acl:
+    path: C:\Audits
+    user: "{{ windows11_users.auditor.username }}"
+    rights: FullControl
+    type: allow
+    state: present
+
+- name: Configurar firewall para auditor (solo RDP)
+  community.windows.win_firewall_rule:
+    name: "Auditor - RDP"
+    enabled: true
+    state: present
+    action: allow
+    direction: in
+    protocol: tcp
+    localport: 3389
+
+- name: Bloquear SSH saliente para auditor
+  community.windows.win_firewall_rule:
+    name: "Auditor - Bloquear SSH"
+    enabled: true
+    state: present
+    action: block
+    direction: out
+    protocol: tcp
+    remoteport: 22
+
+- name: Restringir instalación de software
+  ansible.windows.win_regedit:
+    path: HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer
+    name: NoRun
+    data: 1
+    type: dword
+
+- name: Mensaje de configuración
+  ansible.builtin.debug:
+    msg:
+      - "Configuración AUDITOR completada"
+      - "Usuario: {{ windows11_users.auditor.username }}"
+      - "Carpetas: C:\\Audits, C:\\Logs (solo lectura)"
+      - "Permisos: Solo lectura de logs"
+      - "NO puede SSH al servidor"

@@ -1,36 +1,202 @@
 ---
-# Configuración avanzada de seguridad adicional
+# Rol de seguridad para gestión de VMs y usuarios
+# Diferencia entre servidores y clientes
 
----
-# Seguridad simple y efectiva para proyecto IPv6
+- name: Determinar tipo de host (servidor o cliente)
+  set_fact:
+    is_server: "{{ inventory_hostname in groups.get('servers', []) or 'server' in inventory_hostname.lower() }}"
+    is_client: "{{ inventory_hostname in groups.get('clients', []) or 'client' in inventory_hostname.lower() or 'gamepc' in inventory_hostname.lower() }}"
 
-- name: "Instalar herramientas básicas de seguridad"
+- name: Mostrar tipo de host
+  debug:
+    msg: |
+      🔒 Configuración de seguridad
+      Tipo: {{ 'SERVIDOR' if is_server else 'CLIENTE' }}
+      Host: {{ inventory_hostname }}
+
+# ============================================
+# CONFIGURACIÓN PARA SERVIDORES
+# ============================================
+- name: Configuración de seguridad para SERVIDORES
+  block:
+    - name: Instalar fail2ban (protección contra ataques)
+      apt:
+        name: fail2ban
+        state: present
+        update_cache: yes
+    
+    - name: Configurar fail2ban para SSH
+      copy:
+        dest: /etc/fail2ban/jail.local
+        content: |
+          [DEFAULT]
+          bantime = 3600
+          findtime = 600
+          maxretry = 5
+          
+          [sshd]
+          enabled = true
+          port = ssh
+          logpath = /var/log/auth.log
+      notify: restart fail2ban
+    
+    - name: Configurar firewall UFW (servidor)
+      ufw:
+        rule: "{{ item.rule }}"
+        port: "{{ item.port }}"
+        proto: "{{ item.proto }}"
+      loop:
+        - { rule: 'allow', port: '22', proto: 'tcp' }      # SSH
+        - { rule: 'allow', port: '53', proto: 'udp' }      # DNS
+        - { rule: 'allow', port: '53', proto: 'tcp' }      # DNS
+        - { rule: 'allow', port: '547', proto: 'udp' }     # DHCPv6
+        - { rule: 'allow', port: '546', proto: 'udp' }     # DHCPv6
+    
+    - name: Habilitar UFW
+      ufw:
+        state: enabled
+        policy: deny
+    
+    - name: Configurar límites de recursos para servicios
+      copy:
+        dest: /etc/security/limits.d/server-limits.conf
+        content: |
+          # Límites para servicios de red
+          *               soft    nofile          65536
+          *               hard    nofile          65536
+          root            soft    nofile          65536
+          root            hard    nofile          65536
+    
+    - name: Deshabilitar usuarios innecesarios
+      user:
+        name: "{{ item }}"
+        shell: /usr/sbin/nologin
+      loop:
+        - games
+        - news
+        - uucp
+      ignore_errors: true
+    
+    - name: Configurar auditoría de logs
+      lineinfile:
+        path: /etc/rsyslog.conf
+        line: "{{ item }}"
+        create: yes
+      loop:
+        - "auth,authpriv.*                 /var/log/auth.log"
+        - "*.info;mail.none;authpriv.none  /var/log/syslog"
+  
+  when: is_server
+  become: true
+
+# ============================================
+# CONFIGURACIÓN PARA CLIENTES
+# ============================================
+- name: Configuración de seguridad para CLIENTES
+  block:
+    - name: Crear grupo de jugadores
+      group:
+        name: pcgamers
+        state: present
+    
+    - name: Configurar usuario gamer con permisos limitados
+      user:
+        name: gamer01
+        groups: pcgamers
+        shell: /bin/bash
+        create_home: yes
+        password: "{{ 'gamer123' | password_hash('sha512') }}"
+    
+    - name: Configurar firewall UFW (cliente - más restrictivo)
+      ufw:
+        rule: "{{ item.rule }}"
+        port: "{{ item.port }}"
+        proto: "{{ item.proto }}"
+      loop:
+        - { rule: 'allow', port: '22', proto: 'tcp' }      # SSH (solo para admin)
+        - { rule: 'deny', port: '53', proto: 'any' }       # No servidor DNS
+        - { rule: 'deny', port: '547', proto: 'any' }      # No servidor DHCP
+      when: ansible_os_family == "Debian"
+    
+    - name: Deshabilitar servicios de red innecesarios
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - apache2
+        - nginx
+        - bind9
+        - isc-dhcp-server
+        - isc-dhcp-server6
+      ignore_errors: true
+    
+    - name: Configurar límites de recursos para usuarios
+      copy:
+        dest: /etc/security/limits.d/client-limits.conf
+        content: |
+          # Límites para usuarios de gaming
+          @pcgamers        soft    nproc           4096
+          @pcgamers        hard    nproc           8192
+          @pcgamers        soft    nofile          8192
+          @pcgamers        hard    nofile          16384
+    
+    - name: Restringir acceso a comandos administrativos
+      file:
+        path: "{{ item }}"
+        mode: '0750'
+        group: root
+      loop:
+        - /usr/sbin
+        - /sbin
+      ignore_errors: true
+  
+  when: is_client
+  become: true
+
+# ============================================
+# CONFIGURACIÓN COMÚN
+# ============================================
+- name: Configurar SSH seguro (común)
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    backup: yes
+  loop:
+    - { regexp: '^#?PermitRootLogin', line: 'PermitRootLogin no' }
+    - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication yes' }
+    - { regexp: '^#?PubkeyAuthentication', line: 'PubkeyAuthentication yes' }
+    - { regexp: '^#?X11Forwarding', line: 'X11Forwarding no' }
+  notify: restart ssh
+  become: true
+
+- name: Configurar actualizaciones automáticas de seguridad
   apt:
-    name:
-      - unattended-upgrades  # Actualizaciones automáticas
-      - logrotate           # Rotación de logs
-      - rsyslog             # Logging centralizado
-      - auditd              # Auditoría básica del sistema
+    name: unattended-upgrades
     state: present
-    update_cache: yes
-  tags: security
+  become: true
+  when: ansible_os_family == "Debian"
 
-- name: "Configurar actualizaciones automáticas de seguridad"
-  include_tasks: configure_auto_updates.yml
-  tags: [security, updates]
-
-- name: "Configurar auditoría básica del sistema"
-  include_tasks: configure_audit.yml
-  tags: [security, audit]
-
-- name: "Configurar rotación de logs"
-  include_tasks: configure_logrotate.yml
-  tags: [security, logs]
-
-- name: "Crear script de verificación de seguridad simple"
-  include_tasks: create_simple_security_check.yml
-  tags: [security, scripts]
-
-- name: "Configurar limpieza automática del sistema"
-  include_tasks: configure_system_cleanup.yml
-  tags: [security, cleanup]
+- name: Generar reporte de seguridad
+  copy:
+    dest: /var/tmp/security-report.txt
+    content: |
+      === Reporte de Seguridad ===
+      Fecha: {{ ansible_date_time.iso8601 }}
+      Host: {{ inventory_hostname }}
+      Tipo: {{ 'SERVIDOR' if is_server else 'CLIENTE' }}
+      
+      Configuración aplicada:
+      {% if is_server %}
+      - Fail2ban: Activo
+      - Firewall: Servicios de red permitidos
+      - Auditoría: Habilitada
+      - Servicios: DNS, DHCP, SSH
+      {% else %}
+      - Firewall: Restrictivo (solo cliente)
+      - Servicios de red: Deshabilitados
+      - Usuario: gamer01 (permisos limitados)
+      - Grupo: pcgamers
+      {% endif %}
+  become: true
