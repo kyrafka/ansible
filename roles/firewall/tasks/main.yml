@@ -84,8 +84,8 @@
   tags: firewall
 
 - name: "Habilitar UFW"
-  ufw:
-    state: enabled
+  command: ufw --force enable
+  changed_when: true
   tags: firewall
 
 - name: "Copiar filtros personalizados de fail2ban"
