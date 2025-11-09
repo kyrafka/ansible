@@ -27,16 +27,28 @@
     msg: "→ UFW, fail2ban e iptables-persistent instalados"
   tags: firewall
 
+- name: "� Buscagr ubicación de UFW"
+  command: which ufw
+  register: ufw_location
+  changed_when: false
+  failed_when: false
+  tags: firewall
+
 - name: "📍 Configurar ruta de UFW"
   set_fact:
-    ufw_bin: "/usr/sbin/ufw"
+    ufw_bin: "{{ ufw_location.stdout if ufw_location.rc == 0 else '/usr/sbin/ufw' }}"
   tags: firewall
 
 - name: "✅ Verificar que UFW existe"
   stat:
     path: "{{ ufw_bin }}"
   register: ufw_check
-  failed_when: not ufw_check.stat.exists
+  tags: firewall
+
+- name: "❌ UFW no encontrado"
+  fail:
+    msg: "UFW no está instalado en {{ ufw_bin }}. Salida de 'which': {{ ufw_location.stdout }}"
+  when: not ufw_check.stat.exists
   tags: firewall
 
 - name: "📋 Verificar versión de UFW"
