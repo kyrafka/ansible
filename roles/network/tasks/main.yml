@@ -35,6 +35,13 @@
     reload: yes
   become: true
 
+- name: Crear directorio para reglas de iptables
+  ansible.builtin.file:
+    path: /etc/iptables
+    state: directory
+    mode: '0755'
+  become: true
+
 - name: Configurar NAT para IPv6 a IPv4
   ansible.builtin.iptables:
     table: nat
@@ -49,6 +56,8 @@
   ansible.builtin.shell: |
     ip6tables-save > /etc/iptables/rules.v6
   become: true
+  args:
+    creates: /etc/iptables/rules.v6
 
 - name: Verificar configuración de red
   ansible.builtin.debug:
