@@ -7,22 +7,23 @@ echo "🚀 Configurando Servidor GameCenter"
 echo "════════════════════════════════════════════════════════"
 echo ""
 
-# Verificar que estamos en el servidor
-if [ ! -d ~/ansible ]; then
-    echo "❌ Error: Directorio ~/ansible no encontrado"
-    echo "   Ejecuta este script desde el servidor Ubuntu"
-    exit 1
-fi
+# Obtener el directorio raíz del proyecto (2 niveles arriba del script)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-cd ~/ansible
+echo "📁 Directorio del proyecto: $PROJECT_ROOT"
+cd "$PROJECT_ROOT"
 
 # Activar entorno virtual
-if [ -f ~/.ansible-venv/bin/activate ]; then
+if [ -f .ansible-venv/bin/activate ]; then
+    source .ansible-venv/bin/activate
+    echo "✅ Entorno Ansible activado"
+elif [ -f ~/.ansible-venv/bin/activate ]; then
     source ~/.ansible-venv/bin/activate
     echo "✅ Entorno Ansible activado"
 else
     echo "❌ Error: Entorno virtual de Ansible no encontrado"
-    echo "   Ejecuta primero: source activate-ansible.sh"
+    echo "   Ejecuta primero: source scripts/activate-ansible.sh"
     exit 1
 fi
 
