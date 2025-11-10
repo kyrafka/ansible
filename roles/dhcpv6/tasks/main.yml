@@ -1,10 +1,18 @@
 ---
 # Rol DHCPv6 - Configuración modular
 
-- name: Incluir instalación y configuración básica
+- name: "🔍 FASE 1: Validaciones previas"
+  include_tasks: validate.yml
+  tags: [dhcp, dhcp-validate]
+
+- name: "📦 FASE 2: Instalación y configuración"
   include_tasks: install.yml
   tags: [dhcp, dhcp-install]
 
-- name: Incluir configuración de systemd
+- name: "⚙️  FASE 3: Configuración de systemd"
   include_tasks: systemd.yml
   tags: [dhcp, dhcp-systemd]
+
+- name: "✅ FASE 4: Validación final"
+  include_tasks: validate.yml
+  tags: [dhcp, dhcp-validate-final]

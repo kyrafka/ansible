@@ -1,0 +1,127 @@
+---
+# Validaciones y debug de DHCPv6
+
+- name: "🔍 Verificar que el usuario dhcpd existe"
+  command: id dhcpd
+  register: dhcpd_user_check
+  changed_when: false
+  failed_when: dhcpd_user_check.rc != 0
+
+- name: "✓ Usuario dhcpd encontrado"
+  debug:
+    msg: "{{ dhcpd_user_check.stdout }}"
+
+- name: "🔍 Verificar permisos de /run"
+  stat:
+    path: /run
+  register: run_dir_stat
+
+- name: "✓ Permisos de /run"
+  debug:
+    msg:
+      - "Propietario: {{ run_dir_stat.stat.pw_name }}"
+      - "Grupo: {{ run_dir_stat.stat.gr_name }}"
+      - "Permisos: {{ run_dir_stat.stat.mode }}"
+
+- name: "🔍 Verificar si /run/dhcp-server6 existe"
+  stat:
+    path: /run/dhcp-server6
+  register: dhcp_run_dir
+
+- name: "✓ Estado de /run/dhcp-server6"
+  debug:
+    msg: "{{ 'Existe' if dhcp_run_dir.stat.exists else 'No existe' }}"
+
+- name: "🔍 Verificar permisos de /run/dhcp-server6"
+  stat:
+    path: /run/dhcp-server6
+  register: dhcp_dir_stat
+  when: dhcp_run_dir.stat.exists
+
+- name: "✓ Permisos de /run/dhcp-server6"
+  debug:
+    msg:
+      - "Propietario: {{ dhcp_dir_stat.stat.pw_name }}"
+      - "Grupo: {{ dhcp_dir_stat.stat.gr_name }}"
+      - "Permisos: {{ dhcp_dir_stat.stat.mode }}"
+  when: dhcp_run_dir.stat.exists
+
+- name: "🔍 Verificar archivo de configuración DHCPv6"
+  stat:
+    path: /etc/dhcp/dhcpd6.conf
+  register: dhcpd6_conf
+
+- name: "❌ Archivo de configuración no existe"
+  fail:
+    msg: "El archivo /etc/dhcp/dhcpd6.conf no existe"
+  when: not dhcpd6_conf.stat.exists
+
+- name: "🔍 Validar sintaxis de dhcpd6.conf"
+  command: dhcpd -6 -t -cf /etc/dhcp/dhcpd6.conf
+  register: dhcpd_syntax
+  changed_when: false
+  failed_when: false
+
+- name: "✓ Sintaxis de dhcpd6.conf"
+  debug:
+    msg: "{{ 'Correcta' if dhcpd_syntax.rc == 0 else 'ERROR: ' + dhcpd_syntax.stderr }}"
+
+- name: "❌ Error de sintaxis en dhcpd6.conf"
+  fail:
+    msg: "{{ dhcpd_syntax.stderr }}"
+  when: dhcpd_syntax.rc != 0
+
+- name: "🔍 Verificar interfaz ens34"
+  command: ip -6 addr show ens34
+  register: ens34_check
+  changed_when: false
+  failed_when: false
+
+- name: "✓ Interfaz ens34"
+  debug:
+    var: ens34_check.stdout_lines
+
+- name: "❌ Interfaz ens34 no tiene IPv6"
+  fail:
+    msg: "La interfaz ens34 no tiene dirección IPv6 configurada"
+  when: "'2025:db8:10::' not in ens34_check.stdout"
+
+- name: "🔍 Verificar override de systemd"
+  stat:
+    path: /etc/systemd/system/isc-dhcp-server6.service.d/override.conf
+  register: override_file
+
+- name: "✓ Override de systemd"
+  debug:
+    msg: "{{ 'Existe' if override_file.stat.exists else 'No existe' }}"
+
+- name: "🔍 Contenido del override"
+  command: cat /etc/systemd/system/isc-dhcp-server6.service.d/override.conf
+  register: override_content
+  changed_when: false
+  when: override_file.stat.exists
+
+- name: "✓ Contenido del override"
+  debug:
+    var: override_content.stdout_lines
+  when: override_file.stat.exists
+
+- name: "🔍 Verificar AppArmor"
+  command: aa-status
+  register: apparmor_status
+  changed_when: false
+  failed_when: false
+
+- name: "✓ Estado de AppArmor"
+  debug:
+    msg: "{{ 'AppArmor activo' if apparmor_status.rc == 0 else 'AppArmor no disponible' }}"
+
+- name: "🔍 Verificar perfil AppArmor de dhcpd"
+  shell: aa-status | grep dhcpd || echo "No hay perfil de dhcpd"
+  register: apparmor_dhcpd
+  changed_when: false
+  failed_when: false
+
+- name: "✓ Perfil AppArmor de dhcpd"
+  debug:
+    var: apparmor_dhcpd.stdout_lines
