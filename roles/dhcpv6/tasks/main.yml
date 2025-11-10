@@ -32,7 +32,16 @@
     mode: '0644'
   notify: restart isc-dhcp-server6
 
-- name: Crear directorio para PID de DHCPv6
+- name: Crear directorio tmpfiles.d para DHCPv6
+  copy:
+    content: |
+      d /run/dhcp-server6 0755 dhcpd dhcpd -
+    dest: /etc/tmpfiles.d/dhcp-server6.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Crear directorio para PID de DHCPv6 ahora
   file:
     path: /run/dhcp-server6
     state: directory
