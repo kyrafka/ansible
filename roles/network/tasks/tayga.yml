@@ -45,12 +45,19 @@
   ansible.builtin.debug:
     msg: "→ Archivo: /etc/tayga.conf"
 
+- name: "👤 Verificar si usuario tayga existe"
+  ansible.builtin.command: id tayga
+  register: tayga_user_check
+  failed_when: false
+  changed_when: false
+  become: true
+
 - name: "📁 Crear directorio de datos de Tayga"
   ansible.builtin.file:
     path: /var/spool/tayga
     state: directory
-    owner: tayga
-    group: tayga
+    owner: "{{ 'tayga' if tayga_user_check.rc == 0 else 'root' }}"
+    group: "{{ 'tayga' if tayga_user_check.rc == 0 else 'root' }}"
     mode: '0755'
   become: true
 
