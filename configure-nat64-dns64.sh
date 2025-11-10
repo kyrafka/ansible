@@ -15,8 +15,8 @@ echo "════════════════════════�
 echo ""
 
 # Verificar que estamos en el directorio correcto
-if [ ! -f "setup-server.yml" ]; then
-    echo "❌ Error: No se encuentra setup-server.yml"
+if [ ! -f "run-network.sh" ]; then
+    echo "❌ Error: No se encuentra run-network.sh"
     echo "   Ejecuta este script desde el directorio de Ansible"
     exit 1
 fi
@@ -36,8 +36,13 @@ fi
 echo "🚀 Ejecutando playbook de Ansible..."
 echo ""
 
-# Ejecutar el playbook
-ansible-playbook -i inventory.ini setup-server.yml --tags network,dns -K
+# Ejecutar los playbooks
+echo "1️⃣  Configurando red (NAT64)..."
+bash run-network.sh
+
+echo ""
+echo "2️⃣  Configurando DNS (DNS64)..."
+bash run-dns.sh
 
 # Verificar el resultado
 if [ $? -eq 0 ]; then
