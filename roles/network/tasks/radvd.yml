@@ -39,7 +39,7 @@
     msg:
       - "→ radvd está enviando Router Advertisements"
       - "→ Los clientes recibirán:"
-      - "  • Prefijo de red: {{ network_config.ipv6_network }}"
+      - "  • Prefijo de red: 2025:db8:10::/64"
       - "  • Gateway por defecto"
       - "  • Servidor DNS: 2025:db8:10::2"
 

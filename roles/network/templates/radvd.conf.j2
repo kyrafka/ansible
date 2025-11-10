@@ -11,7 +11,7 @@ interface {{ lan_interface }}
     MaxRtrAdvInterval 10;
     
     # Prefijo de red IPv6
-    prefix {{ network_config.ipv6_network }}
+    prefix 2025:db8:10::/64
     {
         # El prefijo está en el mismo enlace
         AdvOnLink on;

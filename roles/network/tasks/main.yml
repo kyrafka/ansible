@@ -75,7 +75,7 @@
 - name: "✓ NAT66 configurado"
   ansible.builtin.debug:
     msg:
-      - "→ Red origen: {{ network_config.ipv6_network }}"
+      - "→ Red origen: 2025:db8:10::/64"
       - "→ Interfaz salida: {{ wan_interface }}"
       - "→ Las VMs podrán salir a internet a través del servidor"
 
@@ -105,7 +105,7 @@
       - "Configuración de red aplicada"
       - "════════════════════════════════════════"
       - "WAN ({{ wan_interface }}): IPv4 DHCP (internet)"
-      - "LAN ({{ lan_interface }}): IPv6 {{ network_config.ipv6_network }}"
+      - "LAN ({{ lan_interface }}): IPv6 2025:db8:10::/64"
       - "IP del servidor: 2025:db8:10::2"
       - "Forwarding: Habilitado"
       - "NAT66: Configurado"
