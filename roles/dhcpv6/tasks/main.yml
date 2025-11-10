@@ -56,9 +56,14 @@
 - name: Configurar RuntimeDirectory en systemd
   copy:
     content: |
+      [Unit]
+      After=systemd-tmpfiles-setup.service
+      Requires=systemd-tmpfiles-setup.service
+      
       [Service]
       RuntimeDirectory=dhcp-server6
       RuntimeDirectoryMode=0755
+      PIDFile=/run/dhcp-server6/dhcpd6.pid
     dest: /etc/systemd/system/isc-dhcp-server6.service.d/override.conf
     owner: root
     group: root
