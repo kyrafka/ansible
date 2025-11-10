@@ -42,18 +42,30 @@
         url: "https://{{ vault_vcenter_hostname }}:{{ vault_vcenter_port }}/ui/"
         method: GET
         validate_certs: no
+        timeout: 10
       register: vcenter_response
+      failed_when: false
       ignore_errors: true
+
+    - name: "❌ Error de conexión - Deteniendo playbook"
+      fail:
+        msg: |
+          ❌ No se pudo conectar a ESXi
+          
+          Host: {{ vault_vcenter_hostname }}
+          Puerto: {{ vault_vcenter_port }}
+          
+          Verifica:
+          1. ESXi está encendido
+          2. La IP es correcta ({{ vault_vcenter_hostname }})
+          3. El puerto es correcto ({{ vault_vcenter_port }})
+          4. Hay conectividad de red: ping {{ vault_vcenter_hostname }}
+      when: vcenter_response.status is not defined or vcenter_response.status != 200
 
     - name: "✅ Conexión verificada"
       debug:
         msg: "✅ Conectado a ESXi en {{ vault_vcenter_hostname }}:{{ vault_vcenter_port }}"
       when: vcenter_response.status is defined and vcenter_response.status == 200
-
-    - name: "❌ Error de conexión"
-      fail:
-        msg: "❌ No se pudo conectar a ESXi en {{ vault_vcenter_hostname }}:{{ vault_vcenter_port }}"
-      when: vcenter_response.status is not defined or vcenter_response.status != 200
 
     - name: "🔍 Verificar si la VM ya existe"
       community.vmware.vmware_guest_info:
