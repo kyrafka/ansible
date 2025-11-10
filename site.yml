@@ -31,7 +31,7 @@
       tags: dns
     - role: dhcpv6
       tags: dhcp
-    # - role: firewall
-    #   tags: firewall
+    - role: firewall
+      tags: firewall
     - role: storage
       tags: storage

@@ -1,16 +1,14 @@
 #!/bin/bash
-cd ~/ansible
-source ~/.ansible-venv/bin/activate
+# Script para ejecutar solo el rol dns_bind
+# Ejecutar desde la raíz del proyecto: bash scripts/run/run-dns.sh
 
-cat > /tmp/run-dns.yml <<EOF
----
-- name: Ejecutar solo rol dns_bind
-  hosts: localhost
-  connection: local
-  become: true
-  roles:
-    - role: dns_bind
-EOF
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-ansible-playbook /tmp/run-dns.yml --become --ask-become-pass
-rm /tmp/run-dns.yml
+cd "$PROJECT_ROOT"
+
+if [ -f ~/.ansible-venv/bin/activate ]; then
+    source ~/.ansible-venv/bin/activate
+fi
+
+ansible-playbook site.yml --connection=local --become --ask-become-pass --tags dns

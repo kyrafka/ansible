@@ -1,16 +1,14 @@
 #!/bin/bash
-cd ~/ansible
-source ~/.ansible-venv/bin/activate
+# Script para ejecutar solo el rol dhcpv6
+# Ejecutar desde la raíz del proyecto: bash scripts/run/run-dhcp.sh
 
-cat > /tmp/run-dhcp.yml <<EOF
----
-- name: Ejecutar solo rol dhcpv6
-  hosts: localhost
-  connection: local
-  become: true
-  roles:
-    - role: dhcpv6
-EOF
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-ansible-playbook /tmp/run-dhcp.yml --become --ask-become-pass
-rm /tmp/run-dhcp.yml
+cd "$PROJECT_ROOT"
+
+if [ -f ~/.ansible-venv/bin/activate ]; then
+    source ~/.ansible-venv/bin/activate
+fi
+
+ansible-playbook site.yml --connection=local --become --ask-become-pass --tags dhcp

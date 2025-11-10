@@ -1,16 +1,14 @@
 #!/bin/bash
-cd ~/ansible
-source ~/.ansible-venv/bin/activate
+# Script para ejecutar solo el rol storage
+# Ejecutar desde la raíz del proyecto: bash scripts/run/run-storage.sh
 
-cat > /tmp/run-storage.yml <<EOF
----
-- name: Ejecutar solo rol storage
-  hosts: localhost
-  connection: local
-  become: true
-  roles:
-    - role: storage
-EOF
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-ansible-playbook /tmp/run-storage.yml --become --ask-become-pass
-rm /tmp/run-storage.yml
+cd "$PROJECT_ROOT"
+
+if [ -f ~/.ansible-venv/bin/activate ]; then
+    source ~/.ansible-venv/bin/activate
+fi
+
+ansible-playbook site.yml --connection=local --become --ask-become-pass --tags storage

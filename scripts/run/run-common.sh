@@ -1,5 +1,14 @@
 #!/bin/bash
-cd ~/ansible
-source ~/.ansible-venv/bin/activate
-ansible-playbook -i localhost, -c local site.yml --become --ask-become-pass --tags common -e "ansible_python_interpreter=/usr/bin/python3" || \
-ansible-playbook site.yml --connection=local --become --ask-become-pass -e '{"roles_to_run":["common"]}'
+# Script para ejecutar solo el rol common
+# Ejecutar desde la raíz del proyecto: bash scripts/run/run-common.sh
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+cd "$PROJECT_ROOT"
+
+if [ -f ~/.ansible-venv/bin/activate ]; then
+    source ~/.ansible-venv/bin/activate
+fi
+
+ansible-playbook site.yml --connection=local --become --ask-become-pass --tags common

@@ -1,6 +1,14 @@
 #!/bin/bash
-# Script para ejecutar solo el rol de firewall
+# Script para ejecutar solo el rol firewall
+# Ejecutar desde la raíz del proyecto: bash scripts/run/run-firewall.sh
 
-cd ~/ansible
-source ~/.ansible-venv/bin/activate
-ansible-playbook site.yml --connection=local --become --vault-password-file .vault_pass -e "ansible_become_password={{ vault_sudo_password }}" --tags firewall
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+cd "$PROJECT_ROOT"
+
+if [ -f ~/.ansible-venv/bin/activate ]; then
+    source ~/.ansible-venv/bin/activate
+fi
+
+ansible-playbook site.yml --connection=local --become --ask-become-pass --tags firewall

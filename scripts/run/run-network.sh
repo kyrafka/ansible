@@ -1,16 +1,14 @@
 #!/bin/bash
-cd ~/ansible
-source ~/.ansible-venv/bin/activate
+# Script para ejecutar solo el rol network
+# Ejecutar desde la raíz del proyecto: bash scripts/run/run-network.sh
 
-cat > /tmp/run-network.yml <<EOF
----
-- name: Ejecutar solo rol network
-  hosts: localhost
-  connection: local
-  become: true
-  roles:
-    - role: network
-EOF
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-ansible-playbook /tmp/run-network.yml --become --ask-become-pass
-rm /tmp/run-network.yml
+cd "$PROJECT_ROOT"
+
+if [ -f ~/.ansible-venv/bin/activate ]; then
+    source ~/.ansible-venv/bin/activate
+fi
+
+ansible-playbook site.yml --connection=local --become --ask-become-pass --tags network
