@@ -25,13 +25,13 @@ interface {{ lan_interface }}
     };
     
     # Servidor DNS recursivo
-    RDNSS {{ network_config.ipv6_gateway }}
+    RDNSS 2025:db8:10::2
     {
         AdvRDNSSLifetime 300;
     };
     
     # Dominio de búsqueda DNS
-    DNSSL {{ dns_config.domain }}
+    DNSSL gamecenter.local
     {
         AdvDNSSLLifetime 300;
     };
