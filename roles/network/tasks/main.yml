@@ -66,14 +66,11 @@
   become: true
 
 - name: "🛡️  Configurando NAT66 (IPv6 → IPv4)"
-  ansible.builtin.iptables:
-    table: nat
-    chain: POSTROUTING
-    source: "{{ network_config.ipv6_network }}"
-    out_interface: "{{ wan_interface }}"
-    jump: MASQUERADE
-    ip_version: ipv6
+  ansible.builtin.shell: |
+    ip6tables -t nat -C POSTROUTING -s 2025:db8:10::/64 -o {{ wan_interface }} -j MASQUERADE 2>/dev/null || \
+    ip6tables -t nat -A POSTROUTING -s 2025:db8:10::/64 -o {{ wan_interface }} -j MASQUERADE
   become: true
+  changed_when: false
 
 - name: "✓ NAT66 configurado"
   ansible.builtin.debug:
