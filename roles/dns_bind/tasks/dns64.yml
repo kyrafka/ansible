@@ -1,0 +1,53 @@
+---
+# Configuración de DNS64 en BIND
+# Permite que clientes IPv6-only resuelvan nombres a IPs traducibles
+
+- name: "🔍 Verificar si BIND está instalado"
+  ansible.builtin.stat:
+    path: /etc/bind/named.conf
+  register: bind_check
+  become: true
+
+- name: "⚠️  BIND no está instalado"
+  ansible.builtin.fail:
+    msg: "BIND debe estar instalado primero. Ejecuta el rol dns_bind completo."
+  when: not bind_check.stat.exists
+
+- name: "📝 Configurar DNS64 en BIND"
+  ansible.builtin.blockinfile:
+    path: /etc/bind/named.conf.options
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - DNS64"
+    insertafter: "recursion yes;"
+    block: |
+      
+          // DNS64 - Traduce respuestas A (IPv4) a AAAA (IPv6)
+          dns64 64:ff9b::/96 {
+              clients { any; };
+              mapped { any; };
+              exclude { any; };
+              recursive-only yes;
+          };
+    backup: yes
+  become: true
+  notify: restart bind9
+
+- name: "✓ DNS64 configurado"
+  ansible.builtin.debug:
+    msg:
+      - "→ Prefijo DNS64: 64:ff9b::/96"
+      - "→ Cuando un cliente IPv6 pide google.com:"
+      - "  1. BIND consulta y obtiene 142.250.185.46 (IPv4)"
+      - "  2. BIND responde 64:ff9b::8efa:b92e (IPv6)"
+      - "  3. El cliente envía paquetes a esa IPv6"
+      - "  4. NAT64 traduce a IPv4 y envía a internet"
+
+- name: "🔄 Verificar configuración de BIND"
+  ansible.builtin.command: named-checkconf
+  become: true
+  register: bind_check_result
+  changed_when: false
+  failed_when: bind_check_result.rc != 0
+
+- name: "✓ Configuración válida"
+  ansible.builtin.debug:
+    msg: "→ named-checkconf: OK"

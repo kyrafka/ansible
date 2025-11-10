@@ -97,6 +97,10 @@
   ansible.builtin.include_tasks: radvd.yml
   tags: [network, radvd]
 
+- name: "🌐 Configurar NAT64 (IPv6 → IPv4)"
+  ansible.builtin.include_tasks: nat64.yml
+  tags: [network, nat64]
+
 - name: Verificar configuración de red
   ansible.builtin.debug:
     msg:

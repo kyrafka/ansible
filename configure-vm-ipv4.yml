@@ -1,0 +1,35 @@
+---
+# Playbook temporal para dar IPv4 a las VMs
+# Esto es más simple que NAT64/DNS64
+
+- name: Configurar VMs para usar IPv4 además de IPv6
+  hosts: localhost
+  gather_facts: false
+  
+  tasks:
+    - name: "📋 Instrucciones"
+      debug:
+        msg:
+          - "════════════════════════════════════════════════════════"
+          - "🔧 Configuración de red dual-stack (IPv4 + IPv6)"
+          - "════════════════════════════════════════════════════════"
+          - ""
+          - "OPCIÓN 1: Agregar segundo adaptador con IPv4"
+          - "  1. En ESXi, agrega Network Adapter 1 a la VM"
+          - "  2. Conéctalo a una red con DHCP IPv4"
+          - "  3. La VM tendrá:"
+          - "     - ens33: IPv4 (internet)"
+          - "     - ens34: IPv6 (red interna)"
+          - ""
+          - "OPCIÓN 2: Configurar el servidor como proxy"
+          - "  1. Las VMs usan solo IPv6"
+          - "  2. El servidor hace NAT64 (IPv6 → IPv4)"
+          - "  3. Requiere configurar DNS64"
+          - ""
+          - "OPCIÓN 3: Dual-stack en ens34"
+          - "  1. Configurar DHCP IPv4 en ens34 del servidor"
+          - "  2. Las VMs obtienen IPv4 e IPv6 por la misma interfaz"
+          - ""
+          - "════════════════════════════════════════════════════════"
+          - "¿Cuál opción prefieres?"
+          - "════════════════════════════════════════════════════════"

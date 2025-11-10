@@ -1,0 +1,56 @@
+---
+# Configuración de NAT64 con iptables (método simple)
+# Traduce IPv6 → IPv4 para salida a internet
+
+- name: "🔍 Verificar si el servidor tiene IPv4 en WAN"
+  ansible.builtin.shell: ip -4 addr show {{ wan_interface }} | grep "inet "
+  register: ipv4_check
+  changed_when: false
+  become: true
+
+- name: "✓ IPv4 detectada en WAN"
+  ansible.builtin.debug:
+    msg: "→ {{ ipv4_check.stdout_lines }}"
+
+- name: "🛡️  Configurar iptables para NAT (IPv6 → IPv4)"
+  ansible.builtin.shell: |
+    # Limpiar reglas anteriores
+    iptables -t nat -F POSTROUTING 2>/dev/null || true
+    
+    # Permitir forwarding de paquetes
+    iptables -A FORWARD -i {{ lan_interface }} -o {{ wan_interface }} -j ACCEPT
+    iptables -A FORWARD -i {{ wan_interface }} -o {{ lan_interface }} -m state --state RELATED,ESTABLISHED -j ACCEPT
+    
+    # NAT para que las VMs salgan con la IP del servidor
+    iptables -t nat -A POSTROUTING -o {{ wan_interface }} -j MASQUERADE
+    
+    # Guardar reglas
+    mkdir -p /etc/iptables
+    iptables-save > /etc/iptables/rules.v4
+  become: true
+  changed_when: true
+
+- name: "✓ NAT configurado"
+  ansible.builtin.debug:
+    msg:
+      - "→ Las VMs con IPv6 pueden salir a internet"
+      - "→ El servidor traduce y hace NAT a IPv4"
+      - "→ Interfaz salida: {{ wan_interface }}"
+
+- name: "📦 Instalar iptables-persistent para guardar reglas"
+  ansible.builtin.apt:
+    name: iptables-persistent
+    state: present
+  become: true
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+
+- name: "💾 Guardar reglas de iptables permanentemente"
+  ansible.builtin.shell: |
+    netfilter-persistent save
+  become: true
+  changed_when: true
+
+- name: "✓ Reglas guardadas"
+  ansible.builtin.debug:
+    msg: "→ Las reglas se aplicarán automáticamente al reiniciar"

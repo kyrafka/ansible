@@ -113,6 +113,10 @@
   changed_when: false
   failed_when: zone_check.rc != 0
 
+- name: "🌐 Configurar DNS64"
+  ansible.builtin.include_tasks: dns64.yml
+  tags: [dns, dns64]
+
 - name: "Abrir puertos DNS en firewall"
   ufw:
     rule: allow
