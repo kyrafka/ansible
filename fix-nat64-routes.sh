@@ -72,16 +72,28 @@ else
 fi
 echo ""
 
-echo "7️⃣  Verificando iptables..."
-if iptables -t nat -L POSTROUTING -v -n | grep 192.168.255 > /dev/null; then
-    echo "   ✅ Reglas NAT configuradas"
-else
-    echo "   ⚠️  Configurando reglas NAT..."
-    iptables -t nat -A POSTROUTING -s 192.168.255.0/24 -o ens33 -j MASQUERADE
-    iptables -A FORWARD -i nat64 -o ens33 -j ACCEPT
-    iptables -A FORWARD -i ens33 -o nat64 -m state --state RELATED,ESTABLISHED -j ACCEPT
-    echo "   ✅ Reglas NAT agregadas"
-fi
+echo "7️⃣  Verificando y configurando iptables..."
+# Limpiar reglas anteriores de nat64
+iptables -D FORWARD -i nat64 -o ens33 -j ACCEPT 2>/dev/null || true
+iptables -D FORWARD -i ens33 -o nat64 -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true
+
+# NAT
+iptables -t nat -C POSTROUTING -s 192.168.255.0/24 -o ens33 -j MASQUERADE 2>/dev/null || \
+iptables -t nat -A POSTROUTING -s 192.168.255.0/24 -o ens33 -j MASQUERADE
+
+# FORWARD específico por protocolo
+iptables -I FORWARD 1 -p icmp -i nat64 -o ens33 -j ACCEPT
+iptables -I FORWARD 1 -p tcp -i nat64 -o ens33 -j ACCEPT
+iptables -I FORWARD 1 -p udp -i nat64 -o ens33 -j ACCEPT
+iptables -I FORWARD 1 -i ens33 -o nat64 -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+# Fallback
+iptables -A FORWARD -i nat64 -j ACCEPT
+
+# Guardar
+iptables-save > /etc/iptables/rules.v4
+
+echo "   ✅ Reglas iptables configuradas"
 echo ""
 
 echo "8️⃣  Test de conectividad..."
