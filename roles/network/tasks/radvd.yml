@@ -1,0 +1,54 @@
+---
+# Configuración de radvd (Router Advertisement Daemon)
+
+- name: "📦 Instalar radvd"
+  ansible.builtin.apt:
+    name: radvd
+    state: present
+    update_cache: yes
+  become: true
+
+- name: "✓ radvd instalado"
+  ansible.builtin.debug:
+    msg: "→ Router Advertisement Daemon instalado"
+
+- name: "📝 Configurar radvd"
+  ansible.builtin.template:
+    src: radvd.conf.j2
+    dest: /etc/radvd.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: restart radvd
+
+- name: "✓ Configuración de radvd creada"
+  ansible.builtin.debug:
+    msg: "→ Archivo: /etc/radvd.conf"
+
+- name: "🚀 Habilitar y arrancar radvd"
+  ansible.builtin.systemd:
+    name: radvd
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  become: true
+
+- name: "✓ radvd iniciado"
+  ansible.builtin.debug:
+    msg:
+      - "→ radvd está enviando Router Advertisements"
+      - "→ Los clientes recibirán:"
+      - "  • Prefijo de red: {{ network_config.ipv6_network }}"
+      - "  • Gateway por defecto"
+      - "  • Servidor DNS: 2025:db8:10::2"
+
+- name: "🔍 Verificar estado de radvd"
+  ansible.builtin.systemd:
+    name: radvd
+  register: radvd_status
+  become: true
+
+- name: "📊 Estado de radvd"
+  ansible.builtin.debug:
+    msg: "→ Estado: {{ radvd_status.status.ActiveState }}"

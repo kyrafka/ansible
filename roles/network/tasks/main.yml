@@ -93,6 +93,10 @@
   ansible.builtin.debug:
     msg: "→ Archivo: /etc/iptables/rules.v6"
 
+- name: "📡 Configurar Router Advertisements (radvd)"
+  ansible.builtin.include_tasks: radvd.yml
+  tags: [network, radvd]
+
 - name: Verificar configuración de red
   ansible.builtin.debug:
     msg:
@@ -104,4 +108,5 @@
       - "IP del servidor: 2025:db8:10::2"
       - "Forwarding: Habilitado"
       - "NAT66: Configurado"
+      - "Router Advertisements: Activo (radvd)"
       - "════════════════════════════════════════"

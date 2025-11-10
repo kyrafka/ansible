@@ -1,0 +1,38 @@
+# Configuración de radvd para {{ lan_interface }}
+# Router Advertisement Daemon para IPv6
+
+interface {{ lan_interface }}
+{
+    # Enviar Router Advertisements
+    AdvSendAdvert on;
+    
+    # Intervalo entre anuncios (en segundos)
+    MinRtrAdvInterval 3;
+    MaxRtrAdvInterval 10;
+    
+    # Prefijo de red IPv6
+    prefix {{ network_config.ipv6_network }}
+    {
+        # El prefijo está en el mismo enlace
+        AdvOnLink on;
+        
+        # Los clientes pueden autoconfigurar sus IPs
+        AdvAutonomous on;
+        
+        # Tiempo de vida del prefijo
+        AdvValidLifetime 3600;
+        AdvPreferredLifetime 1800;
+    };
+    
+    # Servidor DNS recursivo
+    RDNSS {{ network_config.ipv6_gateway }}
+    {
+        AdvRDNSSLifetime 300;
+    };
+    
+    # Dominio de búsqueda DNS
+    DNSSL {{ dns_config.domain }}
+    {
+        AdvDNSSLLifetime 300;
+    };
+};

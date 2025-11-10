@@ -1,0 +1,8 @@
+---
+# Handlers para el rol network
+
+- name: restart radvd
+  ansible.builtin.systemd:
+    name: radvd
+    state: restarted
+  become: true
