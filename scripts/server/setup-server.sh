@@ -7,15 +7,6 @@ echo "🚀 Configurando Servidor GameCenter"
 echo "════════════════════════════════════════════════════════"
 echo ""
 
-# Verificar que el entorno virtual está activado
-if [ -z "$VIRTUAL_ENV" ]; then
-    echo "❌ Error: Entorno virtual de Ansible no activado"
-    echo "   Ejecuta primero: source scripts/activate-ansible.sh"
-    exit 1
-fi
-
-echo "✅ Entorno Ansible activado"
-
 echo ""
 echo "Este script configurará:"
 echo "  1. Paquetes base del sistema"
@@ -40,8 +31,8 @@ echo "════════════════════════�
 echo ""
 
 # Ejecutar playbook completo (localmente)
-ansible-playbook -i inventory/hosts.ini site.yml --connection=local -K
 
+ansible-playbook -i inventory/hosts.ini site.yml --connection=local -K
 # Verificar resultado
 if [ $? -eq 0 ]; then
     echo ""
