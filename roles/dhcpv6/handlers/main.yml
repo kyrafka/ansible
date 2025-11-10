@@ -1,4 +1,8 @@
 ---
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+
 - name: restart isc-dhcp-server6
   service:
     name: isc-dhcp-server6

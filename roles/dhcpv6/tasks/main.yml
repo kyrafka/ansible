@@ -41,6 +41,30 @@
     group: root
     mode: '0644'
 
+- name: Aplicar tmpfiles
+  command: systemd-tmpfiles --create
+  changed_when: false
+
+- name: Crear directorio override para systemd
+  file:
+    path: /etc/systemd/system/isc-dhcp-server6.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Configurar RuntimeDirectory en systemd
+  copy:
+    content: |
+      [Service]
+      RuntimeDirectory=dhcp-server6
+      RuntimeDirectoryMode=0755
+    dest: /etc/systemd/system/isc-dhcp-server6.service.d/override.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: reload systemd
+
 - name: Crear directorio para PID de DHCPv6 ahora
   file:
     path: /run/dhcp-server6
