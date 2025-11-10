@@ -38,11 +38,11 @@ echo ""
 
 # Ejecutar los playbooks
 echo "1️⃣  Configurando red (NAT64)..."
-bash run-network.sh
+ansible-playbook -i inventory/hosts.yml playbook-network.yml -K
 
 echo ""
 echo "2️⃣  Configurando DNS (DNS64)..."
-bash run-dns.sh
+ansible-playbook -i inventory/hosts.yml playbook-dns.yml -K
 
 # Verificar el resultado
 if [ $? -eq 0 ]; then
