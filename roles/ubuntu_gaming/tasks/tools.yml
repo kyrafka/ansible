@@ -1,0 +1,157 @@
+---
+# Herramientas adicionales para gaming
+
+- name: "🍷 Instalar Bottles (Wine manager)"
+  ansible.builtin.shell: |
+    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    flatpak install -y flathub com.usebottles.bottles
+  become: true
+  register: bottles_install
+  failed_when: false
+  changed_when: bottles_install.rc == 0
+
+- name: "🎮 Instalar emuladores populares"
+  ansible.builtin.apt:
+    name:
+      - retroarch
+      - pcsx2
+      - dolphin-emu
+    state: present
+  become: true
+  failed_when: false
+
+- name: "📊 Instalar herramientas de monitoreo"
+  ansible.builtin.apt:
+    name:
+      - htop
+      - btop
+      - nvtop
+      - iotop
+      - nethogs
+    state: present
+  become: true
+
+- name: "🔧 Instalar utilidades del sistema"
+  ansible.builtin.apt:
+    name:
+      - gparted
+      - timeshift
+      - bleachbit
+      - stacer
+    state: present
+  become: true
+  failed_when: false
+
+- name: "📦 Instalar gestores de archivos adicionales"
+  ansible.builtin.apt:
+    name:
+      - nemo
+      - nemo-fileroller
+    state: present
+  become: true
+  failed_when: false
+
+- name: "🎵 Instalar reproductores multimedia"
+  ansible.builtin.apt:
+    name:
+      - vlc
+      - mpv
+      - audacity
+    state: present
+  become: true
+
+- name: "🖼️  Instalar editores de imagen"
+  ansible.builtin.apt:
+    name:
+      - gimp
+      - inkscape
+      - krita
+    state: present
+  become: true
+  failed_when: false
+
+- name: "💻 Instalar terminales mejoradas"
+  ansible.builtin.apt:
+    name:
+      - terminator
+      - tilix
+    state: present
+  become: true
+  failed_when: false
+
+- name: "🌐 Instalar navegadores adicionales"
+  ansible.builtin.shell: |
+    # Brave Browser
+    curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
+    echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main" | tee /etc/apt/sources.list.d/brave-browser-release.list
+    apt update
+    apt install -y brave-browser
+  become: true
+  register: brave_install
+  failed_when: false
+  changed_when: brave_install.rc == 0
+
+- name: "🎯 Crear script de lanzamiento gaming"
+  ansible.builtin.copy:
+    content: |
+      #!/bin/bash
+      # Script para optimizar el sistema antes de jugar
+      
+      echo "🎮 Preparando sistema para gaming..."
+      
+      # Cerrar aplicaciones innecesarias
+      killall -q firefox chrome spotify 2>/dev/null
+      
+      # Limpiar caché
+      sync && echo 3 > /proc/sys/vm/drop_caches
+      
+      # Activar GameMode
+      gamemoded -r
+      
+      # Configurar CPU en performance
+      /usr/local/bin/set-performance-mode.sh
+      
+      # Deshabilitar compositor (reduce latencia)
+      gsettings set org.gnome.mutter experimental-features "['scale-monitor-framebuffer']"
+      
+      echo "✅ Sistema optimizado para gaming"
+      echo "🎮 Lanza tu juego ahora!"
+    dest: /usr/local/bin/gaming-mode.sh
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
+- name: "🔄 Crear script de restauración"
+  ansible.builtin.copy:
+    content: |
+      #!/bin/bash
+      # Script para restaurar configuración normal
+      
+      echo "🔄 Restaurando configuración normal..."
+      
+      # Restaurar CPU governor
+      for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+        echo "powersave" > $cpu
+      done
+      
+      # Habilitar compositor
+      gsettings reset org.gnome.mutter experimental-features
+      
+      echo "✅ Sistema restaurado"
+    dest: /usr/local/bin/normal-mode.sh
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
+- name: "✅ Herramientas adicionales instaladas"
+  ansible.builtin.debug:
+    msg:
+      - "→ Bottles, emuladores instalados"
+      - "→ Herramientas de monitoreo instaladas"
+      - "→ Utilidades del sistema instaladas"
+      - "→ Scripts de optimización creados"
+      - ""
+      - "💡 Usa: sudo gaming-mode.sh antes de jugar"
+      - "💡 Usa: sudo normal-mode.sh para restaurar"

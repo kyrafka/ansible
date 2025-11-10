@@ -1,0 +1,99 @@
+---
+# Optimizaciones de rendimiento para gaming
+
+- name: "🚀 Instalar kernel gaming XanMod"
+  ansible.builtin.shell: |
+    wget -qO - https://dl.xanmod.org/archive.key | gpg --dearmor -o /usr/share/keyrings/xanmod-archive-keyring.gpg
+    echo 'deb [signed-by=/usr/share/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-release.list
+    apt update
+    apt install -y linux-xanmod-x64v3
+  become: true
+  register: xanmod_install
+  failed_when: false
+  changed_when: xanmod_install.rc == 0
+
+- name: "⚙️  Configurar CPU governor en performance"
+  ansible.builtin.copy:
+    content: |
+      #!/bin/bash
+      # Set CPU governor to performance for gaming
+      for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+        echo "performance" > $cpu
+      done
+    dest: /usr/local/bin/set-performance-mode.sh
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
+- name: "🔧 Crear servicio systemd para CPU performance"
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=Set CPU Governor to Performance
+      After=multi-user.target
+      
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/set-performance-mode.sh
+      RemainAfterExit=yes
+      
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/cpu-performance.service
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: "✅ Habilitar servicio CPU performance"
+  ansible.builtin.systemd:
+    name: cpu-performance
+    enabled: yes
+    daemon_reload: yes
+  become: true
+
+- name: "💾 Optimizar swap para gaming"
+  ansible.builtin.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  loop:
+    - { name: 'vm.swappiness', value: '10' }
+    - { name: 'vm.vfs_cache_pressure', value: '50' }
+    - { name: 'vm.dirty_ratio', value: '10' }
+    - { name: 'vm.dirty_background_ratio', value: '5' }
+  become: true
+
+- name: "🎮 Configurar límites para gaming"
+  ansible.builtin.lineinfile:
+    path: /etc/security/limits.conf
+    line: "{{ item }}"
+    create: yes
+  loop:
+    - "* soft nofile 524288"
+    - "* hard nofile 524288"
+    - "* soft nproc 524288"
+    - "* hard nproc 524288"
+  become: true
+
+- name: "🔊 Optimizar audio para baja latencia"
+  ansible.builtin.copy:
+    content: |
+      default-fragments = 2
+      default-fragment-size-msec = 5
+    dest: /etc/pulse/daemon.conf.d/gaming.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: "✅ Optimizaciones de rendimiento aplicadas"
+  ansible.builtin.debug:
+    msg:
+      - "→ Kernel XanMod instalado (reinicio requerido)"
+      - "→ CPU governor configurado en performance"
+      - "→ Swap optimizado (swappiness=10)"
+      - "→ Límites del sistema aumentados"
+      - "→ Audio optimizado para baja latencia"

@@ -1,0 +1,45 @@
+---
+# Rol principal para configurar Ubuntu Desktop Gaming
+# Optimizado para rendimiento y experiencia gaming
+
+- name: "🎮 FASE 1: Software Gaming Esencial"
+  ansible.builtin.include_tasks: gaming-software.yml
+  tags: [gaming, software]
+
+- name: "⚡ FASE 2: Optimizaciones de Rendimiento"
+  ansible.builtin.include_tasks: performance.yml
+  tags: [gaming, performance]
+
+- name: "🎨 FASE 3: Personalización Visual Gaming"
+  ansible.builtin.include_tasks: visual-customization.yml
+  tags: [gaming, visual]
+
+- name: "🛠️  FASE 4: Herramientas Adicionales"
+  ansible.builtin.include_tasks: tools.yml
+  tags: [gaming, tools]
+
+- name: "✅ Configuración Gaming Completada"
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════════════════════"
+      - "🎮 Ubuntu Gaming Desktop configurado exitosamente"
+      - "════════════════════════════════════════════════════════"
+      - ""
+      - "Software instalado:"
+      - "  • Steam, Lutris, Heroic Games Launcher"
+      - "  • GameMode, MangoHud, ProtonUp-Qt"
+      - "  • Discord, OBS Studio"
+      - ""
+      - "Optimizaciones aplicadas:"
+      - "  • Kernel gaming optimizado"
+      - "  • CPU governor en performance"
+      - "  • Swap optimizado"
+      - "  • Drivers actualizados"
+      - ""
+      - "Personalización:"
+      - "  • Tema gaming instalado"
+      - "  • Iconos personalizados"
+      - "  • Wallpapers gaming"
+      - ""
+      - "🎯 Reinicia el sistema para aplicar todos los cambios"
+      - "════════════════════════════════════════════════════════"

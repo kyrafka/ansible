@@ -1,0 +1,155 @@
+---
+# Personalización visual gaming
+
+- name: "🎨 Instalar herramientas de personalización"
+  ansible.builtin.apt:
+    name:
+      - gnome-tweaks
+      - gnome-shell-extensions
+      - chrome-gnome-shell
+      - dconf-editor
+    state: present
+  become: true
+
+- name: "🖼️  Instalar tema Sweet Dark (gaming theme)"
+  ansible.builtin.shell: |
+    cd /tmp
+    wget https://github.com/EliverLara/Sweet/releases/download/v4.0/Sweet-Dark.zip
+    unzip -o Sweet-Dark.zip -d /usr/share/themes/
+    rm Sweet-Dark.zip
+  become: true
+  register: theme_install
+  failed_when: false
+  changed_when: theme_install.rc == 0
+
+- name: "🎯 Instalar iconos Papirus"
+  ansible.builtin.apt:
+    name: papirus-icon-theme
+    state: present
+  become: true
+
+- name: "🖱️  Instalar cursor Bibata"
+  ansible.builtin.shell: |
+    cd /tmp
+    wget https://github.com/ful1e5/Bibata_Cursor/releases/download/v2.0.6/Bibata-Modern-Classic.tar.xz
+    tar -xf Bibata-Modern-Classic.tar.xz
+    mv Bibata-Modern-Classic /usr/share/icons/
+    rm Bibata-Modern-Classic.tar.xz
+  become: true
+  register: cursor_install
+  failed_when: false
+  changed_when: cursor_install.rc == 0
+
+- name: "📁 Crear directorio de wallpapers"
+  ansible.builtin.file:
+    path: /usr/share/backgrounds/gaming
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
+- name: "🖼️  Descargar wallpapers gaming"
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "/usr/share/backgrounds/gaming/{{ item.name }}"
+  loop:
+    - { url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1920', name: 'gaming1.jpg' }
+    - { url: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=1920', name: 'gaming2.jpg' }
+    - { url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1920', name: 'gaming3.jpg' }
+  become: true
+  failed_when: false
+
+- name: "🎮 Instalar extensiones GNOME útiles"
+  ansible.builtin.apt:
+    name:
+      - gnome-shell-extension-dash-to-panel
+      - gnome-shell-extension-arc-menu
+      - gnome-shell-extension-system-monitor
+    state: present
+  become: true
+  failed_when: false
+
+- name: "🔧 Instalar Conky para monitoreo"
+  ansible.builtin.apt:
+    name:
+      - conky-all
+      - curl
+      - lm-sensors
+    state: present
+  become: true
+
+- name: "📊 Crear configuración de Conky gaming"
+  ansible.builtin.copy:
+    content: |
+      conky.config = {
+          alignment = 'top_right',
+          background = true,
+          border_width = 1,
+          cpu_avg_samples = 2,
+          default_color = 'white',
+          default_outline_color = 'white',
+          default_shade_color = 'white',
+          double_buffer = true,
+          draw_borders = false,
+          draw_graph_borders = true,
+          draw_outline = false,
+          draw_shades = false,
+          use_xft = true,
+          font = 'DejaVu Sans Mono:size=10',
+          gap_x = 20,
+          gap_y = 60,
+          minimum_height = 5,
+          minimum_width = 250,
+          net_avg_samples = 2,
+          no_buffers = true,
+          out_to_console = false,
+          out_to_stderr = false,
+          extra_newline = false,
+          own_window = true,
+          own_window_class = 'Conky',
+          own_window_type = 'desktop',
+          own_window_transparent = true,
+          own_window_argb_visual = true,
+          own_window_argb_value = 180,
+          stippled_borders = 0,
+          update_interval = 1.0,
+          uppercase = false,
+          use_spacer = 'none',
+          show_graph_scale = false,
+          show_graph_range = false
+      }
+      
+      conky.text = [[
+      ${color #00ff00}${font :size=16}GAMING STATS${font}${color}
+      ${hr}
+      ${color grey}CPU:${color} ${cpu cpu0}% ${cpubar cpu0}
+      ${color grey}RAM:${color} $mem/$memmax ${membar}
+      ${color grey}GPU:${color} ${exec nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null || echo "N/A"}%
+      ${color grey}Temp:${color} ${exec sensors | grep 'Core 0' | awk '{print $3}' || echo "N/A"}
+      ${color grey}FPS:${color} ${exec cat /tmp/mangohud_fps 2>/dev/null || echo "N/A"}
+      ${hr}
+      ${color grey}Network:${color}
+      Down: ${downspeed ens34} ${alignr}Up: ${upspeed ens34}
+      ${hr}
+      ${color grey}Processes:${color} $processes ${alignr}${color grey}Running:${color} $running_processes
+      ${color grey}Top CPU:${color}
+      ${top name 1}${alignr}${top cpu 1}%
+      ${top name 2}${alignr}${top cpu 2}%
+      ${top name 3}${alignr}${top cpu 3}%
+      ]]
+    dest: /etc/conky/conky.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: "✅ Personalización visual completada"
+  ansible.builtin.debug:
+    msg:
+      - "→ Tema Sweet Dark instalado"
+      - "→ Iconos Papirus instalados"
+      - "→ Cursor Bibata instalado"
+      - "→ Wallpapers gaming descargados"
+      - "→ Extensiones GNOME instaladas"
+      - "→ Conky configurado para monitoreo"

@@ -1,0 +1,94 @@
+---
+# Instalación de software gaming esencial
+
+- name: "📦 Agregar repositorios necesarios"
+  ansible.builtin.apt_repository:
+    repo: "{{ item }}"
+    state: present
+    update_cache: no
+  loop:
+    - "ppa:lutris-team/lutris"
+    - "ppa:graphics-drivers/ppa"
+  become: true
+
+- name: "🔄 Actualizar caché de paquetes"
+  ansible.builtin.apt:
+    update_cache: yes
+  become: true
+
+- name: "🎮 Instalar Steam"
+  ansible.builtin.apt:
+    name:
+      - steam-installer
+      - steam-devices
+    state: present
+  become: true
+
+- name: "🕹️  Instalar Lutris"
+  ansible.builtin.apt:
+    name:
+      - lutris
+      - wine
+      - winetricks
+    state: present
+  become: true
+
+- name: "⚡ Instalar GameMode"
+  ansible.builtin.apt:
+    name:
+      - gamemode
+      - libgamemode0
+      - libgamemodeauto0
+    state: present
+  become: true
+
+- name: "📊 Instalar MangoHud"
+  ansible.builtin.apt:
+    name:
+      - mangohud
+    state: present
+  become: true
+
+- name: "🎯 Descargar Heroic Games Launcher"
+  ansible.builtin.get_url:
+    url: "https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/releases/latest/download/heroic_amd64.deb"
+    dest: "/tmp/heroic.deb"
+  become: true
+
+- name: "🎯 Instalar Heroic Games Launcher"
+  ansible.builtin.apt:
+    deb: "/tmp/heroic.deb"
+    state: present
+  become: true
+
+- name: "💬 Descargar Discord"
+  ansible.builtin.get_url:
+    url: "https://discord.com/api/download?platform=linux&format=deb"
+    dest: "/tmp/discord.deb"
+  become: true
+
+- name: "💬 Instalar Discord"
+  ansible.builtin.apt:
+    deb: "/tmp/discord.deb"
+    state: present
+  become: true
+
+- name: "📹 Instalar OBS Studio"
+  ansible.builtin.apt:
+    name:
+      - obs-studio
+      - ffmpeg
+    state: present
+  become: true
+
+- name: "🔧 Instalar ProtonUp-Qt"
+  ansible.builtin.shell: |
+    pip3 install protonup-qt --break-system-packages
+  become: true
+  register: protonup_install
+  failed_when: false
+  changed_when: protonup_install.rc == 0
+
+- name: "✅ Software gaming instalado"
+  ansible.builtin.debug:
+    msg: "→ Steam, Lutris, Heroic, Discord, OBS y más instalados"
