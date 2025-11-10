@@ -1,33 +1,20 @@
 #!/bin/bash
 # Script para configurar el servidor Ubuntu con todos los servicios
-# Ejecutar DENTRO del servidor Ubuntu
+# Ejecutar: bash scripts/server/setup-server.sh
 
 echo "════════════════════════════════════════════════════════"
 echo "🚀 Configurando Servidor GameCenter"
 echo "════════════════════════════════════════════════════════"
 echo ""
 
-# Obtener el directorio raíz del proyecto (2 niveles arriba del script)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-
-echo "📁 Directorio del proyecto: $PROJECT_ROOT"
-cd "$PROJECT_ROOT"
-
 # Verificar que el entorno virtual está activado
 if [ -z "$VIRTUAL_ENV" ]; then
-    echo "⚠️  Entorno virtual no activado, intentando activar..."
-    if [ -f .ansible-venv/bin/activate ]; then
-        source .ansible-venv/bin/activate
-        echo "✅ Entorno Ansible activado"
-    else
-        echo "❌ Error: Entorno virtual de Ansible no encontrado"
-        echo "   Ejecuta primero: source scripts/activate-ansible.sh"
-        exit 1
-    fi
-else
-    echo "✅ Entorno Ansible ya activado"
+    echo "❌ Error: Entorno virtual de Ansible no activado"
+    echo "   Ejecuta primero: source scripts/activate-ansible.sh"
+    exit 1
 fi
+
+echo "✅ Entorno Ansible activado"
 
 echo ""
 echo "Este script configurará:"
