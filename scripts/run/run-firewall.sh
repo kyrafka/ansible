@@ -7,8 +7,11 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 cd "$PROJECT_ROOT"
 
-if [ -f ~/.ansible-venv/bin/activate ]; then
-    source ~/.ansible-venv/bin/activate
+# Verificar si ansible-playbook está disponible
+if ! command -v ansible-playbook &> /dev/null; then
+    echo "❌ Error: ansible-playbook no está instalado"
+    echo "Instala Ansible con: sudo apt install ansible"
+    exit 1
 fi
 
 ansible-playbook -i inventory/hosts.ini site.yml --connection=local --become --ask-become-pass --tags firewall
