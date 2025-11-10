@@ -45,14 +45,24 @@
     group: dhcpd
     mode: '0644'
   when: not leases_file.stat.exists
+  become: yes
 
-- name: Asegurar permisos del archivo de leases
-  file:
-    path: /var/lib/dhcp/dhcpd6.leases
-    owner: dhcpd
-    group: dhcpd
-    mode: '0644'
+- name: Asegurar permisos del archivo de leases (con force)
+  shell: |
+    chown dhcpd:dhcpd /var/lib/dhcp/dhcpd6.leases || chmod 666 /var/lib/dhcp/dhcpd6.leases
+    chmod 0644 /var/lib/dhcp/dhcpd6.leases
   when: leases_file.stat.exists
+  become: yes
+  changed_when: true
+
+- name: Verificar permisos finales del archivo de leases
+  command: ls -la /var/lib/dhcp/dhcpd6.leases
+  register: leases_perms
+  changed_when: false
+
+- name: Mostrar permisos del archivo de leases
+  debug:
+    var: leases_perms.stdout_lines
 
 - name: Habilitar IPv6 forwarding
   sysctl:

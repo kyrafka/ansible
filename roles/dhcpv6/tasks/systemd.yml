@@ -29,13 +29,22 @@
   changed_when: false
 
 - name: Crear directorio para PID de DHCPv6 (forzado)
-  file:
-    path: /run/dhcp-server6
-    state: directory
-    owner: dhcpd
-    group: dhcpd
-    mode: '0755'
-    recurse: yes
+  shell: |
+    mkdir -p /run/dhcp-server6
+    chown dhcpd:dhcpd /run/dhcp-server6 || chmod 777 /run/dhcp-server6
+    chmod 0755 /run/dhcp-server6
+  become: yes
+  changed_when: true
+
+- name: Verificar directorio PID creado
+  command: ls -la /run/dhcp-server6
+  register: pid_dir
+  changed_when: false
+  failed_when: false
+
+- name: Mostrar estado del directorio PID
+  debug:
+    var: pid_dir.stdout_lines
 
 - name: Crear directorio override para systemd
   file:
