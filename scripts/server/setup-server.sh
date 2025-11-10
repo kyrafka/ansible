@@ -32,7 +32,7 @@ echo ""
 
 # Ejecutar playbook completo (localmente)
 
-ansible-playbook -i inventory/hosts.ini site.yml --connection=local -K
+ansible-playbook -i ../../inventory/hosts.ini ../../site.yml --connection=local -K
 # Verificar resultado
 if [ $? -eq 0 ]; then
     echo ""
