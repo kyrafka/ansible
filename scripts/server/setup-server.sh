@@ -14,17 +14,19 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 echo "📁 Directorio del proyecto: $PROJECT_ROOT"
 cd "$PROJECT_ROOT"
 
-# Activar entorno virtual
-if [ -f .ansible-venv/bin/activate ]; then
-    source .ansible-venv/bin/activate
-    echo "✅ Entorno Ansible activado"
-elif [ -f ~/.ansible-venv/bin/activate ]; then
-    source ~/.ansible-venv/bin/activate
-    echo "✅ Entorno Ansible activado"
+# Verificar que el entorno virtual está activado
+if [ -z "$VIRTUAL_ENV" ]; then
+    echo "⚠️  Entorno virtual no activado, intentando activar..."
+    if [ -f .ansible-venv/bin/activate ]; then
+        source .ansible-venv/bin/activate
+        echo "✅ Entorno Ansible activado"
+    else
+        echo "❌ Error: Entorno virtual de Ansible no encontrado"
+        echo "   Ejecuta primero: source scripts/activate-ansible.sh"
+        exit 1
+    fi
 else
-    echo "❌ Error: Entorno virtual de Ansible no encontrado"
-    echo "   Ejecuta primero: source scripts/activate-ansible.sh"
-    exit 1
+    echo "✅ Entorno Ansible ya activado"
 fi
 
 echo ""
