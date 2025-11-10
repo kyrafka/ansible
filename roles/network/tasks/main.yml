@@ -98,6 +98,10 @@
   ansible.builtin.include_tasks: tayga.yml
   tags: [network, nat64, tayga]
 
+- name: "🌐 Configurar Squid Proxy (HTTP/HTTPS sobre IPv6)"
+  ansible.builtin.include_tasks: squid-proxy.yml
+  tags: [network, proxy, squid]
+
 - name: Verificar configuración de red
   ansible.builtin.debug:
     msg:

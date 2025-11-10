@@ -1,0 +1,10 @@
+---
+- name: Configurar almacenamiento
+  hosts: localhost
+  connection: local
+  become: true
+  
+  roles:
+    - storage
+  
+  tags: storage

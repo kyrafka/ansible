@@ -1,0 +1,10 @@
+---
+- name: Configurar Firewall
+  hosts: localhost
+  connection: local
+  become: true
+  
+  roles:
+    - firewall
+  
+  tags: firewall

@@ -1,0 +1,68 @@
+---
+# Playbook maestro para configurar toda la infraestructura
+# Ejecutar: ansible-playbook -i inventory/hosts.ini setup-complete-infrastructure.yml -K
+
+- name: "🚀 CONFIGURACIÓN COMPLETA DE INFRAESTRUCTURA IPv6"
+  hosts: servers
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: "📋 Inicio de configuración"
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════"
+          - "🚀 Configurando infraestructura completa"
+          - "════════════════════════════════════════════════════════"
+          - "Servidor: {{ inventory_hostname }}"
+          - "IP: {{ ansible_host }}"
+          - ""
+          - "Se configurará:"
+          - "  1. Red (IPv6, NAT64, radvd)"
+          - "  2. DHCP IPv6"
+          - "  3. DNS con BIND9 + DNS64"
+          - "  4. Firewall"
+          - "  5. Tayga NAT64"
+          - "  6. Squid Proxy"
+          - "════════════════════════════════════════════════════════"
+
+    - name: "🌐 PASO 1: Configurar red"
+      ansible.builtin.include_role:
+        name: network
+      tags: [network]
+
+    - name: "📡 PASO 2: Configurar DHCP IPv6"
+      ansible.builtin.include_role:
+        name: dhcpv6
+      tags: [dhcp]
+
+    - name: "🌍 PASO 3: Configurar DNS + DNS64"
+      ansible.builtin.include_role:
+        name: dns_bind
+      tags: [dns]
+
+    - name: "🛡️  PASO 4: Configurar Firewall"
+      ansible.builtin.include_role:
+        name: firewall
+      tags: [firewall]
+
+    - name: "✅ Configuración del servidor completada"
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════"
+          - "✅ Servidor configurado exitosamente"
+          - "════════════════════════════════════════════════════════"
+          - ""
+          - "Servicios activos:"
+          - "  • Red IPv6: 2025:db8:10::/64"
+          - "  • DHCP IPv6: Rango 2025:db8:10::100-200"
+          - "  • DNS: 2025:db8:10::2 (con DNS64)"
+          - "  • NAT64: Tayga + Squid Proxy"
+          - "  • Firewall: Configurado"
+          - ""
+          - "Próximos pasos:"
+          - "  1. Crear VMs con: ansible-playbook create-vm-ubuntu-desktop.yml"
+          - "  2. Configurar VMs con: ansible-playbook configure-ubuntu-desktop.yml"
+          - "  3. Instalar gaming con: ansible-playbook setup-gaming-desktop.yml"
+          - ""
+          - "════════════════════════════════════════════════════════"

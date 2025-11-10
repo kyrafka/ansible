@@ -1,0 +1,86 @@
+---
+# Configuración de Squid Proxy para NAT64
+# Alternativa más confiable que Tayga para HTTP/HTTPS
+
+- name: "📦 Instalar Squid Proxy"
+  ansible.builtin.apt:
+    name: squid
+    state: present
+    update_cache: yes
+  become: true
+
+- name: "✓ Squid instalado"
+  ansible.builtin.debug:
+    msg: "→ Squid Proxy instalado"
+
+- name: "📝 Configurar Squid para IPv6"
+  ansible.builtin.copy:
+    content: |
+      # Puerto de escucha (IPv6 y IPv4)
+      http_port 3128
+      
+      # Permitir red interna IPv6
+      acl localnet src 2025:db8:10::/64
+      acl localnet src 192.168.0.0/16
+      acl localnet src fc00::/7
+      
+      # Permitir acceso desde la red local
+      http_access allow localnet
+      http_access allow localhost
+      http_access deny all
+      
+      # Cache
+      cache_dir ufs /var/spool/squid 2000 16 256
+      maximum_object_size 512 MB
+      cache_mem 256 MB
+      
+      # Logs
+      access_log /var/log/squid/access.log squid
+      cache_log /var/log/squid/cache.log
+      
+      # Optimizaciones
+      refresh_pattern ^ftp:           1440    20%     10080
+      refresh_pattern ^gopher:        1440    0%      1440
+      refresh_pattern -i (/cgi-bin/|\?) 0     0%      0
+      refresh_pattern .               0       20%     4320
+    dest: /etc/squid/squid.conf
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  become: true
+
+- name: "✓ Configuración de Squid creada"
+  ansible.builtin.debug:
+    msg: "→ Archivo: /etc/squid/squid.conf"
+
+- name: "💾 Crear directorio de caché de Squid"
+  ansible.builtin.command: squid -z
+  become: true
+  register: squid_cache
+  failed_when: false
+  changed_when: squid_cache.rc == 0
+
+- name: "🚀 Reiniciar Squid"
+  ansible.builtin.systemd:
+    name: squid
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+  become: true
+
+- name: "🛡️  Abrir puerto de Squid en firewall"
+  community.general.ufw:
+    rule: allow
+    port: '3128'
+    proto: tcp
+  become: true
+  when: ansible_os_family == "Debian"
+  failed_when: false
+
+- name: "✅ Squid Proxy configurado"
+  ansible.builtin.debug:
+    msg:
+      - "→ Squid escuchando en puerto 3128"
+      - "→ Acepta conexiones IPv6 desde 2025:db8:10::/64"
+      - "→ Las VMs deben configurar proxy: http://[2025:db8:10::2]:3128"

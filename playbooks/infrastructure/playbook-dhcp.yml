@@ -1,0 +1,10 @@
+---
+- name: Configurar DHCPv6
+  hosts: localhost
+  connection: local
+  become: true
+  
+  roles:
+    - dhcpv6
+  
+  tags: dhcp

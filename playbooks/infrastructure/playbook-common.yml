@@ -1,0 +1,10 @@
+---
+- name: Configurar servicios comunes
+  hosts: localhost
+  connection: local
+  become: true
+  
+  roles:
+    - common
+  
+  tags: common
