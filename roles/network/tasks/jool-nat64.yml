@@ -1,0 +1,124 @@
+---
+# Configuración de NAT64 real con Jool
+# Traduce tráfico IPv6 → IPv4 para salida a internet
+
+- name: "📦 Instalar dependencias para Jool"
+  ansible.builtin.apt:
+    name:
+      - linux-headers-{{ ansible_kernel }}
+      - build-essential
+      - dkms
+      - pkg-config
+      - libnl-genl-3-dev
+      - libxtables-dev
+    state: present
+    update_cache: yes
+  become: true
+
+- name: "📥 Descargar Jool"
+  ansible.builtin.get_url:
+    url: "https://github.com/NICMx/Jool/releases/download/v4.1.10/jool_4.1.10.tar.gz"
+    dest: "/tmp/jool_4.1.10.tar.gz"
+  become: true
+
+- name: "📂 Extraer Jool"
+  ansible.builtin.unarchive:
+    src: "/tmp/jool_4.1.10.tar.gz"
+    dest: "/tmp/"
+    remote_src: yes
+  become: true
+
+- name: "🔨 Compilar e instalar Jool"
+  ansible.builtin.shell: |
+    cd /tmp/jool-4.1.10
+    ./configure
+    make
+    make install
+  become: true
+  args:
+    creates: /usr/local/bin/jool
+
+- name: "🔄 Cargar módulo de Jool"
+  ansible.builtin.modprobe:
+    name: jool
+    state: present
+  become: true
+
+- name: "⚙️  Configurar Jool NAT64"
+  ansible.builtin.shell: |
+    # Crear instancia de Jool
+    jool instance add "nat64" --netfilter --pool6 64:ff9b::/96
+    
+    # Configurar pool de IPs IPv4 (usar la IP del servidor)
+    jool -i "nat64" pool4 add --tcp $(ip -4 addr show {{ wan_interface }} | grep inet | awk '{print $2}' | cut -d/ -f1) 1024-65535
+    jool -i "nat64" pool4 add --udp $(ip -4 addr show {{ wan_interface }} | grep inet | awk '{print $2}' | cut -d/ -f1) 1024-65535
+    jool -i "nat64" pool4 add --icmp $(ip -4 addr show {{ wan_interface }} | grep inet | awk '{print $2}' | cut -d/ -f1) 1024-65535
+  become: true
+  register: jool_config
+  failed_when: false
+  changed_when: jool_config.rc == 0
+
+- name: "✓ Jool NAT64 configurado"
+  ansible.builtin.debug:
+    msg:
+      - "→ NAT64 activo con Jool"
+      - "→ Prefijo DNS64: 64:ff9b::/96"
+      - "→ Las VMs IPv6-only pueden acceder a internet IPv4"
+
+- name: "💾 Crear script de inicio para Jool"
+  ansible.builtin.copy:
+    content: |
+      #!/bin/bash
+      # Script para iniciar Jool NAT64 al arrancar
+      
+      modprobe jool
+      
+      # Crear instancia
+      jool instance add "nat64" --netfilter --pool6 64:ff9b::/96 2>/dev/null || true
+      
+      # Obtener IP del servidor
+      SERVER_IP=$(ip -4 addr show {{ wan_interface }} | grep inet | awk '{print $2}' | cut -d/ -f1)
+      
+      # Configurar pool
+      jool -i "nat64" pool4 add --tcp $SERVER_IP 1024-65535 2>/dev/null || true
+      jool -i "nat64" pool4 add --udp $SERVER_IP 1024-65535 2>/dev/null || true
+      jool -i "nat64" pool4 add --icmp $SERVER_IP 1024-65535 2>/dev/null || true
+      
+      echo "Jool NAT64 iniciado"
+    dest: /usr/local/bin/start-jool-nat64.sh
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
+- name: "🚀 Crear servicio systemd para Jool"
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=Jool NAT64
+      After=network.target
+      
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/start-jool-nat64.sh
+      RemainAfterExit=yes
+      
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/jool-nat64.service
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: "🔄 Recargar systemd"
+  ansible.builtin.systemd:
+    daemon_reload: yes
+  become: true
+
+- name: "✅ Habilitar servicio Jool"
+  ansible.builtin.systemd:
+    name: jool-nat64
+    enabled: yes
+    state: started
+  become: true
