@@ -53,7 +53,7 @@
     group: root
     mode: '0755'
 
-- name: Configurar RuntimeDirectory en systemd
+- name: Configurar RuntimeDirectory en systemd (sin PIDFile para evitar AppArmor)
   copy:
     content: |
       [Unit]
@@ -63,12 +63,13 @@
       [Service]
       RuntimeDirectory=dhcp-server6
       RuntimeDirectoryMode=0755
-      PIDFile=/run/dhcp-server6/dhcpd6.pid
     dest: /etc/systemd/system/isc-dhcp-server6.service.d/override.conf
     owner: root
     group: root
     mode: '0644'
-  notify: reload systemd
+  notify:
+    - reload systemd
+    - restart isc-dhcp-server6
 
 - name: Crear directorio para PID de DHCPv6 ahora
   file:
