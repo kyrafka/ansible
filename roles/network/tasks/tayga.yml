@@ -1,0 +1,194 @@
+---
+# Configuración de Tayga (NAT64)
+# Traduce tráfico IPv6 → IPv4 para salida a internet
+
+- name: "📦 Instalar Tayga"
+  ansible.builtin.apt:
+    name: tayga
+    state: present
+    update_cache: yes
+  become: true
+
+- name: "✓ Tayga instalado"
+  ansible.builtin.debug:
+    msg: "→ Tayga NAT64 instalado"
+
+- name: "📝 Configurar Tayga"
+  ansible.builtin.copy:
+    content: |
+      # Configuración de Tayga NAT64
+      
+      # Prefijo IPv6 para NAT64 (debe coincidir con DNS64)
+      prefix 64:ff9b::/96
+      
+      # Pool de IPs IPv4 dinámicas para traducción
+      dynamic-pool 192.168.255.0/24
+      
+      # Dirección IPv4 del túnel
+      ipv4-addr 192.168.255.1
+      
+      # Dirección IPv6 del túnel (requerida para IPs privadas)
+      ipv6-addr 2025:db8:10::ffff
+      
+      # Interfaz de túnel
+      tun-device nat64
+      
+      # Directorio de datos
+      data-dir /var/spool/tayga
+    dest: /etc/tayga.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: "✓ Configuración de Tayga creada"
+  ansible.builtin.debug:
+    msg: "→ Archivo: /etc/tayga.conf"
+
+- name: "📁 Crear directorio de datos de Tayga"
+  ansible.builtin.file:
+    path: /var/spool/tayga
+    state: directory
+    owner: tayga
+    group: tayga
+    mode: '0755'
+  become: true
+
+- name: "🔧 Crear túnel de Tayga"
+  ansible.builtin.command: tayga --mktun
+  become: true
+  register: tayga_mktun
+  failed_when: false
+  changed_when: tayga_mktun.rc == 0
+
+- name: "🔌 Levantar interfaz nat64"
+  ansible.builtin.command: ip link set nat64 up
+  become: true
+  changed_when: true
+
+- name: "🌐 Configurar IP IPv4 en nat64"
+  ansible.builtin.command: ip addr add 192.168.255.1 dev nat64
+  become: true
+  register: ipv4_add
+  failed_when: false
+  changed_when: ipv4_add.rc == 0
+
+- name: "🌐 Configurar IP IPv6 en nat64"
+  ansible.builtin.command: ip addr add 2025:db8:10::ffff dev nat64
+  become: true
+  register: ipv6_add
+  failed_when: false
+  changed_when: ipv6_add.rc == 0
+
+- name: "🛣️  Agregar ruta IPv4 para NAT64"
+  ansible.builtin.command: ip route add 192.168.255.0/24 dev nat64
+  become: true
+  register: route_ipv4
+  failed_when: false
+  changed_when: route_ipv4.rc == 0
+
+- name: "🛣️  Agregar ruta IPv6 para NAT64"
+  ansible.builtin.command: ip route add 64:ff9b::/96 dev nat64
+  become: true
+  register: route_ipv6
+  failed_when: false
+  changed_when: route_ipv6.rc == 0
+
+- name: "🚀 Iniciar Tayga"
+  ansible.builtin.command: tayga
+  become: true
+  register: tayga_start
+  failed_when: false
+  changed_when: tayga_start.rc == 0
+
+- name: "🛡️  Configurar iptables para Tayga"
+  ansible.builtin.shell: |
+    # NAT para el pool de Tayga
+    iptables -t nat -C POSTROUTING -s 192.168.255.0/24 -o {{ wan_interface }} -j MASQUERADE 2>/dev/null || \
+    iptables -t nat -A POSTROUTING -s 192.168.255.0/24 -o {{ wan_interface }} -j MASQUERADE
+    
+    # FORWARD para nat64
+    iptables -C FORWARD -i nat64 -o {{ wan_interface }} -j ACCEPT 2>/dev/null || \
+    iptables -A FORWARD -i nat64 -o {{ wan_interface }} -j ACCEPT
+    
+    iptables -C FORWARD -i {{ wan_interface }} -o nat64 -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \
+    iptables -A FORWARD -i {{ wan_interface }} -o nat64 -m state --state RELATED,ESTABLISHED -j ACCEPT
+    
+    # Guardar reglas
+    iptables-save > /etc/iptables/rules.v4
+  become: true
+  changed_when: false
+
+- name: "✓ iptables configurado para Tayga"
+  ansible.builtin.debug:
+    msg: "→ Reglas de NAT y FORWARD agregadas"
+
+- name: "📝 Crear script de inicio de Tayga"
+  ansible.builtin.copy:
+    content: |
+      #!/bin/bash
+      # Script para iniciar Tayga NAT64 al arrancar
+      
+      # Crear túnel si no existe
+      tayga --mktun 2>/dev/null || true
+      
+      # Levantar interfaz
+      ip link set nat64 up
+      
+      # Configurar IPs
+      ip addr add 192.168.255.1 dev nat64 2>/dev/null || true
+      ip addr add 2025:db8:10::ffff dev nat64 2>/dev/null || true
+      
+      # Agregar rutas
+      ip route add 192.168.255.0/24 dev nat64 2>/dev/null || true
+      ip route add 64:ff9b::/96 dev nat64 2>/dev/null || true
+      
+      # Iniciar Tayga
+      tayga 2>/dev/null || true
+      
+      echo "Tayga NAT64 iniciado"
+    dest: /usr/local/bin/start-tayga.sh
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
+- name: "🚀 Crear servicio systemd para Tayga"
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=Tayga NAT64
+      After=network.target
+      
+      [Service]
+      Type=forking
+      ExecStart=/usr/local/bin/start-tayga.sh
+      RemainAfterExit=yes
+      
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/tayga-nat64.service
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: "🔄 Recargar systemd"
+  ansible.builtin.systemd:
+    daemon_reload: yes
+  become: true
+
+- name: "✅ Habilitar servicio Tayga"
+  ansible.builtin.systemd:
+    name: tayga-nat64
+    enabled: yes
+  become: true
+
+- name: "✓ Tayga NAT64 configurado"
+  ansible.builtin.debug:
+    msg:
+      - "→ Tayga está corriendo"
+      - "→ Interfaz: nat64"
+      - "→ Prefijo NAT64: 64:ff9b::/96"
+      - "→ Pool IPv4: 192.168.255.0/24"
+      - "→ Las VMs IPv6-only pueden acceder a internet IPv4"
