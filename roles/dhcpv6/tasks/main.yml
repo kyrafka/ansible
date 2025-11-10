@@ -32,6 +32,22 @@
     mode: '0644'
   notify: restart isc-dhcp-server6
 
+- name: Crear directorio para PID de DHCPv6
+  file:
+    path: /run/dhcp-server6
+    state: directory
+    owner: dhcpd
+    group: dhcpd
+    mode: '0755'
+
+- name: Crear archivo de leases si no existe
+  file:
+    path: /var/lib/dhcp/dhcpd6.leases
+    state: touch
+    owner: dhcpd
+    group: dhcpd
+    mode: '0644'
+
 - name: Habilitar IPv6 forwarding
   sysctl:
     name: net.ipv6.conf.all.forwarding

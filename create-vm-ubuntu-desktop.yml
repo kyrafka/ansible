@@ -65,6 +65,7 @@
         datacenter: "{{ vmware.datacenter }}"
         name: "{{ vm_name }}"
       register: vm_info
+      failed_when: false
       ignore_errors: true
 
     - name: "⚠️  VM ya existe"
@@ -104,7 +105,7 @@
           - controller_number: 0
             unit_number: 0
             type: iso
-            iso_path: "[{{ vmware.datastore }}] ISOs/ubuntu-22.04-desktop-amd64.iso"
+            iso_path: "[{{ vmware.datastore }}] ubuntu-24.04.3-desktop-amd64.iso"
             state: present
         wait_for_ip_address: false
       register: vm_creation
