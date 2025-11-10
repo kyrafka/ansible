@@ -50,11 +50,7 @@ echo "════════════════════════�
 echo ""
 
 # Ejecutar playbook completo
-ansible-playbook site.yml \
-    --connection=local \
-    --become \
-    --vault-password-file .vault_pass \
-    -e "ansible_become_password={{ vault_sudo_password }}"
+ansible-playbook -i inventory/hosts.ini playbooks/infrastructure/setup-complete-infrastructure.yml -K
 
 # Verificar resultado
 if [ $? -eq 0 ]; then

@@ -1,294 +1,276 @@
-# Scripts de GameCenter
+# 📜 Scripts de Ansible
 
-Scripts útiles para gestionar el entorno de VMs.
-
-## 🚀 Scripts Principales
-
-### 1. setup-ansible-env.sh ⭐ ESENCIAL
-Configura el entorno de Ansible con todas las dependencias.
-
-```bash
-bash scripts/setup-ansible-env.sh
-```
-
-**Qué hace:**
-- Crea entorno virtual Python
-- Instala Ansible, pyvmomi, requests
-- Instala colección community.vmware
-- Configura ansible.cfg
-- Verifica que todo funcione
-
-**Cuándo usarlo:**
-- Primera vez que configuras el proyecto
-- Después de reinstalar el sistema
-- Si hay errores de "ModuleNotFoundError: No module named 'pyVim'"
+Scripts organizados por funcionalidad para facilitar el uso de Ansible y la gestión de la infraestructura.
 
 ---
 
-### 2. create-vm-interactive.sh
-Script interactivo para crear VMs con roles.
+## 📋 Orden de Ejecución de Scripts
+
+### 🚀 1. Configuración Inicial (Una sola vez)
 
 ```bash
-bash scripts/create-vm-interactive.sh
-```
+# 1.1 Configurar entorno de Ansible
+bash scripts/setup/setup-ansible-env.sh
 
-**Qué hace:**
-- Menú para seleccionar SO (Ubuntu/Windows)
-- Seleccionar rol (admin/auditor/cliente)
-- Muestra recursos asignados
-- Crea la VM automáticamente
-
-**Ejemplo de uso:**
-```
-Selecciona el Sistema Operativo:
-1) Ubuntu Desktop 24.04
-2) Windows 11
-Opción [1-2]: 1
-
-Nombre de la VM: ubuntu-cliente01
-
-Selecciona el Rol:
-1) Admin    - Acceso total
-2) Auditor  - Solo lectura
-3) Cliente  - Solo juegos
-Opción [1-3]: 3
-
-✓ VM creada: ubuntu-cliente01
+# 1.2 Activar entorno virtual (siempre antes de usar Ansible)
+source scripts/activate-ansible.sh
 ```
 
 ---
 
-### 3. list-vms.sh
-Lista todas las VMs en vSphere y su estado.
+### 🖥️ 2. Configuración del Servidor
+
+#### Opción A: Scripts de Ejecución Rápida (run/)
 
 ```bash
-bash scripts/list-vms.sh
+# 2.1 Configurar red (NAT64, Squid, radvd)
+bash scripts/run/run-network.sh
+
+# 2.2 Configurar DHCP IPv6
+bash scripts/run/run-dhcp.sh
+
+# 2.3 Configurar DNS + DNS64
+bash scripts/run/run-dns.sh
+
+# 2.4 Configurar Firewall
+bash scripts/run/run-firewall.sh
+
+# 2.5 (Opcional) Configurar almacenamiento
+bash scripts/run/run-storage.sh
 ```
 
-**Qué muestra:**
-- Nombre de la VM
-- Estado (Encendida/Apagada)
-- CPU y RAM asignadas
-- Dirección IP (o "Sin Tools/IP")
-- VMs en inventario Ansible
+#### Opción B: Script Completo del Servidor
 
-**Ejemplo de salida:**
-```
-NOMBRE                    ESTADO          CPU        RAM (MB)        IP
-────────────────────────────────────────────────────────────────────
-ubuntu-server             Encendida       2          4096            2025:db8:10::2
-ubuntu-cliente01          Encendida       2          4096            2025:db8:10::12
-win11-admin               Apagada         2          4096            N/A
+```bash
+# Configura TODO el servidor de una vez
+bash scripts/server/setup-server.sh
 ```
 
 ---
 
-### 4. vm-manager.sh
-Menú interactivo para gestionar VMs.
+### 🔍 3. Verificación del Servidor
 
 ```bash
-bash scripts/vm-manager.sh
-```
+# 3.1 Verificar estado de NAT64
+sudo bash scripts/diagnostics/check-nat64-status.sh
 
-**Opciones:**
-1. Listar VMs
-2. Encender VM
-3. Apagar VM
-4. Reiniciar VM
-5. Ver estado de VM
-6. Salir
+# 3.2 Verificar conectividad de red
+bash scripts/diagnostics/test-network-connectivity.sh
 
-**Cuándo usarlo:**
-- Encender/apagar VMs sin entrar a vSphere
-- Ver estado rápido de una VM
-- Reiniciar VMs remotamente
+# 3.3 Verificar conexión SSH
+bash scripts/diagnostics/test-ssh-ubpc.sh
 
----
-
-### 5. quick-deploy.sh
-Despliegue rápido de todo el entorno.
-
-```bash
-bash scripts/quick-deploy.sh
-```
-
-**Qué hace:**
-1. Crea servidor Ubuntu
-2. Configura servicios (DNS, DHCP, Firewall)
-3. Crea VMs cliente (Ubuntu/Windows)
-4. Crea VM administrador
-5. Muestra resumen
-
-**Cuándo usarlo:**
-- Despliegue inicial del proyecto
-- Recrear todo el entorno desde cero
-
----
-
-## 🧪 Scripts de Pruebas
-
-### 6. test-govc-connection.sh
-Verifica conexión a vCenter con govc.
-
-```bash
-bash scripts/test-govc-connection.sh
-```
-
-**Qué verifica:**
-- govc instalado
-- Credenciales correctas
-- Conexión a vCenter
-- Acceso al datacenter
-
----
-
-### 7. test-ssh-ubpc.sh
-Prueba conexión SSH al servidor Ubuntu.
-
-```bash
-bash scripts/test-ssh-ubpc.sh
-```
-
-**Qué verifica:**
-- Servidor accesible por SSH
-- Credenciales correctas
-- Servicios funcionando
-
----
-
-### 8. test-network-connectivity.sh
-Prueba conectividad de red entre VMs.
-
-```bash
-bash scripts/test-network-connectivity.sh
-```
-
-**Qué verifica:**
-- Ping entre VMs
-- DNS funcionando
-- DHCP asignando IPs
-- Gateway accesible
-
----
-
-## 📋 Requisitos
-
-### Para gestión de VMs (govc):
-```bash
-# Instalar govc en WSL
-curl -L https://github.com/vmware/govmomi/releases/latest/download/govc_Linux_x86_64.tar.gz | tar -xz
-sudo mv govc /usr/local/bin/
-```
-
-### Para Ansible:
-```bash
-# Ejecutar setup primero
-bash scripts/setup-ansible-env.sh
-
-# Luego activar entorno
-source ~/.ansible-venv/bin/activate
-```
-
-### Para jq (parsing JSON):
-```bash
-sudo apt install jq -y
+# 3.4 (Si usas ESXi) Verificar conexión con ESXi
+bash scripts/diagnostics/test-govc-connection.sh
 ```
 
 ---
 
-## 🎯 Flujo de Trabajo Recomendado
+### 🖥️ 4. Gestión de VMs
 
-### Primera vez:
 ```bash
-# 1. Configurar entorno
-bash scripts/setup-ansible-env.sh
-source ~/.ansible-venv/bin/activate
+# 4.1 Listar VMs existentes
+bash scripts/vms/list-vms.sh
 
-# 2. Probar conexión
-bash scripts/test-govc-connection.sh
+# 4.2 Crear VM interactivamente
+bash scripts/vms/create-vm-interactive.sh
 
-# 3. Desplegar todo
-bash scripts/quick-deploy.sh
-```
-
-### Uso diario:
-```bash
-# Activar entorno
-source ~/.ansible-venv/bin/activate
-
-# Ver estado de VMs
-bash scripts/list-vms.sh
-
-# Crear VM individual
-bash scripts/create-vm-interactive.sh
-
-# Gestionar VMs
-bash scripts/vm-manager.sh
+# 4.3 Gestionar VMs (menú interactivo)
+bash scripts/vms/vm-manager.sh
 ```
 
 ---
 
-## 🔧 Configuración
+### 🔧 5. Scripts de Corrección (Si algo falla)
 
-Los scripts leen credenciales de `group_vars/all.vault.yml`:
-```yaml
-vault_vcenter_hostname: "168.121.48.254"
-vault_vcenter_port: "10111"
-vault_vcenter_username: "root"
-vault_vcenter_password: "qwe123$"
+#### DHCP no funciona:
+
+```bash
+# Corrección rápida
+sudo bash scripts/dhcp/fix-dhcp-quick.sh
+
+# Corrección completa
+sudo bash scripts/dhcp/fix-dhcp-permissions.sh
+
+# Verificar estado
+sudo bash scripts/dhcp/check-dhcp.sh
+```
+
+#### NAT64 no funciona:
+
+```bash
+# Corregir rutas
+sudo bash scripts/nat64/fix-nat64-routes.sh
+
+# Reinstalar Tayga
+sudo bash scripts/nat64/install-nat64-tayga.sh
+
+# Instalar Squid Proxy (alternativa)
+sudo bash scripts/nat64/install-squid-proxy.sh
+
+# Configurar NAT64 + DNS64
+sudo bash scripts/nat64/configure-nat64-dns64.sh
+
+# (Alternativa) Instalar Jool NAT64
+sudo bash scripts/nat64/install-jool-nat64.sh
 ```
 
 ---
 
-## 🐛 Troubleshooting
+### ⚡ 6. Despliegue Rápido
 
-### Error: govc no encontrado
 ```bash
-which govc
-# Si no existe, instalar:
-curl -L https://github.com/vmware/govmomi/releases/latest/download/govc_Linux_x86_64.tar.gz | tar -xz
-sudo mv govc /usr/local/bin/
-```
-
-### Error: ModuleNotFoundError: No module named 'pyVim'
-```bash
-bash scripts/setup-ansible-env.sh
-source ~/.ansible-venv/bin/activate
-```
-
-### Error: No se puede conectar a vCenter
-```bash
-# Verificar credenciales
-cat group_vars/all.vault.yml | grep vcenter
-
-# Probar conexión
-bash scripts/test-govc-connection.sh
-```
-
-### Scripts no ejecutables (Linux/Mac)
-```bash
-chmod +x scripts/*.sh
+# Despliega toda la infraestructura automáticamente
+bash scripts/quick-deploy/quick-deploy.sh
 ```
 
 ---
 
-## 📝 Resumen de Scripts
+## 📁 Estructura de Carpetas
 
-| Script | Para qué sirve | Cuándo usarlo |
-|--------|----------------|---------------|
-| **setup-ansible-env.sh** | Configurar entorno | Primera vez / Errores de Python |
-| **create-vm-interactive.sh** | Crear VMs con menú | Crear VMs individuales |
-| **list-vms.sh** | Ver estado de VMs | Ver qué VMs hay y su estado |
-| **vm-manager.sh** | Encender/apagar VMs | Gestión rápida de VMs |
-| **quick-deploy.sh** | Desplegar todo | Crear entorno completo |
-| **test-govc-connection.sh** | Probar vCenter | Verificar conexión |
-| **test-ssh-ubpc.sh** | Probar SSH | Verificar servidor |
-| **test-network-connectivity.sh** | Probar red | Verificar conectividad |
+```
+scripts/
+├── setup/              # Configuración inicial
+│   └── setup-ansible-env.sh
+│
+├── run/                # Ejecución de playbooks
+│   ├── run-network.sh
+│   ├── run-dhcp.sh
+│   ├── run-dns.sh
+│   ├── run-firewall.sh
+│   ├── run-storage.sh
+│   ├── run-common.sh
+│   ├── run-role.sh
+│   └── run.sh
+│
+├── server/             # Configuración del servidor
+│   └── setup-server.sh
+│
+├── diagnostics/        # Verificación y diagnóstico
+│   ├── check-nat64-status.sh
+│   ├── test-network-connectivity.sh
+│   ├── test-ssh-ubpc.sh
+│   └── test-govc-connection.sh
+│
+├── nat64/              # NAT64 y traducción IPv6→IPv4
+│   ├── install-nat64-tayga.sh
+│   ├── install-squid-proxy.sh
+│   ├── install-jool-nat64.sh
+│   ├── fix-nat64-routes.sh
+│   └── configure-nat64-dns64.sh
+│
+├── dhcp/               # DHCP IPv6
+│   ├── fix-dhcp-quick.sh
+│   ├── fix-dhcp-permissions.sh
+│   └── check-dhcp.sh
+│
+├── vms/                # Gestión de VMs
+│   ├── create-vm-interactive.sh
+│   ├── list-vms.sh
+│   └── vm-manager.sh
+│
+├── quick-deploy/       # Despliegue rápido
+│   └── quick-deploy.sh
+│
+├── activate-ansible.sh # Activar entorno virtual
+└── encrypt-vault.sh    # Encriptar contraseñas
+```
 
 ---
 
-## 🔐 Seguridad
+## 🎯 Flujo Completo Recomendado
 
-- Las contraseñas están en `all.vault.yml`
-- Encriptar con: `ansible-vault encrypt group_vars/all.vault.yml`
-- Los scripts NO muestran contraseñas en pantalla
+### Primera vez (Configuración desde cero):
+
+```bash
+# 1. Setup inicial
+bash scripts/setup/setup-ansible-env.sh
+source scripts/activate-ansible.sh
+
+# 2. Configurar servidor
+bash scripts/run/run-network.sh
+bash scripts/run/run-dhcp.sh
+bash scripts/run/run-dns.sh
+bash scripts/run/run-firewall.sh
+
+# 3. Verificar
+sudo bash scripts/diagnostics/check-nat64-status.sh
+
+# 4. Crear VMs
+bash scripts/vms/create-vm-interactive.sh
+```
+
+### Después de reiniciar el servidor:
+
+```bash
+# 1. Activar entorno
+source scripts/activate-ansible.sh
+
+# 2. Verificar servicios
+sudo bash scripts/diagnostics/check-nat64-status.sh
+
+# 3. Si algo falló, corregir
+sudo bash scripts/nat64/fix-nat64-routes.sh
+sudo bash scripts/dhcp/fix-dhcp-quick.sh
+```
+
+---
+
+## 🔐 Scripts de Utilidad
+
+### Activar entorno de Ansible:
+
+```bash
+source scripts/activate-ansible.sh
+```
+
+**Úsalo siempre antes de ejecutar playbooks de Ansible.**
+
+### Encriptar contraseñas:
+
+```bash
+bash scripts/encrypt-vault.sh
+```
+
+**Úsalo para encriptar `group_vars/all.vault.yml`.**
+
+---
+
+## 💡 Consejos
+
+1. **Siempre activa el entorno virtual** antes de usar scripts que ejecutan Ansible
+2. **Ejecuta scripts desde el directorio raíz** del proyecto
+3. **Usa `sudo`** solo cuando el script lo requiera (NAT64, DHCP, diagnósticos)
+4. **Verifica después de cada paso** con los scripts de diagnóstico
+5. **Si algo falla**, usa los scripts de corrección antes de reinstalar
+
+---
+
+## 🆘 Scripts de Emergencia
+
+### Reiniciar todos los servicios:
+
+```bash
+sudo systemctl restart isc-dhcp-server6
+sudo systemctl restart bind9
+sudo systemctl restart radvd
+sudo systemctl restart squid
+sudo bash scripts/nat64/fix-nat64-routes.sh
+```
+
+### Ver logs:
+
+```bash
+# DHCP
+sudo journalctl -u isc-dhcp-server6 -n 50
+
+# DNS
+sudo journalctl -u bind9 -n 50
+
+# Squid
+sudo tail -f /var/log/squid/access.log
+```
+
+---
+
+**Para más detalles, consulta `ORDEN-DE-USO.md` en la raíz del proyecto.** 📚
