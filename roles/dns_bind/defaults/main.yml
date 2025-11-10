@@ -12,7 +12,8 @@ dns_forwarders:
   - "2001:4860:4860::8844"
 
 # Configuración de la red
-dns_network_ipv6: "{{ network_config.ipv6_network }}"
+dns_network_ipv6: "2025:db8:10::/64"
+dns_ipv6_gateway: "2025:db8:10::2"
 dns_ipv6_reverse_zone: "0.1.0.8.b.d.5.2.0.2.ip6.arpa"  # Para 2025:db8:10::/64
 
 # Registros DNS básicos
