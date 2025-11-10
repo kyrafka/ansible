@@ -1,6 +1,9 @@
 #!/bin/bash
 # Script para configurar el servidor Ubuntu con todos los servicios
-# Ejecutar: bash scripts/server/setup-server.sh
+# Ejecutar desde la raíz del proyecto: bash scripts/server/setup-server.sh
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 echo "════════════════════════════════════════════════════════"
 echo "🚀 Configurando Servidor GameCenter"
@@ -30,9 +33,14 @@ echo "🔧 Ejecutando configuración completa..."
 echo "════════════════════════════════════════════════════════"
 echo ""
 
-# Ejecutar playbook completo (localmente)
+cd "$PROJECT_ROOT"
 
-ansible-playbook -i ../../inventory/hosts.ini ../../site.yml --connection=local -K
+if [ -f ~/.ansible-venv/bin/activate ]; then
+    source ~/.ansible-venv/bin/activate
+fi
+
+# Ejecutar playbook completo (localmente)
+ansible-playbook -i inventory/hosts.ini site.yml --connection=local --become --ask-become-pass
 # Verificar resultado
 if [ $? -eq 0 ]; then
     echo ""

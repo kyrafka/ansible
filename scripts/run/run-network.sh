@@ -11,4 +11,4 @@ if [ -f ~/.ansible-venv/bin/activate ]; then
     source ~/.ansible-venv/bin/activate
 fi
 
-ansible-playbook site.yml --connection=local --become --ask-become-pass --tags network
+ansible-playbook -i inventory/hosts.ini site.yml --connection=local --become --ask-become-pass --tags network
