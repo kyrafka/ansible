@@ -6,6 +6,7 @@
   hosts: localhost
   connection: local
   gather_facts: false
+  become: false  # No necesita sudo para crear VMs
 
   vars_files:
     - group_vars/all.yml
