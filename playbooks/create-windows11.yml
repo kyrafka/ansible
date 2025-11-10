@@ -20,15 +20,15 @@
       admin:
         cpu: 2
         ram: 4096
-        disk: 80
+        disk: 50
       auditor:
         cpu: 2
         ram: 3072
-        disk: 40
+        disk: 30
       cliente:
         cpu: 2
         ram: 4096
-        disk: 60
+        disk: 40
     
     # ISO de Windows 11
     iso_path: "[datastore1] Win11_24H2_Spanish_Mexico_x64.iso"
