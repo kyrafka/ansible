@@ -1,0 +1,51 @@
+---
+# Configuración de AppArmor para DHCPv6
+
+- name: Verificar si AppArmor está activo
+  command: aa-status
+  register: apparmor_status
+  failed_when: false
+  changed_when: false
+
+- name: Mostrar estado de AppArmor
+  debug:
+    msg: "AppArmor está activo"
+  when: apparmor_status.rc == 0
+
+- name: Crear directorio local de AppArmor
+  file:
+    path: /etc/apparmor.d/local
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Configurar permisos de AppArmor para dhcpd
+  copy:
+    content: |
+      # Permisos adicionales para DHCPv6
+      /run/dhcp-server6/ rw,
+      /run/dhcp-server6/** rw,
+      /run/dhcp-server6/dhcpd6.pid rw,
+    dest: /etc/apparmor.d/local/usr.sbin.dhcpd
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - reload apparmor
+
+- name: Recargar perfil de AppArmor para dhcpd
+  command: apparmor_parser -r /etc/apparmor.d/usr.sbin.dhcpd
+  when: apparmor_status.rc == 0
+  changed_when: true
+
+- name: Verificar perfil de AppArmor
+  command: aa-status --json
+  register: aa_profile
+  failed_when: false
+  changed_when: false
+
+- name: Mostrar estado del perfil dhcpd
+  debug:
+    msg: "Perfil de dhcpd cargado en AppArmor"
+  when: apparmor_status.rc == 0

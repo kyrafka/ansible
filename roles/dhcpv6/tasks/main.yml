@@ -9,10 +9,14 @@
   include_tasks: install.yml
   tags: [dhcp, dhcp-install]
 
-- name: "⚙️  FASE 3: Configuración de systemd"
+- name: "🛡️  FASE 3: Configuración de AppArmor"
+  include_tasks: apparmor.yml
+  tags: [dhcp, dhcp-apparmor]
+
+- name: "⚙️  FASE 4: Configuración de systemd"
   include_tasks: systemd.yml
   tags: [dhcp, dhcp-systemd]
 
-- name: "✅ FASE 4: Validación final"
+- name: "✅ FASE 5: Validación final"
   include_tasks: validate.yml
   tags: [dhcp, dhcp-validate-final]

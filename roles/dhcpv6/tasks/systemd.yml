@@ -1,6 +1,20 @@
 ---
 # Configuración de systemd y permisos
 
+- name: Verificar que usuario dhcpd existe
+  user:
+    name: dhcpd
+    system: yes
+    create_home: no
+    shell: /usr/sbin/nologin
+    state: present
+
+- name: Verificar que grupo dhcpd existe
+  group:
+    name: dhcpd
+    system: yes
+    state: present
+
 - name: Crear directorio tmpfiles.d para DHCPv6
   copy:
     content: |
@@ -13,6 +27,15 @@
 - name: Aplicar tmpfiles
   command: systemd-tmpfiles --create
   changed_when: false
+
+- name: Crear directorio para PID de DHCPv6 (forzado)
+  file:
+    path: /run/dhcp-server6
+    state: directory
+    owner: dhcpd
+    group: dhcpd
+    mode: '0755'
+    recurse: yes
 
 - name: Crear directorio override para systemd
   file:
@@ -32,20 +55,17 @@
       [Service]
       RuntimeDirectory=dhcp-server6
       RuntimeDirectoryMode=0755
+      User=dhcpd
+      Group=dhcpd
+      # Permisos adicionales para AppArmor
+      ProtectSystem=false
+      ProtectHome=false
     dest: /etc/systemd/system/isc-dhcp-server6.service.d/override.conf
     owner: root
     group: root
     mode: '0644'
   notify:
     - reload systemd
-
-- name: Crear directorio para PID de DHCPv6
-  file:
-    path: /run/dhcp-server6
-    state: directory
-    owner: dhcpd
-    group: dhcpd
-    mode: '0755'
 
 - name: Recargar systemd
   systemd:

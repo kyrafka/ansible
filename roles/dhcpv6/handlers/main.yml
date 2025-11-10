@@ -3,6 +3,11 @@
   systemd:
     daemon_reload: yes
 
+- name: reload apparmor
+  systemd:
+    name: apparmor
+    state: reloaded
+
 - name: restart isc-dhcp-server6
   systemd:
     name: isc-dhcp-server6
