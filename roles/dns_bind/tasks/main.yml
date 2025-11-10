@@ -117,12 +117,27 @@
   ansible.builtin.include_tasks: dns64.yml
   tags: [dns, dns64]
 
-- name: "Abrir puertos DNS en firewall"
-  ufw:
+- name: "🔍 Verificar si ufw está instalado"
+  ansible.builtin.command: which ufw
+  register: ufw_check
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: "🛡️  Abrir puertos DNS en firewall (ufw)"
+  community.general.ufw:
     rule: allow
     port: "53"
     proto: "{{ item }}"
   loop:
     - tcp
     - udp
-  when: ansible_os_family == "Debian"
+  when: 
+    - ansible_os_family == "Debian"
+    - ufw_check.rc == 0
+  become: true
+
+- name: "⚠️  UFW no instalado, saltando configuración de firewall"
+  ansible.builtin.debug:
+    msg: "→ UFW no está instalado. Los puertos DNS deben abrirse manualmente o con otro firewall."
+  when: ufw_check.rc != 0
