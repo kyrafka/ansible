@@ -30,6 +30,9 @@ dynamic-pool 192.168.255.0/24
 # Dirección IPv4 del túnel
 ipv4-addr 192.168.255.1
 
+# Dirección IPv6 del túnel (requerida para IPs privadas)
+ipv6-addr 2025:db8:10::ffff
+
 # Interfaz de túnel
 tun-device nat64
 
@@ -49,7 +52,7 @@ if [ "$IFACE" = "ens34" ]; then
     tayga --mktun
     ip link set nat64 up
     ip addr add 192.168.255.1 dev nat64
-    ip addr add 64:ff9b::1 dev nat64
+    ip addr add 2025:db8:10::ffff dev nat64
     ip route add 192.168.255.0/24 dev nat64
     ip route add 64:ff9b::/96 dev nat64
     tayga
@@ -62,10 +65,19 @@ echo "5️⃣  Iniciando Tayga..."
 tayga --mktun
 ip link set nat64 up
 ip addr add 192.168.255.1 dev nat64
-ip addr add 64:ff9b::1 dev nat64
+ip addr add 2025:db8:10::ffff dev nat64
 ip route add 192.168.255.0/24 dev nat64
 ip route add 64:ff9b::/96 dev nat64
 tayga
+
+echo "7️⃣  Verificando Tayga..."
+sleep 2
+if ps aux | grep -v grep | grep tayga > /dev/null; then
+    echo "   ✅ Tayga está corriendo"
+else
+    echo "   ❌ Tayga no se inició correctamente"
+    echo "   Ver logs: journalctl -xe"
+fi
 
 echo "6️⃣  Configurando NAT para Tayga..."
 iptables -t nat -A POSTROUTING -s 192.168.255.0/24 -o ens33 -j MASQUERADE
