@@ -63,9 +63,9 @@ Confirmar contraseña: [TU-CONTRASEÑA]
 ```
 
 **Recomendaciones por rol:**
-- **admin**: usuario `admin`, contraseña fuerte
-- **auditor**: usuario `auditor`, contraseña fuerte
-- **cliente**: usuario `cliente`, contraseña simple
+- **admin**: usuario `admin`, contraseña fuerte (50GB disco)
+- **auditor**: usuario `auditor`, contraseña fuerte (30GB disco)
+- **cliente**: usuario `cliente`, contraseña simple (40GB disco)
 
 **⚠️ NO marcar:** "Iniciar sesión automáticamente"
 
@@ -174,19 +174,19 @@ Esto:
 - **Usuario:** admin
 - **IP ejemplo:** 2025:db8:10::21
 - **Permisos:** Acceso total, puede SSH al servidor
-- **Recursos:** 2 CPU, 4GB RAM, 80GB disco
+- **Recursos:** 2 CPU, 4GB RAM, 50GB disco
 
 ### 📊 Auditor
 - **Usuario:** auditor
 - **IP ejemplo:** 2025:db8:10::22
 - **Permisos:** Solo lectura de logs, NO puede SSH
-- **Recursos:** 2 CPU, 3GB RAM, 40GB disco
+- **Recursos:** 2 CPU, 3GB RAM, 30GB disco
 
 ### 🎮 Cliente
 - **Usuario:** cliente
 - **IP ejemplo:** 2025:db8:10::20
 - **Permisos:** Solo juegos, NO puede SSH
-- **Recursos:** 2 CPU, 4GB RAM, 60GB disco
+- **Recursos:** 2 CPU, 4GB RAM, 40GB disco
 
 ---
 
