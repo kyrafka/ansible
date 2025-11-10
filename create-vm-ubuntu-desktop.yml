@@ -1,0 +1,140 @@
+---
+# Playbook para crear UNA VM Ubuntu Desktop con 3 usuarios (admin, auditor, cliente)
+# Uso: ansible-playbook create-vm-ubuntu-desktop.yml
+
+- name: Crear VM Ubuntu Desktop en ESXi
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars_files:
+    - group_vars/all.yml
+    - group_vars/all.vault.yml
+
+  vars:
+    vm_name: "Ubuntu-Desktop-GameCenter"
+    vm_memory: 8192
+    vm_cpus: 4
+    vm_disk_size_gb: 40
+
+  tasks:
+    - name: "📋 Configuración de la VM"
+      debug:
+        msg:
+          - "════════════════════════════════════════════════════════"
+          - "🎮 Creando VM Ubuntu Desktop GameCenter"
+          - "════════════════════════════════════════════════════════"
+          - "Nombre: {{ vm_name }}"
+          - "Memoria: {{ vm_memory }} MB ({{ vm_memory // 1024 }} GB)"
+          - "CPUs: {{ vm_cpus }}"
+          - "Disco: {{ vm_disk_size_gb }} GB"
+          - "Red: {{ vmware.internal_network_name }}"
+          - ""
+          - "Esta VM tendrá 3 usuarios:"
+          - "  1. admin    - Administrador (sudo completo)"
+          - "  2. auditor  - Auditor (solo lectura)"
+          - "  3. gamer01  - Cliente/Gamer (sin privilegios)"
+          - "════════════════════════════════════════════════════════"
+
+    - name: "🔌 Verificar conexión con ESXi"
+      uri:
+        url: "https://{{ vault_vcenter_hostname }}:{{ vault_vcenter_port }}/ui/"
+        method: GET
+        validate_certs: no
+      register: vcenter_response
+      ignore_errors: true
+
+    - name: "✅ Conexión verificada"
+      debug:
+        msg: "✅ Conectado a ESXi en {{ vault_vcenter_hostname }}:{{ vault_vcenter_port }}"
+      when: vcenter_response.status is defined and vcenter_response.status == 200
+
+    - name: "❌ Error de conexión"
+      fail:
+        msg: "❌ No se pudo conectar a ESXi en {{ vault_vcenter_hostname }}:{{ vault_vcenter_port }}"
+      when: vcenter_response.status is not defined or vcenter_response.status != 200
+
+    - name: "🔍 Verificar si la VM ya existe"
+      community.vmware.vmware_guest_info:
+        hostname: "{{ vault_vcenter_hostname }}"
+        username: "{{ vault_vcenter_username }}"
+        password: "{{ vault_vcenter_password }}"
+        port: "{{ vault_vcenter_port }}"
+        validate_certs: no
+        datacenter: "{{ vmware.datacenter }}"
+        name: "{{ vm_name }}"
+      register: vm_info
+      ignore_errors: true
+
+    - name: "⚠️  VM ya existe"
+      debug:
+        msg:
+          - "⚠️  La VM '{{ vm_name }}' ya existe"
+          - "Estado: {{ vm_info.instance.hw_power_status | default('unknown') }}"
+          - "Saltando creación..."
+      when: vm_info.instance is defined
+
+    - name: "🚀 Crear VM Ubuntu Desktop"
+      community.vmware.vmware_guest:
+        hostname: "{{ vault_vcenter_hostname }}"
+        username: "{{ vault_vcenter_username }}"
+        password: "{{ vault_vcenter_password }}"
+        port: "{{ vault_vcenter_port }}"
+        validate_certs: no
+        datacenter: "{{ vmware.datacenter }}"
+        folder: "{{ vmware.folder }}"
+        name: "{{ vm_name }}"
+        state: poweredon
+        guest_id: ubuntu64Guest
+        annotation: "VM Ubuntu Desktop con 3 usuarios: admin, auditor, gamer01"
+        hardware:
+          memory_mb: "{{ vm_memory }}"
+          num_cpus: "{{ vm_cpus }}"
+          scsi: paravirtual
+          boot_firmware: efi
+        networks:
+          - name: "{{ vmware.internal_network_name }}"
+            device_type: vmxnet3
+        disk:
+          - size_gb: "{{ vm_disk_size_gb }}"
+            type: thin
+            datastore: "{{ vmware.datastore }}"
+        cdrom:
+          - controller_number: 0
+            unit_number: 0
+            type: iso
+            iso_path: "[{{ vmware.datastore }}] ISOs/ubuntu-22.04-desktop-amd64.iso"
+            state: present
+        wait_for_ip_address: false
+      register: vm_creation
+      when: vm_info.instance is not defined
+
+    - name: "✅ VM creada exitosamente"
+      debug:
+        msg:
+          - "════════════════════════════════════════════════════════"
+          - "✅ VM '{{ vm_name }}' creada exitosamente"
+          - "════════════════════════════════════════════════════════"
+          - "Estado: {{ vm_creation.instance.hw_power_status | default('poweredOn') }}"
+          - "Red: {{ vmware.internal_network_name }}"
+          - ""
+          - "📝 SIGUIENTE PASO: Instalar Ubuntu Desktop"
+          - ""
+          - "1. Abre la consola de la VM en vSphere"
+          - "2. Instala Ubuntu Desktop"
+          - "3. Durante la instalación, crea el usuario INICIAL:"
+          - "   - Nombre: Administrador"
+          - "   - Usuario: admin"
+          - "   - Contraseña: {{ vault_ubuntu_desktop_admin_password }}"
+          - "   - Hostname: ubuntu-desktop-gamecenter"
+          - ""
+          - "4. Después de instalar, ejecuta:"
+          - "   ansible-playbook configure-ubuntu-desktop.yml"
+          - ""
+          - "   Esto creará los otros 2 usuarios:"
+          - "   - auditor (contraseña: {{ vault_ubuntu_desktop_auditor_password }})"
+          - "   - gamer01 (contraseña: {{ vault_ubuntu_desktop_cliente_password }})"
+          - ""
+          - "════════════════════════════════════════════════════════"
+      when: vm_creation.changed | default(false)
+  

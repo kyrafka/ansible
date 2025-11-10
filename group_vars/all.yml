@@ -1,6 +1,7 @@
 unix_groups: 
   - name: pcgamers
     state: present
+    gid: 3000  # IMPORTANTE: Mismo GID en servidor y VMs para NFS
   - name: servicios
     state: present
 

@@ -18,9 +18,9 @@ vault_monitoring_token: "monitoring_token_2024"
 vault_backup_encryption_key: "backup_key_2024"
 
 # Usuarios Ubuntu Desktop
-vault_ubuntu_desktop_admin_password: "admin123"
-vault_ubuntu_desktop_auditor_password: "audit123"
-vault_ubuntu_desktop_cliente_password: "gamer123"
+vault_ubuntu_desktop_admin_password: "123456"      # Admin: sudo completo, SSH
+vault_ubuntu_desktop_auditor_password: "123456"    # Auditor: solo lectura
+vault_ubuntu_desktop_cliente_password: "123456"    # Cliente/Gamer: sin privilegios
 
 # Usuarios Windows 11
 vault_windows11_admin_password: "Admin123!"

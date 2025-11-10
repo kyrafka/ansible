@@ -1,0 +1,408 @@
+---
+# Playbook para configurar la VM Ubuntu Desktop con 3 usuarios
+# Ejecutar desde el SERVIDOR hacia la VM
+# Uso: ansible-playbook configure-ubuntu-desktop.yml
+
+- name: Configurar VM Ubuntu Desktop con múltiples usuarios
+  hosts: ubuntu_desktop
+  become: true
+  gather_facts: true
+
+  vars:
+    # Definición de usuarios y sus roles
+    system_users:
+      - name: admin
+        comment: "Administrador del sistema"
+        password: "{{ vault_ubuntu_desktop_admin_password }}"
+        groups: [sudo, adm, pcgamers]
+        shell: /bin/bash
+        ssh_access: true
+        sudo_nopasswd: true
+        
+      - name: auditor
+        comment: "Auditor del sistema"
+        password: "{{ vault_ubuntu_desktop_auditor_password }}"
+        groups: [adm, pcgamers]
+        shell: /bin/bash
+        ssh_access: false
+        sudo_nopasswd: false
+        
+      - name: gamer01
+        comment: "Usuario gamer/cliente"
+        password: "{{ vault_ubuntu_desktop_cliente_password }}"
+        groups: [pcgamers]
+        shell: /bin/bash
+        ssh_access: false
+        sudo_nopasswd: false
+
+  tasks:
+    # ═══════════════════════════════════════════════════════════════
+    # INFORMACIÓN INICIAL
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "📋 Información de la VM"
+      debug:
+        msg:
+          - "════════════════════════════════════════════════════════"
+          - "🖥️  Configurando VM Ubuntu Desktop"
+          - "════════════════════════════════════════════════════════"
+          - "Hostname: {{ ansible_hostname }}"
+          - "IP: {{ ansible_default_ipv6.address | default('No IPv6') }}"
+          - "Usuario actual: {{ ansible_user }}"
+          - ""
+          - "Se crearán/configurarán 3 usuarios:"
+          - "  1. admin    - Administrador (sudo completo)"
+          - "  2. auditor  - Auditor (solo lectura)"
+          - "  3. gamer01  - Cliente/Gamer (sin privilegios)"
+          - "════════════════════════════════════════════════════════"
+
+    # ═══════════════════════════════════════════════════════════════
+    # ACTUALIZACIÓN DEL SISTEMA
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "🔄 Actualizar caché de APT"
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: "⬆️  Actualizar paquetes del sistema"
+      apt:
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
+
+    # ═══════════════════════════════════════════════════════════════
+    # INSTALACIÓN DE PAQUETES BASE
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "📦 Instalar paquetes base"
+      apt:
+        name:
+          - vim
+          - curl
+          - wget
+          - git
+          - net-tools
+          - htop
+          - tmux
+          - openssh-server
+          - nfs-common
+          - python3-pip
+          - whois  # Para mkpasswd
+        state: present
+
+    - name: "🎮 Instalar herramientas de gaming"
+      apt:
+        name:
+          - steam-installer
+          - wine
+          - winetricks
+          - gamemode
+        state: present
+
+    - name: "🛠️  Instalar herramientas de administración"
+      apt:
+        name:
+          - ansible
+          - sysstat
+          - iotop
+          - nethogs
+          - auditd
+          - aide
+        state: present
+
+    # ═══════════════════════════════════════════════════════════════
+    # CONFIGURACIÓN DE GRUPOS
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "👥 Crear grupo pcgamers (GID 3000 - mismo que el servidor)"
+      group:
+        name: pcgamers
+        state: present
+        gid: 3000  # IMPORTANTE: Mismo GID que el servidor para NFS
+
+    # ═══════════════════════════════════════════════════════════════
+    # CREACIÓN Y CONFIGURACIÓN DE USUARIOS
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "👤 Crear/actualizar usuarios del sistema"
+      user:
+        name: "{{ item.name }}"
+        comment: "{{ item.comment }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        groups: "{{ item.groups }}"
+        shell: "{{ item.shell }}"
+        create_home: yes
+        state: present
+      loop: "{{ system_users }}"
+      no_log: true  # No mostrar contraseñas en logs
+
+    - name: "🔐 Configurar sudo sin contraseña para admin"
+      lineinfile:
+        path: /etc/sudoers.d/admin
+        line: "admin ALL=(ALL) NOPASSWD:ALL"
+        create: yes
+        mode: '0440'
+        validate: 'visudo -cf %s'
+
+    - name: "📝 Crear directorio .ssh para usuarios"
+      file:
+        path: "/home/{{ item.name }}/.ssh"
+        state: directory
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
+        mode: '0700'
+      loop: "{{ system_users }}"
+
+    # ═══════════════════════════════════════════════════════════════
+    # CONFIGURACIÓN DE RED IPv6
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "🌐 Configurar netplan para IPv6 DHCP"
+      copy:
+        dest: /etc/netplan/01-netcfg.yaml
+        content: |
+          network:
+            version: 2
+            ethernets:
+              ens33:
+                dhcp4: false
+                dhcp6: true
+                accept-ra: true
+                nameservers:
+                  addresses:
+                    - 2025:db8:10::2
+                  search:
+                    - gamecenter.local
+        owner: root
+        group: root
+        mode: '0644'
+      notify: aplicar netplan
+
+    # ═══════════════════════════════════════════════════════════════
+    # CONFIGURACIÓN DE SSH
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "🔐 Configurar SSH"
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      loop:
+        - { regexp: '^PermitRootLogin', line: 'PermitRootLogin no' }
+        - { regexp: '^PasswordAuthentication', line: 'PasswordAuthentication yes' }
+        - { regexp: '^PubkeyAuthentication', line: 'PubkeyAuthentication yes' }
+      notify: reiniciar ssh
+
+    - name: "🔒 Configurar AllowUsers en SSH (solo admin)"
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^AllowUsers'
+        line: 'AllowUsers admin'
+        state: present
+      notify: reiniciar ssh
+
+    # ═══════════════════════════════════════════════════════════════
+    # CONFIGURACIÓN DE FIREWALL
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "🔥 Instalar UFW"
+      apt:
+        name: ufw
+        state: present
+
+    - name: "🔥 Configurar reglas de firewall"
+      community.general.ufw:
+        rule: "{{ item.rule }}"
+        port: "{{ item.port }}"
+        proto: "{{ item.proto }}"
+      loop:
+        - { rule: allow, port: '22', proto: tcp }    # SSH
+        - { rule: allow, port: '3389', proto: tcp }  # RDP
+        - { rule: allow, port: '5900', proto: tcp }  # VNC
+
+    - name: "🔥 Habilitar UFW"
+      community.general.ufw:
+        state: enabled
+        policy: deny
+
+    # ═══════════════════════════════════════════════════════════════
+    # MONTAJE DE NFS
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "📁 Crear puntos de montaje NFS"
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: pcgamers
+        mode: '0775'
+      loop:
+        - /mnt/games
+        - /mnt/shared
+
+    - name: "📁 Montar NFS - Juegos"
+      mount:
+        path: /mnt/games
+        src: "[2025:db8:10::2]:/srv/nfs/games"
+        fstype: nfs4
+        opts: defaults
+        state: mounted
+
+    - name: "📁 Montar NFS - Compartido"
+      mount:
+        path: /mnt/shared
+        src: "[2025:db8:10::2]:/srv/nfs/shared"
+        fstype: nfs4
+        opts: defaults
+        state: mounted
+
+    # ═══════════════════════════════════════════════════════════════
+    # CONFIGURACIÓN ESPECÍFICA POR USUARIO
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "🎮 Crear directorio de juegos para cada usuario"
+      file:
+        path: "/home/{{ item.name }}/Games"
+        state: directory
+        owner: "{{ item.name }}"
+        group: pcgamers
+        mode: '0755'
+      loop: "{{ system_users }}"
+
+    - name: "🔗 Crear enlace simbólico a juegos compartidos"
+      file:
+        src: /mnt/games
+        dest: "/home/{{ item.name }}/SharedGames"
+        state: link
+        owner: "{{ item.name }}"
+        group: pcgamers
+      loop: "{{ system_users }}"
+
+    - name: "📝 Crear archivo de bienvenida para cada usuario"
+      copy:
+        dest: "/home/{{ item.name }}/LEEME.txt"
+        content: |
+          ════════════════════════════════════════════════════════
+          Bienvenido a Ubuntu Desktop GameCenter
+          ════════════════════════════════════════════════════════
+          
+          Usuario: {{ item.name }}
+          Rol: {{ item.comment }}
+          
+          {% if item.name == 'admin' %}
+          PERMISOS:
+          ✅ Acceso SSH al servidor
+          ✅ Sudo completo (sin contraseña)
+          ✅ Acceso a logs del sistema
+          ✅ Puede instalar software
+          ✅ Puede modificar configuraciones
+          
+          COMANDOS ÚTILES:
+          - Ver logs: sudo journalctl -f
+          - Monitorear sistema: htop
+          - Ver red: ip -6 addr show
+          - SSH al servidor: ssh ubuntu@2025:db8:10::2
+          
+          {% elif item.name == 'auditor' %}
+          PERMISOS:
+          ✅ Acceso de lectura a logs
+          ✅ Puede ver configuraciones
+          ❌ NO puede modificar el sistema
+          ❌ NO tiene acceso SSH al servidor
+          ❌ NO puede usar sudo
+          
+          COMANDOS ÚTILES:
+          - Ver logs: journalctl -f (solo lectura)
+          - Monitorear sistema: htop
+          - Ver red: ip -6 addr show
+          
+          {% else %}
+          PERMISOS:
+          ✅ Puede jugar juegos
+          ✅ Acceso a juegos compartidos
+          ❌ NO puede modificar el sistema
+          ❌ NO tiene acceso SSH al servidor
+          ❌ NO puede usar sudo
+          
+          DIRECTORIOS:
+          - Juegos locales: ~/Games
+          - Juegos compartidos: ~/SharedGames (enlace a /mnt/games)
+          - Archivos compartidos: /mnt/shared
+          
+          {% endif %}
+          
+          RED:
+          - Servidor: 2025:db8:10::2
+          - DNS: server.gamecenter.local
+          - Dominio: gamecenter.local
+          
+          ════════════════════════════════════════════════════════
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
+        mode: '0644'
+      loop: "{{ system_users }}"
+
+    # ═══════════════════════════════════════════════════════════════
+    # RESUMEN FINAL
+    # ═══════════════════════════════════════════════════════════════
+    
+    - name: "✅ Configuración completada"
+      debug:
+        msg:
+          - ""
+          - "════════════════════════════════════════════════════════"
+          - "✅ VM Ubuntu Desktop configurada exitosamente"
+          - "════════════════════════════════════════════════════════"
+          - "Hostname: {{ ansible_hostname }}"
+          - "IP IPv6: {{ ansible_default_ipv6.address | default('Verificar con: ip -6 addr') }}"
+          - ""
+          - "USUARIOS CREADOS:"
+          - ""
+          - "1. admin"
+          - "   - Contraseña: {{ vault_ubuntu_desktop_admin_password }}"
+          - "   - Grupos: sudo, adm, pcgamers"
+          - "   - SSH: ✅ Habilitado"
+          - "   - Sudo: ✅ Sin contraseña"
+          - ""
+          - "2. auditor"
+          - "   - Contraseña: {{ vault_ubuntu_desktop_auditor_password }}"
+          - "   - Grupos: adm, pcgamers"
+          - "   - SSH: ❌ Deshabilitado"
+          - "   - Sudo: ❌ No"
+          - ""
+          - "3. gamer01"
+          - "   - Contraseña: {{ vault_ubuntu_desktop_cliente_password }}"
+          - "   - Grupos: pcgamers"
+          - "   - SSH: ❌ Deshabilitado"
+          - "   - Sudo: ❌ No"
+          - ""
+          - "SERVICIOS CONFIGURADOS:"
+          - "  ✅ Red IPv6 con DHCP"
+          - "  ✅ DNS: 2025:db8:10::2"
+          - "  ✅ NFS montado en /mnt/games y /mnt/shared"
+          - "  ✅ Firewall configurado"
+          - "  ✅ SSH habilitado (solo admin)"
+          - ""
+          - "VERIFICAR:"
+          - "  ping6 2025:db8:10::2        # Servidor"
+          - "  ping6 google.com            # Internet"
+          - "  ls /mnt/games               # NFS"
+          - "  ssh admin@localhost         # SSH local"
+          - ""
+          - "INICIAR SESIÓN:"
+          - "  - Cierra sesión actual"
+          - "  - Inicia con: admin, auditor o gamer01"
+          - "  - Lee el archivo ~/LEEME.txt en cada usuario"
+          - ""
+          - "════════════════════════════════════════════════════════"
+
+  handlers:
+    - name: aplicar netplan
+      command: netplan apply
+
+    - name: reiniciar ssh
+      systemd:
+        name: ssh
+        state: restarted
