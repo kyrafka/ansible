@@ -91,8 +91,6 @@ Requires=systemd-tmpfiles-setup.service
 [Service]
 RuntimeDirectory=dhcp-server6
 RuntimeDirectoryMode=0755
-User=dhcpd
-Group=dhcpd
 EOF
 
 systemctl daemon-reload
