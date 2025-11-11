@@ -27,28 +27,21 @@
     msg: "→ UFW, fail2ban e iptables-persistent instalados"
   tags: firewall
 
-- name: "� Buscagr ubicación de UFW"
-  command: which ufw
-  register: ufw_location
-  changed_when: false
-  failed_when: false
+- name: "🔍 Verificar instalación de UFW"
+  stat:
+    path: /usr/sbin/ufw
+  register: ufw_binary
+  tags: firewall
+
+- name: "❌ UFW no se instaló correctamente"
+  fail:
+    msg: "UFW no está disponible en /usr/sbin/ufw después de la instalación"
+  when: not ufw_binary.stat.exists
   tags: firewall
 
 - name: "📍 Configurar ruta de UFW"
   set_fact:
-    ufw_bin: "{{ ufw_location.stdout if ufw_location.rc == 0 else '/usr/sbin/ufw' }}"
-  tags: firewall
-
-- name: "✅ Verificar que UFW existe"
-  stat:
-    path: "{{ ufw_bin }}"
-  register: ufw_check
-  tags: firewall
-
-- name: "❌ UFW no encontrado"
-  fail:
-    msg: "UFW no está instalado en {{ ufw_bin }}. Salida de 'which': {{ ufw_location.stdout }}"
-  when: not ufw_check.stat.exists
+    ufw_bin: /usr/sbin/ufw
   tags: firewall
 
 - name: "📋 Verificar versión de UFW"
@@ -64,22 +57,36 @@
       - "→ {{ ufw_version.stdout_lines[0] }}"
   tags: firewall
 
-- name: "🔄 Deshabilitando UFW temporalmente"
+- name: "🔍 Verificar estado actual de UFW"
+  command: "{{ ufw_bin }} status"
+  register: ufw_status_check
+  changed_when: false
+  failed_when: false
+  tags: firewall
+
+- name: "🔄 Deshabilitando UFW"
   command: "{{ ufw_bin }} --force disable"
+  when: "'Status: active' in ufw_status_check.stdout"
+  register: ufw_disable_result
+  changed_when: ufw_disable_result.rc == 0
+  failed_when: false
   tags: firewall
 
 - name: "✓ UFW deshabilitado"
   debug:
     msg: "→ Preparando para configuración limpia"
+  when: ufw_disable_result is changed
   tags: firewall
 
 - name: "🔄 Reseteando configuración UFW"
   command: "{{ ufw_bin }} --force reset"
+  register: ufw_reset_result
+  changed_when: ufw_reset_result.rc == 0
   tags: firewall
 
 - name: "✓ UFW reseteado"
   debug:
-    msg: "→ Configuración anterior eliminada"
+    msg: "→ Configuración limpia aplicada"
   tags: firewall
 
 - name: "🛡️  Configurando política: denegar entrada"
@@ -117,6 +124,15 @@
 - name: "✓ DNS habilitado"
   debug:
     msg: "→ Puerto 53 TCP/UDP abierto"
+  tags: firewall
+
+- name: "🌐 Permitiendo HTTP (puerto 80)"
+  command: "{{ ufw_bin }} allow 80/tcp comment 'HTTP Web Server'"
+  tags: firewall
+
+- name: "✓ HTTP habilitado"
+  debug:
+    msg: "→ Puerto 80 TCP abierto para Nginx"
   tags: firewall
 
 - name: "📡 Permitiendo DHCPv6 Server (puerto 547)"

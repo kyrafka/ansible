@@ -103,7 +103,7 @@
           
           🌐 Servicios disponibles:
           - DNS (BIND9): puerto 53
-          - Web (Apache2): puerto 80
+          - Web (Nginx): puerto 80
           - DHCPv6: puerto 547
           - SSH: puerto 22
           

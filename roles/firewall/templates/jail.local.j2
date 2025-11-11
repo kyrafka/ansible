@@ -32,33 +32,38 @@ logpath = /var/log/auth.log
 maxretry = 3
 bantime = 3600
 
-[apache-auth]
+# Protección para Nginx
+[nginx-http-auth]
 enabled = true
 port = http,https
-filter = apache-auth
-logpath = /var/log/apache2/error.log
+filter = nginx-http-auth
+logpath = /var/log/nginx/error.log
 maxretry = 3
+bantime = 3600
 
-[apache-badbots]
+[nginx-badbots]
 enabled = true
 port = http,https
-filter = apache-badbots
-logpath = /var/log/apache2/access.log
+filter = nginx-badbots
+logpath = /var/log/nginx/access.log
 maxretry = 2
+bantime = 7200
 
-[apache-noscript]
+[nginx-noscript]
 enabled = true
 port = http,https
-filter = apache-noscript
-logpath = /var/log/apache2/access.log
+filter = nginx-noscript
+logpath = /var/log/nginx/access.log
 maxretry = 3
+bantime = 3600
 
-[apache-overflows]
+[nginx-limit-req]
 enabled = true
 port = http,https
-filter = apache-overflows
-logpath = /var/log/apache2/access.log
-maxretry = 2
+filter = nginx-limit-req
+logpath = /var/log/nginx/error.log
+maxretry = 5
+bantime = 1800
 
 [proyecto-so-custom]
 enabled = true

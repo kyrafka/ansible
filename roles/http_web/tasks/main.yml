@@ -1,0 +1,65 @@
+---
+# Instalación y configuración de Nginx
+
+- name: "📦 Instalar Nginx"
+  apt:
+    name: nginx
+    state: present
+    update_cache: yes
+  tags: web
+
+- name: "✓ Nginx instalado"
+  debug:
+    msg: "→ Servidor web Nginx listo"
+  tags: web
+
+- name: "🌐 Crear página de bienvenida personalizada"
+  template:
+    src: index.html.j2
+    dest: /var/www/html/index.html
+    owner: www-data
+    group: www-data
+    mode: '0644'
+  tags: web
+
+- name: "⚙️  Configurar sitio por defecto de Nginx"
+  template:
+    src: default.conf.j2
+    dest: /etc/nginx/sites-available/default
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart nginx
+  tags: web
+
+- name: "🔍 Verificar configuración de Nginx"
+  command: nginx -t
+  register: nginx_test
+  changed_when: false
+  tags: web
+
+- name: "✓ Configuración válida"
+  debug:
+    msg: "→ {{ nginx_test.stderr_lines | last }}"
+  tags: web
+
+- name: "🚀 Habilitar y arrancar Nginx"
+  systemd:
+    name: nginx
+    enabled: yes
+    state: started
+  tags: web
+
+- name: "📊 Verificar estado de Nginx"
+  systemd:
+    name: nginx
+  register: nginx_status
+  tags: web
+
+- name: "✓ Nginx funcionando"
+  debug:
+    msg:
+      - "→ Estado: {{ nginx_status.status.ActiveState }}"
+      - "→ Puerto: 80 (HTTP)"
+      - "→ Acceso: http://[IP-de-la-VM]"
+  tags: web
