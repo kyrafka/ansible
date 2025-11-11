@@ -1,0 +1,71 @@
+---
+# Validaciones FINALES - Verificar que todo se instaló correctamente
+
+- name: "🔍 Verificar que el usuario dhcpd existe"
+  command: id dhcpd
+  register: dhcpd_user_check
+  changed_when: false
+  failed_when: dhcpd_user_check.rc != 0
+
+- name: "✓ Usuario dhcpd"
+  debug:
+    msg: "✅ Usuario dhcpd encontrado: {{ dhcpd_user_check.stdout }}"
+
+- name: "🔍 Verificar archivo de configuración DHCPv6"
+  stat:
+    path: /etc/dhcp/dhcpd6.conf
+  register: dhcpd6_conf
+
+- name: "❌ Archivo de configuración no existe"
+  fail:
+    msg: "El archivo /etc/dhcp/dhcpd6.conf no existe después de la instalación"
+  when: not dhcpd6_conf.stat.exists
+
+- name: "✓ Archivo de configuración existe"
+  debug:
+    msg: "✅ /etc/dhcp/dhcpd6.conf existe"
+
+- name: "🔍 Validar sintaxis de dhcpd6.conf"
+  command: dhcpd -6 -t -cf /etc/dhcp/dhcpd6.conf
+  register: dhcpd_syntax
+  changed_when: false
+  failed_when: false
+
+- name: "✓ Sintaxis de dhcpd6.conf"
+  debug:
+    msg: "{{ 'Correcta' if dhcpd_syntax.rc == 0 else 'ERROR: ' ~ dhcpd_syntax.stderr }}"
+
+- name: "❌ Error de sintaxis en dhcpd6.conf"
+  fail:
+    msg: "{{ dhcpd_syntax.stderr }}"
+  when: dhcpd_syntax.rc != 0
+
+- name: "🔍 Verificar interfaz ens34"
+  command: ip -6 addr show ens34
+  register: ens34_check
+  changed_when: false
+  failed_when: false
+
+- name: "✓ Interfaz ens34"
+  debug:
+    var: ens34_check.stdout_lines
+
+- name: "❌ Interfaz ens34 no tiene IPv6"
+  fail:
+    msg: "La interfaz ens34 no tiene dirección IPv6 configurada"
+  when: "'2025:db8:10::' not in ens34_check.stdout"
+
+- name: "🔍 Verificar servicio DHCPv6"
+  systemd:
+    name: isc-dhcp-server6
+  register: dhcp_service
+  become: true
+
+- name: "✓ Servicio DHCPv6"
+  debug:
+    msg: "✅ Estado: {{ dhcp_service.status.ActiveState }}"
+
+- name: "❌ Servicio DHCPv6 no está activo"
+  fail:
+    msg: "El servicio isc-dhcp-server6 no está activo"
+  when: dhcp_service.status.ActiveState != "active"

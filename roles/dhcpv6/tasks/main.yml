@@ -1,10 +1,9 @@
 ---
 # Rol DHCPv6 - Configuración modular
 
-- name: "🔍 FASE 1: Validaciones previas"
-  include_tasks: validate.yml
-  tags: [dhcp, dhcp-validate]
-  ignore_errors: yes  # No fallar en validaciones previas
+- name: "🔍 FASE 1: Validaciones de requisitos previos"
+  include_tasks: validate-prereqs.yml
+  tags: [dhcp, dhcp-prereqs]
 
 - name: "📦 FASE 2: Instalación y configuración"
   include_tasks: install.yml
@@ -18,6 +17,6 @@
   include_tasks: systemd.yml
   tags: [dhcp, dhcp-systemd]
 
-- name: "✅ FASE 5: Validación final"
-  include_tasks: validate.yml
-  tags: [dhcp, dhcp-validate-final]
+- name: "✅ FASE 5: Validación final completa"
+  include_tasks: validate-final.yml
+  tags: [dhcp, dhcp-validate]

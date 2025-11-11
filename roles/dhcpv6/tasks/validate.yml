@@ -65,12 +65,15 @@
 
 - name: "✓ Sintaxis de dhcpd6.conf"
   debug:
-    msg: "{{ 'Correcta' if dhcpd_syntax.rc == 0 else 'ERROR: ' + dhcpd_syntax.stderr }}"
+    msg: "{{ 'Correcta' if dhcpd_syntax.rc == 0 else 'ERROR: ' ~ dhcpd_syntax.stderr }}"
+  when: dhcpd6_conf.stat.exists
 
 - name: "❌ Error de sintaxis en dhcpd6.conf"
   fail:
     msg: "{{ dhcpd_syntax.stderr }}"
-  when: dhcpd_syntax.rc != 0
+  when: 
+    - dhcpd6_conf.stat.exists
+    - dhcpd_syntax.rc != 0
 
 - name: "🔍 Verificar interfaz ens34"
   command: ip -6 addr show ens34

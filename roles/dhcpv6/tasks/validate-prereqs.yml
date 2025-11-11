@@ -1,0 +1,28 @@
+---
+# Validaciones PREVIAS - Solo requisitos del sistema
+
+- name: "🔍 Verificar que estamos en Ubuntu/Debian"
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == "Debian"
+    fail_msg: "Este rol solo funciona en sistemas Debian/Ubuntu"
+    success_msg: "✓ Sistema operativo compatible: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+- name: "🔍 Verificar permisos de sudo"
+  ansible.builtin.command: sudo -n true
+  changed_when: false
+  failed_when: false
+  register: sudo_check
+
+- name: "✓ Permisos de sudo"
+  ansible.builtin.debug:
+    msg: "{{ '✅ Usuario tiene permisos de sudo' if sudo_check.rc == 0 else '⚠️ Puede requerir contraseña de sudo' }}"
+
+- name: "🔍 Verificar conectividad de red"
+  ansible.builtin.command: ip link show
+  changed_when: false
+  register: network_check
+
+- name: "✓ Interfaces de red disponibles"
+  ansible.builtin.debug:
+    msg: "✅ Interfaces de red detectadas"
