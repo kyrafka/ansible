@@ -36,9 +36,9 @@ echo -e "${YELLOW}Configuración de la VM:${NC}"
 echo "  Nombre: ubuntu-server"
 echo "  CPU: 2 cores"
 echo "  RAM: 4096 MB"
-echo "  Disco: 80 GB"
+echo "  Disco: 30 GB"
 echo "  Red: M_vm's (IPv6)"
-echo "  ISO: Ubuntu Server 24.04"
+echo "  ISO: ubuntu-24.04.3-live-server-amd64.iso"
 echo ""
 
 read -p "¿Crear la VM del servidor? [s/N]: " confirm

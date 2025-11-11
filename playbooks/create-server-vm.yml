@@ -8,14 +8,15 @@
   vars_files:
     - ../group_vars/all.yml
     - ../group_vars/all.vault.yml
+    - ../group_vars/ubpc.yml
   
   vars:
     vm_name: "ubuntu-server"
     vm_cpu: 2
     vm_ram: 4096
-    vm_disk: 80
-    iso_path: "[datastore1] ubuntu-24.04-live-server-amd64.iso"
-    network_name: "M_vm's"
+    vm_disk: 30
+    iso_path: "{{ vmware.iso_path }}"  # Usa la ISO definida en group_vars/ubpc.yml
+    network_name: "{{ vmware.internal_network_name }}"  # M_vm's
   
   tasks:
     - name: Crear VM del servidor
