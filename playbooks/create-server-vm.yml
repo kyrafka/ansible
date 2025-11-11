@@ -1,0 +1,74 @@
+---
+# Playbook simple para crear solo la VM del servidor (sin configuración)
+- name: Crear VM del servidor Ubuntu
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/all.vault.yml
+  
+  vars:
+    vm_name: "ubuntu-server"
+    vm_cpu: 2
+    vm_ram: 4096
+    vm_disk: 80
+    iso_path: "[datastore1] ubuntu-24.04-live-server-amd64.iso"
+    network_name: "M_vm's"
+  
+  tasks:
+    - name: Crear VM del servidor
+      community.vmware.vmware_guest:
+        hostname: "{{ vault_vcenter_hostname }}"
+        username: "{{ vault_vcenter_username }}"
+        password: "{{ vault_vcenter_password }}"
+        port: "{{ vault_vcenter_port }}"
+        validate_certs: false
+        datacenter: "ha-datacenter"
+        folder: "/ha-datacenter/vm"
+        name: "{{ vm_name }}"
+        state: poweredon
+        guest_id: ubuntu64Guest
+        
+        hardware:
+          memory_mb: "{{ vm_ram }}"
+          num_cpus: "{{ vm_cpu }}"
+          scsi: paravirtual
+          boot_firmware: efi
+        
+        disk:
+          - size_gb: "{{ vm_disk }}"
+            type: thin
+            datastore: "datastore1"
+        
+        networks:
+          - name: "VM Network"
+            device_type: vmxnet3
+          - name: "{{ network_name }}"
+            device_type: vmxnet3
+        
+        cdrom:
+          - controller_number: 0
+            unit_number: 0
+            type: iso
+            iso_path: "{{ iso_path }}"
+            state: present
+      
+      register: vm_created
+    
+    - name: Mostrar información de la VM
+      ansible.builtin.debug:
+        msg:
+          - "✅ VM creada: {{ vm_name }}"
+          - "CPU: {{ vm_cpu }} cores"
+          - "RAM: {{ vm_ram }} MB"
+          - "Disco: {{ vm_disk }} GB"
+          - "Adaptador 1: VM Network (ens33 - Internet)"
+          - "Adaptador 2: {{ network_name }} (ens34 - Clientes)"
+          - ""
+          - "Siguiente paso:"
+          - "1. Instalar Ubuntu Server desde la ISO"
+          - "2. Configurar ens33 con DHCP (internet)"
+          - "3. Configurar ens34 con IP fija: 2025:db8:10::2/64"
+          - "4. Ejecutar: bash scripts/server/setup-server.sh"

@@ -52,7 +52,7 @@ echo -e "${BLUE}Creando VM del servidor...${NC}"
 echo ""
 
 # Ejecutar playbook solo para crear la VM (sin configuración)
-ansible-playbook playbooks/create_ubpc.yml --tags create_vm
+ansible-playbook playbooks/create-server-vm.yml
 
 if [ $? -eq 0 ]; then
     echo ""
