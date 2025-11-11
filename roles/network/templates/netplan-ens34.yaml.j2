@@ -4,5 +4,7 @@ network:
     {{ lan_interface }}:
       dhcp4: false
       dhcp6: false
+      accept-ra: false  # No aceptar Router Advertisements
+      ipv6-privacy: false  # Desactivar IPs temporales
       addresses:
         - 2025:db8:10::2/64
