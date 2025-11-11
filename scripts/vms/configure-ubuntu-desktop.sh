@@ -184,14 +184,53 @@ echo ""
 if ! ping6 -c 2 -W 3 "$vm_ip" &> /dev/null; then
     echo "❌ Error: No se puede hacer ping a $vm_ip"
     echo ""
-    echo "Verifica:"
-    echo "  - La VM está encendida"
-    echo "  - La VM tiene red IPv6 configurada"
-    echo "  - La IP en inventory/hosts.ini es correcta"
+    echo "⚠️  La VM parece estar apagada o sin red"
     echo ""
-    exit 1
+    read -p "¿Intentar encender la VM desde ESXi? (s/n): " -n 1 -r
+    echo ""
+    
+    if [[ $REPLY =~ ^[Ss]$ ]]; then
+        echo "🔌 Intentando encender VM..."
+        
+        # Obtener credenciales de ESXi
+        ESXI_HOST=$(grep "vcenter_hostname:" group_vars/ubpc.yml 2>/dev/null | awk '{print $2}' | tr -d '"' || echo "172.17.25.11")
+        ESXI_USER="root"
+        ESXI_PASS=$(grep "vault_vcenter_password:" group_vars/all.vault.yml 2>/dev/null | awk '{print $2}' | tr -d '"' || echo "qwe123")
+        
+        # Intentar encender con ansible
+        if ansible localhost -m community.vmware.vmware_guest_powerstate \
+           -a "hostname=$ESXI_HOST username=$ESXI_USER password=$ESXI_PASS validate_certs=no name=$vm_name state=powered-on" \
+           2>&1 | grep -q "success"; then
+            echo "✅ VM encendida"
+            echo "⏳ Esperando 45 segundos para que arranque y configure red..."
+            sleep 45
+            
+            # Verificar ping de nuevo
+            if ping6 -c 2 -W 3 "$vm_ip" &> /dev/null; then
+                echo "✅ Ping exitoso después de encender"
+            else
+                echo "⚠️  Aún no responde ping, pero continuaremos..."
+                echo "   (Puede tardar más en arrancar)"
+            fi
+        else
+            echo "❌ No se pudo encender la VM automáticamente"
+            echo ""
+            echo "Enciéndela manualmente desde ESXi y vuelve a ejecutar el script"
+            exit 1
+        fi
+    else
+        echo "❌ No se puede configurar una VM apagada"
+        echo ""
+        echo "Verifica:"
+        echo "  - La VM está encendida"
+        echo "  - La VM tiene red IPv6 configurada"
+        echo "  - La IP en inventory/hosts.ini es correcta"
+        echo ""
+        exit 1
+    fi
+else
+    echo "✅ Ping exitoso"
 fi
-echo "✅ Ping exitoso"
 
 # Verificar SSH
 echo "🔍 Verificando acceso SSH..."
