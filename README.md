@@ -365,7 +365,7 @@ ansible-gestion-despliegue/
 
 ### Configuración de Red del Servidor
 
-#### Netplan (/etc/netplan/50-cloud-init.yaml)
+#### Netplan - Servidor Gaming 1 (/etc/netplan/50-cloud-init.yaml)
 
 ```yaml
 network:
@@ -373,42 +373,85 @@ network:
   renderer: networkd
   ethernets:
     ens33:
-      # Interfaz externa (NAT/Internet)
+      # Internet - Viene del switch físico externo
       dhcp4: true
       dhcp6: false
       
     ens34:
-      # Interfaz interna (Red del laboratorio)
+      # VMs Internas - Red de las VMs clientes
       dhcp4: false
       dhcp6: false
       addresses:
         - 2025:db8:10::2/64
-      routes:
-        - to: ::/0
-          via: 2025:db8:10::1
       nameservers:
         addresses:
           - 2001:4860:4860::8888
           - 2001:4860:4860::8844
         search:
           - gamecenter.local
+    
+    ens35:
+      # Switch Virtual - Conexión al switch virtual (GNS3)
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - 2025:db8:10::TL1/64
+      routes:
+        - to: ::/0
+          via: 2025:db8:10::1
+```
+
+#### Netplan - Servidor Gaming 2 (/etc/netplan/50-cloud-init.yaml)
+
+```yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ens33:
+      # Internet - Viene del switch físico externo
+      dhcp4: true
+      dhcp6: false
+      
+    ens34:
+      # VMs Internas - Red de las VMs clientes
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - 2025:db8:20::2/64
+      nameservers:
+        addresses:
+          - 2001:4860:4860::8888
+          - 2001:4860:4860::8844
+        search:
+          - gamecenter.local
+    
+    ens35:
+      # Switch Virtual - Conexión al switch virtual (GNS3)
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - 2025:db8:20::TL2/64
+      routes:
+        - to: ::/0
+          via: 2025:db8:20::1
 ```
 
 #### Interfaces de Red - Servidor Gaming 1 (Ubuntu)
 
 | Interfaz | Tipo | Dirección | Uso |
 |----------|------|-----------|-----|
-| **ens33** | WAN | IPv4 (DHCP) | Internet/NAT - Acceso externo |
-| **ens34** | LAN Interna | 2025:db8:10::2/64 | Red de VMs (clientes gaming) |
-| **ens35** | LAN Física | 2025:db8:10::TL1 | Conexión al switch físico |
+| **ens33** | Internet | IPv4 (DHCP) | Conexión a Internet desde switch físico externo |
+| **ens34** | VMs Internas | 2025:db8:10::2/64 | Red de las VMs clientes (DNS, DHCP, Web) |
+| **ens35** | Switch Virtual | 2025:db8:10::TL1/64 | Conexión al switch virtual (GNS3) |
 
 #### Interfaces de Red - Servidor Gaming 2 (Debian)
 
 | Interfaz | Tipo | Dirección | Uso |
 |----------|------|-----------|-----|
-| **ens33** | WAN | IPv4 (DHCP) | Internet/NAT - Acceso externo |
-| **ens34** | LAN Interna | 2025:db8:20::2/64 | Red de VMs (clientes gaming) |
-| **ens35** | LAN Física | 2025:db8:20::TL2 | Conexión al switch físico |
+| **ens33** | Internet | IPv4 (DHCP) | Conexión a Internet desde switch físico externo |
+| **ens34** | VMs Internas | 2025:db8:20::2/64 | Red de las VMs clientes |
+| **ens35** | Switch Virtual | 2025:db8:20::TL2/64 | Conexión al switch virtual (GNS3) |
 
 **Comandos de verificación:**
 ```bash
