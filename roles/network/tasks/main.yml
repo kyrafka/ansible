@@ -81,6 +81,22 @@
       - "→ Accept RA habilitado: Recibirá información de routing de otros routers"
       - "→ Usará IP fija: 2025:db8:10::2"
 
+- name: "🔄 Reiniciar interfaz {{ lan_interface }} para aplicar cambios"
+  ansible.builtin.shell: |
+    ip link set {{ lan_interface }} down
+    sleep 2
+    ip link set {{ lan_interface }} up
+  become: true
+  changed_when: true
+
+- name: "⏳ Esperar a que la interfaz esté lista"
+  ansible.builtin.pause:
+    seconds: 5
+
+- name: "✓ Interfaz {{ lan_interface }} reiniciada"
+  ansible.builtin.debug:
+    msg: "→ IPs SLAAC antiguas eliminadas, solo quedará la IP fija"
+
 - name: "📁 Creando directorio para reglas de iptables"
   ansible.builtin.file:
     path: /etc/iptables
