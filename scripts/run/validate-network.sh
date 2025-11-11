@@ -1,4 +1,4 @@
-il#!/bin/bash
+#!/bin/bash
 # Script para validar la configuración de red IPv6
 # Ejecutar: bash scripts/run/validate-network.sh
 
@@ -105,4 +105,4 @@ else
     echo "   bash scripts/run/run-network.sh"
     echo ""
     exit 1
-fi
+f
