@@ -113,16 +113,14 @@
       - "→ IPv6: /etc/iptables/rules.v6"
       - "→ Backups creados"
 
-- name: "🔗 Crear enlaces simbólicos para netfilter-persistent"
-  ansible.builtin.file:
-    src: "/etc/iptables/rules.{{ item }}"
-    dest: "/etc/iptables/rules.{{ item }}"
-    state: file
+- name: "🔗 Verificar que los archivos de reglas existan"
+  ansible.builtin.stat:
+    path: "/etc/iptables/rules.{{ item }}"
   become: true
   loop:
     - v4
     - v6
-  ignore_errors: yes
+  register: rules_files
 
 - name: "🔄 Habilitar netfilter-persistent"
   ansible.builtin.systemd:
