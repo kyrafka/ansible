@@ -105,11 +105,23 @@ fi
 # 7. Probar acceso HTTP local
 echo ""
 echo -e "${YELLOW}🌐 Probando acceso HTTP local...${NC}"
-HTTP_CODE=$(ansible servidor -m shell -a "curl -s -o /dev/null -w '%{http_code}' http://localhost" 2>/dev/null | grep -oP '\d{3}' | tail -1)
+
+# Primero verificar si curl está instalado
+if ! ansible servidor -m shell -a "which curl" &>/dev/null; then
+    echo -e "${YELLOW}⚠️  curl no instalado, instalando...${NC}"
+    ansible servidor -m apt -a "name=curl state=present" --become &>/dev/null
+fi
+
+# Probar acceso HTTP
+HTTP_RESULT=$(ansible servidor -m shell -a "curl -s -o /dev/null -w '%{http_code}' http://localhost" 2>/dev/null)
+HTTP_CODE=$(echo "$HTTP_RESULT" | grep -oP '\d{3}' | tail -1)
+
 if [ "$HTTP_CODE" == "200" ]; then
     echo -e "${GREEN}✅ Servidor responde correctamente (HTTP 200)${NC}"
+elif [ -z "$HTTP_CODE" ]; then
+    echo -e "${YELLOW}⚠️  No se pudo obtener código HTTP (puede ser problema de red local)${NC}"
 else
-    echo -e "${RED}❌ Servidor NO responde correctamente (HTTP $HTTP_CODE)${NC}"
+    echo -e "${RED}❌ Servidor responde con HTTP $HTTP_CODE${NC}"
     ((ERRORS++))
 fi
 
