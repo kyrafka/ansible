@@ -5,11 +5,11 @@
   command: id dhcpd
   register: dhcpd_user_check
   changed_when: false
-  failed_when: dhcpd_user_check.rc != 0
+  failed_when: false  # No fallar si no existe, solo advertir
 
-- name: "✓ Usuario dhcpd encontrado"
+- name: "✓ Usuario dhcpd"
   debug:
-    msg: "{{ dhcpd_user_check.stdout }}"
+    msg: "{{ '✅ Usuario dhcpd encontrado: ' + dhcpd_user_check.stdout if dhcpd_user_check.rc == 0 else '⚠️ Usuario dhcpd no existe (se creará durante la instalación)' }}"
 
 - name: "🔍 Verificar permisos de /run"
   stat:
