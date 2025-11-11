@@ -61,21 +61,21 @@ fi
 # 4. Verificar archivos de configuración
 echo ""
 echo -e "${YELLOW}📁 Verificando archivos de configuración...${NC}"
-if ansible servidor -m stat -a "path=/etc/nginx/nginx.conf" 2>/dev/null | grep -q "exists.*true"; then
+if ansible servidor -m shell -a "test -f /etc/nginx/nginx.conf" &>/dev/null; then
     echo -e "${GREEN}✅ Archivo nginx.conf existe${NC}"
 else
     echo -e "${RED}❌ Archivo nginx.conf NO existe${NC}"
     ((ERRORS++))
 fi
 
-if ansible servidor -m stat -a "path=/etc/nginx/sites-available/default" 2>/dev/null | grep -q "exists.*true"; then
+if ansible servidor -m shell -a "test -f /etc/nginx/sites-available/default" &>/dev/null; then
     echo -e "${GREEN}✅ Configuración del sitio existe${NC}"
 else
     echo -e "${RED}❌ Configuración del sitio NO existe${NC}"
     ((ERRORS++))
 fi
 
-if ansible servidor -m stat -a "path=/var/www/html/index.html" 2>/dev/null | grep -q "exists.*true"; then
+if ansible servidor -m shell -a "test -f /var/www/html/index.html" &>/dev/null; then
     echo -e "${GREEN}✅ Página index.html existe${NC}"
 else
     echo -e "${RED}❌ Página index.html NO existe${NC}"
@@ -116,7 +116,7 @@ fi
 # 8. Verificar logs
 echo ""
 echo -e "${YELLOW}📋 Verificando logs...${NC}"
-if ansible servidor -m stat -a "path=/var/log/nginx/access.log" 2>/dev/null | grep -q "exists.*true"; then
+if ansible servidor -m shell -a "test -f /var/log/nginx/access.log" &>/dev/null; then
     echo -e "${GREEN}✅ Log de accesos existe${NC}"
     ACCESS_LINES=$(ansible servidor -m shell -a "wc -l < /var/log/nginx/access.log" 2>/dev/null | grep -oP '\d+' | tail -1)
     echo "   → Líneas en access.log: $ACCESS_LINES"
@@ -125,7 +125,7 @@ else
     ((ERRORS++))
 fi
 
-if ansible servidor -m stat -a "path=/var/log/nginx/error.log" 2>/dev/null | grep -q "exists.*true"; then
+if ansible servidor -m shell -a "test -f /var/log/nginx/error.log" &>/dev/null; then
     echo -e "${GREEN}✅ Log de errores existe${NC}"
     ERROR_LINES=$(ansible servidor -m shell -a "wc -l < /var/log/nginx/error.log" 2>/dev/null | grep -oP '\d+' | tail -1)
     echo "   → Líneas en error.log: $ERROR_LINES"
