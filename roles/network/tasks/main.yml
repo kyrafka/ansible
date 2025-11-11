@@ -12,7 +12,25 @@
       - "→ Interfaz WAN: {{ wan_interface }} (internet)"
       - "→ Interfaz LAN: {{ lan_interface }} (red interna IPv6)"
 
-- name: "📝 Creando configuración netplan para {{ lan_interface }}"
+- name: "🧹 Limpiar configuraciones antiguas de netplan para {{ lan_interface }}"
+  ansible.builtin.file:
+    path: "/etc/netplan/{{ item }}"
+    state: absent
+  loop:
+    - "99-ens34-ipv6.yaml"
+    - "50-cloud-init.yaml"
+    - "01-netcfg.yaml"
+  become: true
+  ignore_errors: yes
+
+- name: "🧹 Flush IPs existentes en {{ lan_interface }}"
+  ansible.builtin.shell: |
+    ip -6 addr flush dev {{ lan_interface }} scope global
+  become: true
+  changed_when: true
+  ignore_errors: yes
+
+- name: "📝 Creando configuración netplan limpia para {{ lan_interface }}"
   ansible.builtin.template:
     src: netplan-ens34.yaml.j2
     dest: /etc/netplan/99-ens34-ipv6.yaml
