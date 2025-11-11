@@ -50,52 +50,14 @@ Este proyecto implementa una infraestructura completa de red IPv6 para un labora
 
 ## 🌐 Topología de Red
 
-1. **PC1_GAME1** - VM con GNS3 que ejecuta el Servidor Gaming 1 (Ubuntu)
-2. **PC2_GAME2** - VM con GNS3 que ejecuta el Servidor Gaming 2 (Debian)
-3. **PC1_LAB_ACAD_VIRTUAL1** - VM con VMware ESXi para el laboratorio académico
+### Resumen de Redes
 
-### Servidor Gaming 1 - Ubuntu Server
-
-#### Nivel 1: VM en VirtualBox
-```
-┌──────────────────────────────────────────────────────────┐
-│  PC1_LAB_GAME1 (VM en VirtualBox)                       │
-│  • Sistema: GNS3 sobre Windows/Linux                    │
-│  • Hipervisor: VirtualBox                               │
-│  • IP de la VM: 2025:db8:10::TL1                        │
+| Laboratorio | Red | Gateway | Servidor | DHCP Range |
+|-------------|-----|---------|----------|------------|
+| **Game Center** | 2025:db8:10::/64 | ::1 | ::2 (Ubuntu Server) | ::10 - ::FFFF |
+| **Académico** | 2025:db8:20::/64 | ::1 | ::2 (Debian) | ::10 - ::FFFF |
 
 
-#### Detalles de las VMs del Servidor 1
-
-| VM | Sistema Operativo | IP (DHCP) | Rol | Recursos |
-|----|-------------------|-----------|-----|----------|
-| **PC1_LAB_GAME_VIRTUAL1** | macOS | 2025:db8:10::10+ | Estación de diseño | 4GB RAM, 2 CPU |
-| **PC2_LAB_GAME_VIRTUAL2** | Ubuntu Desktop | 2025:db8:10::11+ | Estación de desarrollo | 4GB RAM, 2 CPU |
-| **PC3_LAB_GAME_VIRTUAL3** | Windows 11 | 2025:db8:10::12+ | Estación gaming | 4GB RAM, 2 CPU |
-
-### Servidor Gaming 2 - Debian Server
-
-**Nivel 1:** VM en VirtualBox (PC2_LAB_GAME2) ejecutando GNS3  
-**Nivel 2:** Dentro de GNS3 se crean 4 VMs conectadas por switch virtual
-
-**Servidor Principal:**
-- Sistema: Debian Server
-- Red: 2025:db8:20::/64
-- IP: 2025:db8:20::2
-- Servicios: Servidor Secundario/Backup, SSH
-
-#### Detalles de las VMs del Servidor 2
-
-| VM | Sistema Operativo | IP (DHCP) | Rol | Recursos |
-|----|-------------------|-----------|-----|----------|
-| **PC1_LAB_GAME2_VIRTUAL1** | macOS | 2025:db8:20::10+ | Estación de diseño | 4GB RAM, 2 CPU |
-| **PC2_LAB_GAME2_VIRTUAL2** | Ubuntu Desktop | 2025:db8:20::11+ | Estación de desarrollo | 4GB RAM, 2 CPU |
-| **PC3_LAB_GAME2_VIRTUAL3** | Windows 11 | 2025:db8:20::12+ | Estación gaming | 4GB RAM, 2 CPU |
-
-### Laboratorio Académico (ESXi Host)
-
-**Nivel 1:** VM en VirtualBox (PC1_LAB_ACAD_VIRTUAL1) ejecutando VMware ESXi 7.0+  
-**Nivel 2:** Dentro de ESXi se crean 9 VMs gestionadas por Ansible
 
 **Configuración ESXi:**
 - IP: 172.17.25.11
@@ -103,55 +65,40 @@ Este proyecto implementa una infraestructura completa de red IPv6 para un labora
 - Datastore: datastore1
 - Redes: VM Network, M_vm's
 
-#### VMs en ESXi (Gestionadas por Ansible)
+### Inventario de VMs
 
-| VM | Sistema Operativo | IP | Gestión | Recursos | Script de Creación |
-|----|-------------------|-----|---------|----------|-------------------|
-| **ubuntu-server** | Ubuntu Server 24.04 | 172.17.25.45 | Ansible | 2GB RAM, 1 CPU | Manual |
-| **ubuntu-desktop-gamecenter** | Ubuntu Desktop | 2025:db8:10:0:20c:29ff:fe35:9751 | Ansible | 4GB RAM, 2 CPU | Manual |
-| **UBPC** | Ubuntu Server | DHCP | Ansible | 2GB RAM, 1 CPU | `create_ubpc.yml` |
-| **Ubuntu-Desktop-Admin** | Ubuntu Desktop | DHCP | Ansible | 4GB RAM, 2 CPU | `create-ubuntu-desktop.yml` |
-| **Ubuntu-Desktop-Auditor** | Ubuntu Desktop | DHCP | Ansible | 4GB RAM, 2 CPU | `create-ubuntu-desktop.yml` |
-| **Ubuntu-Desktop-Cliente** | Ubuntu Desktop | DHCP | Ansible | 4GB RAM, 2 CPU | `create-ubuntu-desktop.yml` |
-| **Windows11-Admin** | Windows 11 Pro | DHCP | Ansible | 4GB RAM, 2 CPU | `create-windows11.yml` |
-| **Windows11-Auditor** | Windows 11 Pro | DHCP | Ansible | 4GB RAM, 2 CPU | `create-windows11.yml` |
-| **Windows11-Cliente** | Windows 11 Pro | DHCP | Ansible | 4GB RAM, 2 CPU | `create-windows11.yml` |
+#### VMs en VirtualBox - Lab Game Center
 
-**Total VMs en ESXi:** 9 VMs
+| VM | Sistema | RAM | CPU | Disco | IP | Propósito |
+|----|---------|-----|-----|-------|-----|-----------|
+| **PC1_LAB_GAME_VIRTUAL1** | Ubuntu + GNS3 | 4GB | 2 | 40GB | DHCP (10::10+) | Cliente gaming |
+| **PC2_LAB_GAME_VIRTUAL2** | Windows + GNS3 | 4GB | 2 | 40GB | DHCP (10::11+) | Cliente gaming |
+| **PC3_LAB_GAME_VIRTUAL3** | macOS + GNS3 | 4GB | 2 | 40GB | DHCP (10::12+) | Cliente gaming |
 
-### Inventario Completo de VMs
+#### VMs en VirtualBox - Lab Académico
 
-#### VMs en VirtualBox (Nivel 1 - Hipervisor Base)
+| VM | Sistema | RAM | CPU | Disco | IP | Propósito |
+|----|---------|-----|-----|-------|-----|-----------|
+| **PC1_LAB_ACAD_VIRTUAL1** | Ubuntu + GNS3 | 4GB | 2 | 40GB | DHCP (20::10+) | Cliente académico |
+| **PC2_LAB_ACAD_VIRTUAL2** | Windows + GNS3 | 4GB | 2 | 40GB | DHCP (20::11+) | Cliente académico |
+| **PC3_LAB_ACAD_VIRTUAL3** | macOS + GNS3 | 4GB | 2 | 40GB | DHCP (20::12+) | Cliente académico |
 
-| VM en VirtualBox | Sistema | Propósito | Recursos Asignados | VMs Internas |
-|------------------|---------|-----------|-------------------|--------------|
-| **PC1_LAB_GAME1** | Windows/Linux + GNS3 | Servidor Gaming 1 | 8GB RAM, 4 CPU | 4 VMs (Ubuntu Server + 3 clientes) |
-| **PC2_LAB_GAME2** | Windows/Linux + GNS3 | Servidor Gaming 2 | 8GB RAM, 4 CPU | 4 VMs (Debian Server + 3 clientes) |
-| **PC1_LAB_ACAD_VIRTUAL1** | VMware ESXi 7.0+ | Lab Académico | 16GB RAM, 8 CPU | 9 VMs (gestionadas por Ansible) |
 
-**Total VMs en VirtualBox:** 3 VMs principales
+#### VMs en ESXi - Lab Game Center (Red: 2025:db8:10::/64, Gateway: ::1)
 
-#### VMs dentro de GNS3 (Nivel 2 - Servidor Gaming 1)
+| VM | Sistema Operativo | RAM | CPU | Disco | IP |
+|----|-------------------|-----|-----|-------|-----|
+| **Servidor Ubuntu** | Ubuntu Server 24.04 | 2GB | 2 | 20GB | 2025:db8:10::2 |
+| **Ubuntu-Desktop** | Ubuntu Desktop | 4GB | 2 | 40GB | DHCP (::10+) |
+| **Windows11** | Windows 11 Home | 4GB | 2 | 60GB | DHCP (::11+) |
 
-| VM | Sistema Operativo | Red | IP | Rol | Recursos |
-|----|-------------------|-----|----|----|----------|
-| **Ubuntu-Server-1** | Ubuntu Server 24.04 | 2025:db8:10::/64 | 2025:db8:10::2 | Servidor principal | 2GB RAM, 2 CPU |
-| **PC1_LAB_GAME_VIRTUAL1** | macOS | 2025:db8:10::/64 | DHCP (::10+) | Cliente diseño | 4GB RAM, 2 CPU |
-| **PC2_LAB_GAME_VIRTUAL2** | Ubuntu Desktop | 2025:db8:10::/64 | DHCP (::11+) | Cliente desarrollo | 4GB RAM, 2 CPU |
-| **PC3_LAB_GAME_VIRTUAL3** | Windows 11 | 2025:db8:10::/64 | DHCP (::12+) | Cliente gaming | 4GB RAM, 2 CPU |
+#### VMs en ESXi - Lab Académico (Red: 2025:db8:20::/64, Gateway: ::1)
 
-**Total VMs en GNS3 (Servidor 1):** 4 VMs
-
-#### VMs dentro de GNS3 (Nivel 2 - Servidor Gaming 2)
-
-| VM | Sistema Operativo | Red | IP | Rol | Recursos |
-|----|-------------------|-----|----|----|----------|
-| **Debian-Server-2** | Debian Server | 2025:db8:20::/64 | 2025:db8:20::2 | Servidor secundario | 2GB RAM, 2 CPU |
-| **PC1_LAB_GAME2_VIRTUAL1** | macOS | 2025:db8:20::/64 | DHCP (::10+) | Cliente diseño | 4GB RAM, 2 CPU |
-| **PC2_LAB_GAME2_VIRTUAL2** | Ubuntu Desktop | 2025:db8:20::/64 | DHCP (::11+) | Cliente desarrollo | 4GB RAM, 2 CPU |
-| **PC3_LAB_GAME2_VIRTUAL3** | Windows 11 | 2025:db8:20::/64 | DHCP (::12+) | Cliente gaming | 4GB RAM, 2 CPU |
-
-**Total VMs en GNS3 (Servidor 2):** 4 VMs
+| VM | Sistema Operativo | RAM | CPU | Disco | IP |
+|----|-------------------|-----|-----|-------|-----|
+| **Servidor Debian** | Debian Server | 2GB | 2 | 20GB | 2025:db8:20::2 |
+| **Ubuntu-Desktop** | Ubuntu Desktop | 4GB | 2 | 40GB | DHCP (::10+) |
+| **Windows11** | Windows 11 Home | 4GB | 2 | 60GB | DHCP (::11+) |
 
 ### Scripts de Creación de VMs en ESXi
 
@@ -170,55 +117,34 @@ ansible-playbook playbooks/create_ubpc.yml
 # - ISO: ubuntu-24.04.3-live-server-amd64.iso
 ```
 
-#### Crear VMs Ubuntu Desktop (3 roles)
+#### Crear VM Ubuntu Desktop (con roles)
 
 ```bash
-# Crear Ubuntu Desktop con rol Admin
+# Crear 1 VM Ubuntu Desktop y configurar con rol específico
 ansible-playbook playbooks/create-ubuntu-desktop.yml -e "vm_role=admin"
+# O cambiar rol: auditor, cliente
 
-# Crear Ubuntu Desktop con rol Auditor
-ansible-playbook playbooks/create-ubuntu-desktop.yml -e "vm_role=auditor"
-
-# Crear Ubuntu Desktop con rol Cliente
-ansible-playbook playbooks/create-ubuntu-desktop.yml -e "vm_role=cliente"
-
-# Recursos por VM:
+# Recursos:
 # - RAM: 4096 MB
 # - CPU: 2
 # - Disco: 40 GB
 # - Red: M_vm's (red interna)
 ```
 
-#### Crear VMs Windows 11 (3 roles)
+#### Crear VM Windows 11 (con roles)
 
 ```bash
-# Crear Windows 11 con rol Admin
+# Crear 1 VM Windows 11 y configurar con rol específico
 ansible-playbook playbooks/create-windows11.yml -e "vm_role=admin"
+# O cambiar rol: auditor, cliente
 
-# Crear Windows 11 con rol Auditor
-ansible-playbook playbooks/create-windows11.yml -e "vm_role=auditor"
-
-# Crear Windows 11 con rol Cliente
-ansible-playbook playbooks/create-windows11.yml -e "vm_role=cliente"
-
-# Recursos por VM:
+# Recursos:
 # - RAM: 4096 MB
 # - CPU: 2
 # - Disco: 60 GB
 # - Red: M_vm's (red interna)
 # - ISO: Windows 11 Pro
 ```
-
-### Resumen de Recursos Totales
-
-| Nivel | Cantidad | RAM Total | CPU Total |
-|-------|----------|-----------|-----------|
-| **VMs en VirtualBox** | 3 | 32 GB | 16 cores |
-| **VMs en GNS3 (Servidor 1)** | 4 | 12 GB | 8 cores |
-| **VMs en GNS3 (Servidor 2)** | 4 | 12 GB | 8 cores |
-| **VMs en ESXi** | 9 | 30 GB | 15 cores |
-| **TOTAL** | 20 VMs | 86 GB | 47 cores |
-
 
 
 ### Esquema de Direccionamiento IPv6
@@ -257,8 +183,8 @@ ansible-playbook playbooks/create-windows11.yml -e "vm_role=cliente"
 │  POOL DHCP (IPs dinámicas)                            │
 │  • Rango inicio:    2025:db8:20::10                   │
 │  • Rango fin:       2025:db8:20::FFFF                 │
-│                                                        │
-│  Clientes (ejemplos):                                  │
+│                                                       │
+│  Clientes (ejemplos secuenciales):                    │
 │  • macOS-2:         2025:db8:20::10                   │
 │  • Linux-2:         2025:db8:20::11                   │
 │  • Windows-2:       2025:db8:20::12                   │
