@@ -88,15 +88,33 @@ bash scripts/run/run-dns.sh
 - Configura zona gamecenter.local
 - Configura DNS64 (prefijo 64:ff9b::/96)
 
-#### 4. Configurar Firewall
+#### 4. Configurar Servidor Web (Nginx)
+
+```bash
+bash scripts/run/run-web.sh
+```
+
+**Qué hace:**
+- Instala Nginx
+- Configura sitio web con página de bienvenida
+- Abre puerto 80 en firewall
+- Configura dominios: gamecenter.local, www.gamecenter.local
+
+**Validar:**
+```bash
+bash scripts/run/validate-web.sh
+```
+
+#### 5. Configurar Firewall
 
 ```bash
 bash scripts/run/run-firewall.sh
 ```
 
 **Qué hace:**
-- Instala UFW
-- Abre puertos necesarios (SSH, DNS, DHCP)
+- Instala UFW y fail2ban
+- Abre puertos necesarios (SSH, DNS, DHCP, HTTP)
+- Protege servicios con fail2ban
 
 ---
 
