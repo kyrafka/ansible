@@ -51,10 +51,9 @@
     path: /etc/dhcp/dhcpd6.conf
   register: dhcpd6_conf
 
-- name: "❌ Archivo de configuración no existe"
-  fail:
-    msg: "El archivo /etc/dhcp/dhcpd6.conf no existe"
-  when: not dhcpd6_conf.stat.exists
+- name: "⚠️ Archivo de configuración"
+  debug:
+    msg: "{{ '✅ /etc/dhcp/dhcpd6.conf existe' if dhcpd6_conf.stat.exists else '⚠️ /etc/dhcp/dhcpd6.conf no existe (se creará durante la instalación)' }}"
 
 - name: "🔍 Validar sintaxis de dhcpd6.conf"
   command: dhcpd -6 -t -cf /etc/dhcp/dhcpd6.conf
