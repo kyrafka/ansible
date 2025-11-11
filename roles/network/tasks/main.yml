@@ -173,15 +173,7 @@
     msg: "→ IPs SLAAC antiguas eliminadas, solo quedará la IP fija"
 
 - name: "🛡️ Configurar NAT y persistencia de reglas iptables"
-  block:
-    - ansible.builtin.include_tasks: iptables-persistent.yml
-  rescue:
-    - name: "❌ Error en configuración de iptables"
-      ansible.builtin.debug:
-        msg: "Error al configurar iptables: {{ ansible_failed_result }}"
-    - name: "⚠️ Continuando sin persistencia"
-      ansible.builtin.debug:
-        msg: "iptables no se pudo configurar completamente"
+  ansible.builtin.include_tasks: iptables-persistent.yml
   tags: [network, iptables, nat]
 
 - name: "📡 Configurar Router Advertisements (radvd)"
