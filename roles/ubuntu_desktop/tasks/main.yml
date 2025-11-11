@@ -23,7 +23,54 @@
       - net-tools
       - curl
       - wget
+      - gnome-tweaks
+      - gnome-shell-extensions
+      - chrome-gnome-shell
+      - dconf-editor
+      - htop
+      - neofetch
     state: present
+  become: true
+
+- name: Optimizar rendimiento de GNOME
+  ansible.builtin.shell: |
+    gsettings set org.gnome.desktop.interface enable-animations false
+    gsettings set org.gnome.desktop.interface gtk-enable-animations false
+    gsettings set org.gnome.mutter dynamic-workspaces false
+    gsettings set org.gnome.shell.overrides workspaces-only-on-primary true
+  become: false
+  ignore_errors: yes
+
+- name: Configurar tema oscuro
+  ansible.builtin.shell: |
+    gsettings set org.gnome.desktop.interface gtk-theme 'Yaru-dark'
+    gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+  become: false
+  ignore_errors: yes
+
+- name: Deshabilitar servicios innecesarios
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: no
+    state: stopped
+  loop:
+    - bluetooth.service
+    - cups.service
+    - avahi-daemon.service
+  become: true
+  ignore_errors: yes
+
+- name: Optimizar swappiness
+  ansible.builtin.sysctl:
+    name: vm.swappiness
+    value: '10'
+    state: present
+  become: true
+
+- name: Limpiar paquetes innecesarios
+  ansible.builtin.apt:
+    autoremove: yes
+    autoclean: yes
   become: true
 
 - name: Crear grupo pcgamers
@@ -69,15 +116,37 @@
     group: "{{ item.group }}"
     mode: "{{ item.mode }}"
   loop:
-    - { path: '/srv/admin', owner: 'admin', group: 'admin', mode: '0755' }
+    - { path: '/srv/admin', owner: 'administrador', group: 'administrador', mode: '0755' }
     - { path: '/srv/audits', owner: 'auditor', group: 'auditor', mode: '0755' }
     - { path: '/srv/games', owner: 'root', group: 'pcgamers', mode: '0775' }
     - { path: '/srv/instaladores', owner: 'root', group: 'root', mode: '0755' }
   become: true
 
-# Configurar permisos específicos según rol activo
-- name: Configurar permisos según rol activo
-  ansible.builtin.include_tasks: "{{ vm_role }}.yml"
+# Configurar permisos específicos para cada usuario
+- name: Configurar permisos para usuario admin
+  ansible.builtin.include_tasks: "admin.yml"
+
+- name: Configurar permisos para usuario auditor
+  ansible.builtin.include_tasks: "auditor.yml"
+
+- name: Configurar permisos para usuario cliente
+  ansible.builtin.include_tasks: "cliente.yml"
+
+- name: Configurar firewall básico
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+  loop:
+    - '22'    # SSH
+    - '53'    # DNS
+    - '80'    # HTTP
+    - '443'   # HTTPS
+  become: true
+
+- name: Habilitar firewall
+  community.general.ufw:
+    state: enabled
+  become: true
 
 - name: Habilitar SSH
   ansible.builtin.service:
@@ -85,3 +154,36 @@
     state: started
     enabled: true
   become: true
+
+- name: Resumen de configuración
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════════════════════"
+      - "✅ Configuración completada para {{ inventory_hostname }}"
+      - "════════════════════════════════════════════════════════"
+      - ""
+      - "👥 Usuarios creados con sus permisos:"
+      - ""
+      - "  🔑 administrador:"
+      - "     - Sudo completo"
+      - "     - Puede SSH al servidor"
+      - "     - Escritura en /srv/games y /srv/instaladores"
+      - ""
+      - "  👁️  auditor:"
+      - "     - Solo lectura de logs"
+      - "     - NO puede SSH al servidor"
+      - "     - Solo lectura en /srv/games"
+      - ""
+      - "  🎮 gamer01:"
+      - "     - Sin sudo"
+      - "     - NO puede SSH al servidor"
+      - "     - Solo lectura en /srv/games"
+      - ""
+      - "📁 Carpetas creadas:"
+      - "  - /srv/admin (privada admin)"
+      - "  - /srv/audits (privada auditor)"
+      - "  - /srv/games (compartida)"
+      - "  - /srv/instaladores (compartida)"
+      - ""
+      - "🔥 Firewall configurado y activo"
+      - "════════════════════════════════════════════════════════"

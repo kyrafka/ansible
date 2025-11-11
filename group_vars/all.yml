@@ -52,7 +52,7 @@ enable_rdp: true
 # Usuarios Ubuntu Desktop por rol
 ubuntu_desktop_users:
   admin:
-    username: "admin"
+    username: "administrador"
     password: "{{ vault_ubuntu_desktop_admin_password }}"
   auditor:
     username: "auditor"

@@ -13,9 +13,29 @@ echo -e "${BLUE}║     🔧 Configuración de Entorno Ansible + VMware         
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
+# Verificar que NO se ejecute como root
+if [ "$EUID" -eq 0 ]; then
+    echo -e "${RED}╔════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${RED}║  ⚠️  ERROR: No ejecutes este script como root                 ║${NC}"
+    echo -e "${RED}╚════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo "El entorno virtual debe crearse para tu usuario normal, no para root."
+    echo ""
+    echo "Ejecuta como usuario normal:"
+    echo -e "  ${YELLOW}bash scripts/setup/setup-ansible-env.sh --auto${NC}"
+    echo ""
+    echo "Si necesitas permisos sudo, el script te los pedirá cuando sea necesario."
+    echo ""
+    exit 1
+fi
+
 # Variables globales
 PYTHON_BIN="/usr/bin/python3"
 VENV_DIR="$HOME/.ansible-venv"
+
+echo -e "${GREEN}✓${NC} Ejecutando como usuario: ${YELLOW}$USER${NC}"
+echo -e "${GREEN}✓${NC} Entorno se creará en: ${YELLOW}$VENV_DIR${NC}"
+echo ""
 
 # Función para verificar Python
 check_python() {

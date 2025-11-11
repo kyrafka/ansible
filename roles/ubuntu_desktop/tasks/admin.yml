@@ -1,5 +1,5 @@
 ---
-# Configuración específica para VM con rol ADMIN
+# Configuración específica para usuario ADMIN
 
 - name: Permisos de escritura en games e instaladores para admin
   ansible.builtin.file:
@@ -12,46 +12,26 @@
     - /srv/instaladores
   become: true
 
-- name: Configurar firewall para admin (permite todo)
-  community.general.ufw:
-    rule: allow
-    port: "{{ item }}"
-  loop:
-    - '22'    # SSH
-    - '80'    # HTTP
-    - '443'   # HTTPS
-  become: true
-
-- name: Habilitar firewall
-  community.general.ufw:
-    state: enabled
-  become: true
-
-- name: Configurar SSH seguro
+- name: Permitir SSH saliente para administrador
   ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^#?PermitRootLogin'
-    line: 'PermitRootLogin no'
+    path: /etc/security/access.conf
+    line: "+:administrador:ALL"
+    create: yes
   become: true
-  notify: restart ssh
 
-- name: Mensaje de configuración
+- name: Configurar sudoers para administrador (acceso total)
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers.d/administrador
+    line: "administrador ALL=(ALL) NOPASSWD: ALL"
+    create: true
+    mode: '0440'
+    validate: 'visudo -cf %s'
+  become: true
+
+- name: Mensaje de configuración administrador
   ansible.builtin.debug:
     msg:
-      - "════════════════════════════════════════"
-      - "Configuración ADMIN completada"
-      - "════════════════════════════════════════"
-      - "Usuarios creados:"
-      - "  - admin (sudo, acceso total)"
-      - "  - auditor (solo lectura)"
-      - "  - gamer01 (sin privilegios)"
-      - ""
-      - "Carpetas:"
-      - "  - /srv/admin (privada admin)"
-      - "  - /srv/audits (privada auditor)"
-      - "  - /srv/games (compartida RW)"
-      - "  - /srv/instaladores (compartida RW)"
-      - ""
-      - "Rol activo: ADMIN"
-      - "  - Puede SSH al servidor ✅"
-      - "  - Acceso total al sistema ✅"
+      - "✅ Usuario ADMINISTRADOR configurado"
+      - "  - Acceso total con sudo"
+      - "  - Puede SSH al servidor"
+      - "  - Escritura en /srv/games y /srv/instaladores"

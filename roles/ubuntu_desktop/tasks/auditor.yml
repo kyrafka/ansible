@@ -1,55 +1,40 @@
 ---
-# Configuración específica para VM con rol AUDITOR
+# Configuración específica para usuario AUDITOR
 
-- name: Acceso solo lectura a logs
+- name: Acceso solo lectura a logs para auditor
   ansible.builtin.file:
     path: /var/log
     mode: '0755'
   become: true
 
-- name: Configurar firewall para auditor (solo SSH local)
-  community.general.ufw:
-    rule: allow
-    port: '22'
-  become: true
-
-- name: Denegar SSH saliente (no puede conectar al servidor)
-  community.general.ufw:
-    rule: deny
-    direction: out
-    port: '22'
-  become: true
-
-- name: Habilitar firewall
-  community.general.ufw:
-    state: enabled
-  become: true
-
 - name: Restringir comandos sudo para auditor (solo lectura)
   ansible.builtin.lineinfile:
     path: /etc/sudoers.d/auditor
-    line: "{{ ubuntu_desktop_users.auditor.username }} ALL=(ALL) NOPASSWD: /usr/bin/cat, /usr/bin/less, /usr/bin/tail, /usr/bin/journalctl"
+    line: "auditor ALL=(ALL) NOPASSWD: /usr/bin/cat, /usr/bin/less, /usr/bin/tail, /usr/bin/journalctl, /usr/bin/ls"
     create: true
     mode: '0440'
+    validate: 'visudo -cf %s'
   become: true
 
-- name: Mensaje de configuración
+- name: Permisos solo lectura en /srv/games para auditor
+  ansible.builtin.file:
+    path: /srv/games
+    mode: '0755'
+  become: true
+
+- name: Denegar SSH saliente para auditor
+  ansible.builtin.blockinfile:
+    path: /etc/ssh/ssh_config
+    block: |
+      Match User auditor
+          PermitOpen none
+    create: yes
+  become: true
+
+- name: Mensaje de configuración auditor
   ansible.builtin.debug:
     msg:
-      - "════════════════════════════════════════"
-      - "Configuración AUDITOR completada"
-      - "════════════════════════════════════════"
-      - "Usuarios creados:"
-      - "  - admin (sudo, acceso total)"
-      - "  - auditor (solo lectura)"
-      - "  - gamer01 (sin privilegios)"
-      - ""
-      - "Carpetas:"
-      - "  - /srv/admin (sin acceso)"
-      - "  - /srv/audits (privada auditor)"
-      - "  - /srv/games (solo lectura)"
-      - "  - /var/log (solo lectura)"
-      - ""
-      - "Rol activo: AUDITOR"
-      - "  - NO puede SSH al servidor ❌"
-      - "  - Solo lectura de logs ✅"
+      - "✅ Usuario AUDITOR configurado"
+      - "  - Solo lectura de logs"
+      - "  - NO puede SSH al servidor"
+      - "  - Solo lectura en /srv/games"
