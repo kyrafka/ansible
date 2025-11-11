@@ -38,4 +38,9 @@ tail -f /var/log/nginx/access.log
 ```
 
 ## Acceso
-Abre en tu navegador: `http://[IP-de-la-VM]`
+Abre en tu navegador cualquiera de estas URLs:
+- `http://gamecenter.local`
+- `http://www.gamecenter.local`
+- `http://web.gamecenter.local`
+- `http://servidor.gamecenter.local`
+- `http://[IP-de-la-VM]` (si prefieres usar IP directa)

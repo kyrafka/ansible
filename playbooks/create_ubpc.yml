@@ -112,8 +112,9 @@
           - Fail2ban: {{ ansible_facts.services['fail2ban.service'].state | default('unknown') }}
           
           📊 Acceso:
-          - Web: http://[IP_asignada_por_DHCP]
-          - SSH: ssh ubuntu@[IP_asignada_por_DHCP]
+          - Web: http://gamecenter.local o http://www.gamecenter.local
+          - SSH: ssh ubuntu@servidor.gamecenter.local
+          - IP directa: http://[IP_asignada_por_DHCP]
           
           💡 Para ver la IP asignada: ip -6 addr show
       tags: summary
