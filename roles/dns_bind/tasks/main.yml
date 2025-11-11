@@ -101,17 +101,59 @@
     enabled: yes
     state: started
 
-- name: "Verificar configuración de BIND"
+- name: "✔️  Verificar configuración de BIND"
   command: named-checkconf
   register: bind_config_check
   changed_when: false
   failed_when: bind_config_check.rc != 0
 
-- name: "Verificar zona directa"
+- name: "✅ Configuración de BIND válida"
+  debug:
+    msg: "→ named-checkconf: OK"
+
+- name: "✔️  Verificar zona directa"
   command: "named-checkzone {{ dns_domain_name }} /etc/bind/zones/db.{{ dns_domain_name }}"
   register: zone_check
   changed_when: false
   failed_when: zone_check.rc != 0
+
+- name: "✅ Zona directa válida"
+  debug:
+    msg: "→ {{ zone_check.stdout_lines | last }}"
+
+- name: "🔄 Recargar zonas DNS en BIND9"
+  command: rndc reload
+  register: rndc_reload
+  changed_when: true
+  failed_when: false
+
+- name: "✅ Zonas DNS recargadas"
+  debug:
+    msg: "→ BIND9 ha recargado todas las zonas"
+
+- name: "⏸️  Esperar a que BIND9 procese las zonas"
+  pause:
+    seconds: 3
+
+- name: "🧪 Validar resolución DNS de gamecenter.local"
+  command: "dig @localhost {{ dns_domain_name }} AAAA +short"
+  register: dns_test
+  changed_when: false
+  failed_when: false
+
+- name: "✅ Resultado de prueba DNS"
+  debug:
+    msg: 
+      - "→ Consultando: {{ dns_domain_name }}"
+      - "→ Resultado: {{ dns_test.stdout if dns_test.stdout else 'Sin respuesta' }}"
+
+- name: "⚠️  Advertencia: DNS no resuelve correctamente"
+  debug:
+    msg:
+      - "❌ DNS no está resolviendo {{ dns_domain_name }}"
+      - "💡 Verifica el archivo: /etc/bind/zones/db.{{ dns_domain_name }}"
+      - "💡 Ejecuta: sudo rndc reload"
+  when: dns_test.stdout == ""
 
 - name: "🌐 Configurar DNS64"
   ansible.builtin.include_tasks: dns64.yml
