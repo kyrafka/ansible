@@ -94,29 +94,21 @@ fi
 echo "🔍 Conectando a ESXi: $ESXI_HOST"
 echo ""
 
-# Listar VMs usando govc o ansible
-if command -v govc &> /dev/null; then
-    export GOVC_URL="https://$ESXI_HOST"
-    export GOVC_USERNAME="$ESXI_USER"
-    export GOVC_PASSWORD="$ESXI_PASS"
-    export GOVC_INSECURE=1
-    
-    VM_LIST=$(govc ls /ha-datacenter/vm 2>/dev/null | grep -v "Discovered" | sed 's|/ha-datacenter/vm/||')
-else
-    # Usar ansible para listar VMs
-    VM_LIST=$(ansible localhost -m community.vmware.vmware_vm_info -a "hostname=$ESXI_HOST username=$ESXI_USER password=$ESXI_PASS validate_certs=no" 2>/dev/null | grep -o '"guest_name": "[^"]*"' | cut -d'"' -f4)
-fi
+# Simplemente usar el inventario (más rápido y confiable)
+echo "VMs Ubuntu Desktop en el inventario:"
+echo ""
+
+VM_LIST=$(grep -A 20 "\[ubuntu_desktops\]" inventory/hosts.ini | grep -v "^#" | grep -v "^\[" | grep -v "^$" | grep -v ":vars" | awk '{print $1}')
 
 if [ -z "$VM_LIST" ]; then
-    echo "❌ Error: No se pudieron listar las VMs"
+    echo "❌ Error: No hay VMs en el inventario"
     echo ""
-    echo "VMs en el inventario:"
-    grep -A 20 "\[ubuntu_desktops\]" inventory/hosts.ini | grep -v "^#" | grep -v "^\[" | grep -v "^$" | nl -w2 -s') ' || echo "  Ninguna VM configurada"
+    echo "Agrega tu VM en inventory/hosts.ini:"
+    echo "[ubuntu_desktops]"
+    echo "nombre-vm ansible_host=2025:db8:10::XX ansible_user=administrador ansible_password=123456 vm_role=cliente"
     echo ""
-    read -p "Nombre de la VM a configurar: " vm_name
+    exit 1
 else
-    echo "VMs disponibles en ESXi:"
-    echo ""
     echo "$VM_LIST" | nl -w2 -s') '
     echo ""
     read -p "Selecciona el número de la VM: " vm_number
@@ -136,46 +128,6 @@ else
     echo ""
     echo "✅ VM seleccionada: $vm_name"
     echo ""
-    
-    # Verificar estado de la VM
-    echo "🔍 Verificando estado de la VM..."
-    
-    if command -v govc &> /dev/null; then
-        VM_STATE=$(govc vm.info "$vm_name" 2>/dev/null | grep "Power state:" | awk '{print $3}')
-    else
-        VM_STATE=$(ansible localhost -m community.vmware.vmware_vm_info -a "hostname=$ESXI_HOST username=$ESXI_USER password=$ESXI_PASS validate_certs=no name=$vm_name" 2>/dev/null | grep -o '"power_state": "[^"]*"' | cut -d'"' -f4)
-    fi
-    
-    echo "Estado actual: $VM_STATE"
-    echo ""
-    
-    if [ "$VM_STATE" == "poweredOff" ] || [ "$VM_STATE" == "off" ]; then
-        echo "⚠️  La VM está apagada"
-        read -p "¿Encender la VM? (s/n): " -n 1 -r
-        echo ""
-        
-        if [[ $REPLY =~ ^[Ss]$ ]]; then
-            echo "🔌 Encendiendo VM..."
-            
-            if command -v govc &> /dev/null; then
-                govc vm.power -on "$vm_name"
-            else
-                ansible localhost -m community.vmware.vmware_guest_powerstate -a "hostname=$ESXI_HOST username=$ESXI_USER password=$ESXI_PASS validate_certs=no name=$vm_name state=powered-on" &> /dev/null
-            fi
-            
-            echo "✅ VM encendida"
-            echo "⏳ Esperando 30 segundos para que arranque..."
-            sleep 30
-        else
-            echo "❌ No se puede configurar una VM apagada"
-            exit 1
-        fi
-    elif [ "$VM_STATE" == "poweredOn" ] || [ "$VM_STATE" == "on" ]; then
-        echo "✅ La VM está encendida"
-    else
-        echo "❌ Estado desconocido: $VM_STATE"
-        exit 1
-    fi
 fi
 
 if [ -z "$vm_name" ]; then
