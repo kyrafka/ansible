@@ -58,6 +58,29 @@
   ansible.builtin.debug:
     msg: "→ net.ipv6.conf.all.forwarding = 1 (el servidor ahora es un router)"
 
+- name: "🚫 Desactivar SLAAC en interfaz LAN ({{ lan_interface }})"
+  ansible.posix.sysctl:
+    name: "net.ipv6.conf.{{ lan_interface }}.autoconf"
+    value: '0'
+    state: present
+    reload: yes
+  become: true
+
+- name: "✅ Permitir Router Advertisements en interfaz LAN ({{ lan_interface }})"
+  ansible.posix.sysctl:
+    name: "net.ipv6.conf.{{ lan_interface }}.accept_ra"
+    value: '2'
+    state: present
+    reload: yes
+  become: true
+
+- name: "✓ Configuración de RA en {{ lan_interface }}"
+  ansible.builtin.debug:
+    msg: 
+      - "→ SLAAC desactivado: No generará IPs automáticas basadas en MAC"
+      - "→ Accept RA habilitado: Recibirá información de routing de otros routers"
+      - "→ Usará IP fija: 2025:db8:10::2"
+
 - name: "📁 Creando directorio para reglas de iptables"
   ansible.builtin.file:
     path: /etc/iptables
