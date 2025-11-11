@@ -85,3 +85,29 @@ echo ""
 echo "Si servidor.gamecenter.local funciona pero gamecenter.local no,"
 echo "entonces el problema es específico del registro raíz (@)."
 echo ""
+
+echo "════════════════════════════════════════════════════════"
+echo "🔍 VERIFICANDO CONFIGURACIÓN DE BIND9"
+echo "════════════════════════════════════════════════════════"
+echo ""
+
+echo "📄 Configuración de named.conf.options:"
+echo "→ sudo cat /etc/bind/named.conf.options | grep -v '^//' | grep -v '^$'"
+sudo cat /etc/bind/named.conf.options | grep -v "^//" | grep -v "^$"
+echo ""
+
+echo "🔍 Buscando filtros de AAAA:"
+echo "→ sudo grep -r 'filter-aaaa' /etc/bind/"
+FILTER_RESULT=$(sudo grep -r "filter-aaaa" /etc/bind/ 2>/dev/null)
+if [ -z "$FILTER_RESULT" ]; then
+    echo "✅ No hay filtros de AAAA configurados"
+else
+    echo "⚠️  Filtros encontrados:"
+    echo "$FILTER_RESULT"
+fi
+echo ""
+
+echo "🔍 Verificando si IPv6 está habilitado en BIND9:"
+echo "→ sudo grep -r 'listen-on-v6' /etc/bind/"
+sudo grep -r "listen-on-v6" /etc/bind/ 2>/dev/null
+echo ""
