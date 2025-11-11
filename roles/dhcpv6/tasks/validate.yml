@@ -57,6 +57,8 @@
 
 - name: "🔍 Validar sintaxis de dhcpd6.conf"
   command: dhcpd -6 -t -cf /etc/dhcp/dhcpd6.conf
+  when: dhcpd6_conf.stat.exists
+  failed_when: false
   register: dhcpd_syntax
   changed_when: false
   failed_when: false
