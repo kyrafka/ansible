@@ -89,6 +89,16 @@ Este proyecto implementa una infraestructura completa de red IPv6 para un labora
 
 ## 🏗️ Arquitectura del Sistema
 
+### Justificación de Sistemas Operativos
+
+| Sistema Operativo | Uso | Justificación |
+|-------------------|-----|---------------|
+| **Ubuntu Server 24.04 LTS** | Servidor principal | • Soporte LTS de 5 años<br>• Amplia documentación y comunidad<br>• Excelente compatibilidad con Ansible<br>• Repositorios actualizados<br>• Ideal para servicios de red (DNS, DHCP, Web) |
+| **Debian** | Servidor secundario | • Máxima estabilidad<br>• Menor consumo de recursos<br>• Base sólida para servidores de producción<br>• Compatible con paquetes Ubuntu |
+| **Ubuntu Desktop** | Estaciones de trabajo | • Interfaz amigable para usuarios<br>• Compatibilidad con software académico<br>• Fácil gestión remota<br>• Soporte de hardware moderno |
+| **Windows 11** | Estaciones gaming | • Compatibilidad con juegos<br>• Software específico de Windows<br>• Familiaridad para usuarios finales |
+| **macOS** | Estaciones especializadas | • Desarrollo iOS/macOS<br>• Software de diseño profesional<br>• Ecosistema Apple |
+
 ### Tecnologías Utilizadas
 
 | Componente | Tecnología | Versión |
@@ -127,14 +137,27 @@ ansible-gestion-despliegue/
 ## 🔧 Servicios Implementados
 
 ### 1. DNS (BIND9)
-- **Dominio:** `gamecenter.local`
-- **Zona directa:** Resolución de nombres a IPs
-- **Zona inversa:** Resolución de IPs a nombres
-- **Registros configurados:**
-  - `gamecenter.local` → `2025:db8:10::2`
-  - `servidor.gamecenter.local` → `2025:db8:10::2`
-  - `www.gamecenter.local` → CNAME a servidor
-  - `web.gamecenter.local` → CNAME a servidor
+
+El servidor DNS permite acceder a los servicios por nombre en lugar de recordar IPs.
+
+- **Dominio:** `gamecenter.local` - Nombre de dominio local para la red interna
+- **Zona directa:** Convierte nombres (ej: `www.gamecenter.local`) en direcciones IP (`2025:db8:10::2`)
+- **Zona inversa:** Convierte direcciones IP en nombres (resolución inversa para logs y seguridad)
+
+**Registros DNS configurados:**
+
+| Nombre | Tipo | Destino | Descripción |
+|--------|------|---------|-------------|
+| `gamecenter.local` | AAAA | `2025:db8:10::2` | Dominio raíz |
+| `servidor.gamecenter.local` | AAAA | `2025:db8:10::2` | Servidor principal |
+| `www.gamecenter.local` | CNAME | `servidor` | Alias para web |
+| `web.gamecenter.local` | CNAME | `servidor` | Alias alternativo |
+| `dns.gamecenter.local` | CNAME | `servidor` | Alias para DNS |
+
+**¿Cómo funciona?**
+- Cuando escribes `http://gamecenter.local` en el navegador, el DNS lo traduce a `2025:db8:10::2`
+- Los CNAME son alias: `www.gamecenter.local` apunta a `servidor.gamecenter.local`
+- Esto permite cambiar la IP del servidor sin actualizar todos los registros
 
 ### 2. DHCPv6
 - **Rango de IPs:** `2025:db8:10::10` - `2025:db8:10::FFFF`
@@ -212,30 +235,12 @@ sudo journalctl -u nginx -n 50
 ### Windows 11 (Estaciones)
 
 #### Herramientas Clave
-- Administrador de tareas (Task Manager)
-- `tasklist` - Lista de procesos
-- PowerShell (`Get-Process`, `Get-Service`)
-- `services.msc` - Gestión de servicios
+- Administrador de tareas (Task Manager) - `Ctrl+Shift+Esc`
+- `services.msc` - Gestión de servicios GUI
 - `eventvwr.msc` - Visor de eventos
+- `tasklist` - Lista de procesos desde CMD
 
-#### Comandos PowerShell
-
-```powershell
-# Ver procesos top CPU
-Get-Process | Sort-Object CPU -Descending | Select-Object -First 10
-
-# Ver procesos top memoria
-Get-Process | Sort-Object WS -Descending | Select-Object -First 10
-
-# Gestión de servicios
-Get-Service -Name "Spooler"
-Restart-Service -Name "Spooler"
-Stop-Service -Name "Spooler"
-Start-Service -Name "Spooler"
-
-# Ver eventos críticos
-Get-EventLog -LogName System -EntryType Error -Newest 50
-```
+> **Nota:** La gestión de Windows se realiza principalmente mediante interfaz gráfica en este proyecto.
 
 ---
 
@@ -375,7 +380,13 @@ robocopy $source $dest /MIR /FFT /R:3 /W:5 /LOG:C:\scripts\logs\robocopy-PC01.lo
 
 ## 🔒 Seguridad y Políticas
 
-### Contraseñas
+> ⚠️ **Nota:** Las políticas de seguridad avanzadas están siendo implementadas en fases posteriores del proyecto. Actualmente se encuentran en desarrollo las siguientes medidas:
+> - Políticas de contraseñas robustas
+> - Actualizaciones automáticas programadas
+> - Configuración avanzada de firewall
+> - Auditoría y logging centralizado
+
+### Contraseñas (En implementación)
 
 - **Longitud mínima:** 12 caracteres
 - **Complejidad:** Mayúsculas, minúsculas, números y símbolos
@@ -427,9 +438,10 @@ sudo ufw status verbose
 
 ### Antivirus
 
-- **Windows:** Windows Defender + análisis semanales
-- **Linux:** ClamAV (opcional)
-- Mantener firmas actualizadas
+> **Nota:** En este proyecto no se implementa antivirus adicional. Se utilizan las herramientas de seguridad nativas:
+> - **Windows:** Windows Defender (incluido en Windows 11)
+> - **Linux:** Seguridad mediante firewall (UFW) y fail2ban
+> - **Actualizaciones regulares** del sistema como medida preventiva principal
 
 ---
 
@@ -469,19 +481,52 @@ sudo ufw status verbose
 
 ## 📚 Guía de Uso
 
+> 📋 **Nota:** Las pruebas detalladas y evidencias de funcionamiento se encuentran en el archivo [PRUEBAS.md](docs/PRUEBAS.md)
+
+> ⚠️ **Estado del proyecto:** La automatización con Ansible está en desarrollo activo. Algunos servicios requieren configuración manual adicional.
+
+### Repositorio del Proyecto
+
+🔗 **GitHub:** [https://github.com/kyrafka/ansible](https://github.com/kyrafka/ansible)
+
 ### Instalación Inicial
 
 ```bash
 # 1. Clonar repositorio
-git clone <url-repositorio>
-cd ansible-gestion-despliegue
+git clone https://github.com/kyrafka/ansible.git
+cd ansible
 
 # 2. Configurar entorno Ansible
 bash scripts/setup/setup-ansible-env.sh --auto
 
-# 3. Activar entorno
+# 3. Activar entorno virtual
 source activate-ansible.sh
+```
 
+#### ¿Qué es el entorno virtual de Ansible?
+
+El **entorno virtual** (`~/.ansible-venv/`) es un ambiente aislado de Python que contiene:
+
+- ✅ **Ansible** y todas sus dependencias
+- ✅ **Colecciones** necesarias (community.vmware, community.general, etc.)
+- ✅ **Librerías Python** (pyvmomi, requests, jinja2)
+- ✅ **Versiones específicas** sin conflictos con el sistema
+
+**¿Por qué usarlo?**
+- 🔒 **Aislamiento:** No afecta al Python del sistema
+- 🎯 **Reproducibilidad:** Mismas versiones en todos los entornos
+- 🧹 **Limpieza:** Fácil de eliminar sin dejar rastros
+- 🚀 **Portabilidad:** Funciona igual en cualquier máquina
+
+**Activación:**
+```bash
+source activate-ansible.sh  # Activa el entorno
+# Ahora puedes usar ansible-playbook, ansible, etc.
+```
+
+### Configuración y Ejecución
+
+```bash
 # 4. Configurar inventario
 nano inventory/hosts.ini
 
@@ -491,47 +536,121 @@ ansible-playbook site.yml
 
 ### Scripts Disponibles
 
-#### Ejecución de Servicios
+El proyecto utiliza scripts bash para facilitar la ejecución y validación de servicios.
+
+#### 🚀 Scripts de Ejecución (`scripts/run/`)
+
+| Script | Descripción | Uso |
+|--------|-------------|-----|
+| `run-network.sh` | Configura red IPv6, radvd, NAT66 | `bash scripts/run/run-network.sh` |
+| `run-dns.sh` | Instala y configura BIND9 | `bash scripts/run/run-dns.sh` |
+| `run-dhcp.sh` | Configura servidor DHCPv6 | `bash scripts/run/run-dhcp.sh` |
+| `run-web.sh` | Instala Nginx y configura sitio web | `bash scripts/run/run-web.sh` |
+| `run-firewall.sh` | Configura UFW y fail2ban | `bash scripts/run/run-firewall.sh` |
+| `run-all-services.sh` | Ejecuta todos los servicios en orden | `bash scripts/run/run-all-services.sh` |
+
+#### ✅ Scripts de Validación (`scripts/run/`)
+
+| Script | Descripción | Uso |
+|--------|-------------|-----|
+| `validate-network.sh` | Valida configuración de red IPv6 | `bash scripts/run/validate-network.sh` |
+| `validate-dns.sh` | Valida servidor DNS y resolución | `bash scripts/run/validate-dns.sh` |
+| `validate-dhcp.sh` | Valida servidor DHCPv6 | `bash scripts/run/validate-dhcp.sh` |
+| `validate-web.sh` | Valida servidor web Nginx | `bash scripts/run/validate-web.sh` |
+| `validate-firewall.sh` | Valida reglas de firewall | `bash scripts/run/validate-firewall.sh` |
+
+#### 🔬 Scripts de Diagnóstico (`scripts/diagnostics/`)
+
+| Script | Descripción | Uso |
+|--------|-------------|-----|
+| `diagnose-dns.sh` | Diagnóstico avanzado de DNS con análisis | `bash scripts/diagnostics/diagnose-dns.sh` |
+| `test-dns-records.sh` | Prueba todos los registros DNS | `bash scripts/diagnostics/test-dns-records.sh` |
+
+#### ⚙️ Scripts de Configuración (`scripts/setup/`)
+
+| Script | Descripción | Uso |
+|--------|-------------|-----|
+| `setup-ansible-env.sh` | Instala Ansible y dependencias | `bash scripts/setup/setup-ansible-env.sh --auto` |
+
+### Playbooks Disponibles
+
+#### 📦 Playbooks Principales (`playbooks/`)
+
+| Playbook | Descripción | Uso |
+|----------|-------------|-----|
+| `site.yml` | Playbook principal - ejecuta todos los roles | `ansible-playbook site.yml` |
+| `create_ubpc.yml` | Crea y configura VM UBPC completa | `ansible-playbook playbooks/create_ubpc.yml` |
+| `create-ubuntu-desktop.yml` | Crea VM Ubuntu Desktop | `ansible-playbook playbooks/create-ubuntu-desktop.yml` |
+
+#### 🎯 Ejecución por Tags
 
 ```bash
-bash scripts/run/run-network.sh      # Configurar red
-bash scripts/run/run-dns.sh          # Configurar DNS
-bash scripts/run/run-dhcp.sh         # Configurar DHCP
-bash scripts/run/run-web.sh          # Configurar Nginx
-bash scripts/run/run-firewall.sh     # Configurar firewall
-bash scripts/run/run-all-services.sh # Ejecutar todo
-```
-
-#### Validación
-
-```bash
-bash scripts/run/validate-network.sh # Validar red
-bash scripts/run/validate-dns.sh     # Validar DNS
-bash scripts/run/validate-dhcp.sh    # Validar DHCP
-bash scripts/run/validate-web.sh     # Validar web
-```
-
-#### Diagnóstico
-
-```bash
-bash scripts/diagnostics/diagnose-dns.sh      # Diagnóstico DNS
-bash scripts/diagnostics/test-dns-records.sh  # Probar registros DNS
+# Ejecutar solo un servicio específico
+ansible-playbook site.yml --tags network   # Solo red
+ansible-playbook site.yml --tags dns       # Solo DNS
+ansible-playbook site.yml --tags dhcp      # Solo DHCP
+ansible-playbook site.yml --tags web       # Solo Nginx
+ansible-playbook site.yml --tags firewall  # Solo firewall
 ```
 
 ---
 
-## 📸 Capturas de Pantalla
+## 📸 Evidencias y Capturas de Pantalla
 
-<!-- Puedes agregar imágenes así: -->
+> 📁 **Ubicación de imágenes:** `docs/images/`  
+> 📋 **Lista completa de imágenes requeridas:** Ver [IMAGENES-REQUERIDAS.md](docs/IMAGENES-REQUERIDAS.md)
 
 ### Topología de Red
-![Topología](docs/images/topologia.png)
 
-### Panel de Administración
-![Panel](docs/images/panel.png)
+![Topología General](docs/images/topologia/topologia-general.png)
+*Diagrama completo de la infraestructura de red*
 
-### Página Web
-![Web](docs/images/web.png)
+![Servidor Gaming 1](docs/images/topologia/servidor-gaming-1.png)
+*Servidor Gaming 1 - Ubuntu Server + VMs*
+
+![Servidor Gaming 2](docs/images/topologia/servidor-gaming-2.png)
+*Servidor Gaming 2 - Debian Server + VMs*
+
+![Red IPv6](docs/images/topologia/red-ipv6.png)
+*Esquema de direccionamiento IPv6*
+
+### Configuración del Sistema
+
+![Estructura Ansible](docs/images/configuracion/ansible-estructura.png)
+*Estructura de carpetas del proyecto Ansible*
+
+![Configuración de Red](docs/images/configuracion/netplan-servidor.png)
+*Configuración de red del servidor (netplan)*
+
+### Servicios en Funcionamiento
+
+![BIND9 Zona](docs/images/servicios/bind9-zona-directa.png)
+*Archivo de zona DNS (db.gamecenter.local)*
+
+![Nginx Web](docs/images/servicios/nginx-pagina-web.png)
+*Página web accesible desde http://gamecenter.local*
+
+![Firewall UFW](docs/images/servicios/firewall-reglas.png)
+*Reglas de firewall configuradas*
+
+### Pruebas de Funcionamiento
+
+![Resolución DNS](docs/images/pruebas/dns-resolucion.png)
+*Prueba de resolución DNS con dig*
+
+![Asignación DHCP](docs/images/pruebas/dhcp-asignacion.png)
+*IP asignada por DHCPv6 al cliente*
+
+![Acceso Web](docs/images/pruebas/web-acceso-nombre.png)
+*Acceso exitoso a http://gamecenter.local*
+
+### Monitoreo y Diagnóstico
+
+![Monitoreo Recursos](docs/images/monitoreo/top-servidor.png)
+*Monitoreo de recursos del servidor con htop*
+
+![Logs Sistema](docs/images/monitoreo/logs-sistema.png)
+*Logs del sistema con journalctl*
 
 ---
 
