@@ -183,28 +183,14 @@
         msg: "radvd no se pudo configurar, pero continuamos"
   tags: [network, radvd]
 
-- name: "🌐 Configurar NAT64 con Tayga (IPv6 → IPv4)"
-  block:
-    - ansible.builtin.include_tasks: tayga.yml
-  rescue:
-    - name: "❌ Error en Tayga"
-      ansible.builtin.debug:
-        msg: "Error al configurar Tayga: {{ ansible_failed_result }}"
-    - name: "⚠️ Continuando sin Tayga"
-      ansible.builtin.debug:
-        msg: "Tayga no se pudo configurar, pero continuamos"
+- name: "⏭️  Omitiendo NAT64 (Tayga) - No necesario para IPv6 puro"
+  ansible.builtin.debug:
+    msg: "→ Tayga omitido (solo necesario si usas IPv4)"
   tags: [network, nat64, tayga]
 
-- name: "🌐 Configurar Squid Proxy (HTTP/HTTPS sobre IPv6)"
-  block:
-    - ansible.builtin.include_tasks: squid-proxy.yml
-  rescue:
-    - name: "❌ Error en Squid"
-      ansible.builtin.debug:
-        msg: "Error al configurar Squid: {{ ansible_failed_result }}"
-    - name: "⚠️ Continuando sin Squid"
-      ansible.builtin.debug:
-        msg: "Squid no se pudo configurar, pero continuamos"
+- name: "⏭️  Omitiendo Squid Proxy - No necesario para configuración básica"
+  ansible.builtin.debug:
+    msg: "→ Squid omitido (solo necesario para proxy HTTP)"
   tags: [network, proxy, squid]
 
 - name: Verificar configuración de red

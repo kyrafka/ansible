@@ -1,16 +1,31 @@
 ---
 # Configuración de radvd (Router Advertisement Daemon)
 
+- name: "🔍 Verificar si radvd ya está instalado"
+  ansible.builtin.command: dpkg -l radvd
+  register: radvd_check
+  failed_when: false
+  changed_when: false
+  become: true
+
 - name: "📦 Instalar radvd"
   ansible.builtin.apt:
     name: radvd
     state: present
-    update_cache: yes
+    update_cache: no
+    cache_valid_time: 3600
   become: true
+  when: radvd_check.rc != 0
+
+- name: "✓ radvd ya estaba instalado"
+  ansible.builtin.debug:
+    msg: "→ radvd ya está instalado, omitiendo descarga"
+  when: radvd_check.rc == 0
 
 - name: "✓ radvd instalado"
   ansible.builtin.debug:
     msg: "→ Router Advertisement Daemon instalado"
+  when: radvd_check.rc != 0
 
 - name: "📝 Configurar radvd"
   ansible.builtin.template:
@@ -26,15 +41,32 @@
   ansible.builtin.debug:
     msg: "→ Archivo: /etc/radvd.conf"
 
-- name: "🚀 Habilitar y arrancar radvd"
+- name: "🔍 Verificar si radvd ya está corriendo"
+  ansible.builtin.systemd:
+    name: radvd
+  register: radvd_status
+  become: true
+  failed_when: false
+
+- name: "🚀 Reiniciar radvd para aplicar cambios"
+  ansible.builtin.systemd:
+    name: radvd
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+  become: true
+  when: radvd_status.status.ActiveState is defined
+
+- name: "🚀 Iniciar radvd por primera vez"
   ansible.builtin.systemd:
     name: radvd
     state: started
     enabled: yes
     daemon_reload: yes
   become: true
+  when: radvd_status.status.ActiveState is not defined
 
-- name: "✓ radvd iniciado"
+- name: "✓ radvd configurado"
   ansible.builtin.debug:
     msg:
       - "→ radvd está enviando Router Advertisements"
@@ -42,13 +74,3 @@
       - "  • Prefijo de red: 2025:db8:10::/64"
       - "  • Gateway por defecto"
       - "  • Servidor DNS: 2025:db8:10::2"
-
-- name: "🔍 Verificar estado de radvd"
-  ansible.builtin.systemd:
-    name: radvd
-  register: radvd_status
-  become: true
-
-- name: "📊 Estado de radvd"
-  ansible.builtin.debug:
-    msg: "→ Estado: {{ radvd_status.status.ActiveState }}"
