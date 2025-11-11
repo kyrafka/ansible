@@ -336,20 +336,7 @@ ansible-playbook playbooks/create-windows11.yml -e "vm_role=cliente"
 | **VMs en ESXi** | 9 | 30 GB | 15 cores |
 | **TOTAL** | 20 VMs | 86 GB | 47 cores |
 
-### Captura de Pantalla: VMware ESXi
 
-> 📸 **Imagen requerida:** `docs/images/topologia/vmware-esxi.png`
->
-> **Contenido de la captura:**
-> - Accede a la interfaz web de ESXi: `https://172.17.25.11`
-> - Captura la vista de "Virtual Machines" mostrando:
->   - Lista de las 9 VMs creadas
->   - Estado (Powered On/Off)
->   - Recursos asignados (RAM, CPU)
->   - Datastore utilizado
->   - Red asignada
->
-> **Alternativa:** Captura del vSphere Client mostrando el inventario completo
 
 ### Diagrama de Red
 
@@ -1024,59 +1011,7 @@ ansible-playbook site.yml --tags firewall  # Solo firewall
 ## 📸 Evidencias y Capturas de Pantalla
 
 > 📁 **Ubicación de imágenes:** `docs/images/`  
-> 📋 **Lista completa de imágenes requeridas:** Ver [IMAGENES-REQUERIDAS.md](docs/IMAGENES-REQUERIDAS.md)
-
-### Topología de Red
-
-![Topología General](docs/images/topologia/topologia-general.png)
-*Diagrama completo de la infraestructura de red*
-
-![Servidor Gaming 1](docs/images/topologia/servidor-gaming-1.png)
-*Servidor Gaming 1 - Ubuntu Server + VMs*
-
-![Servidor Gaming 2](docs/images/topologia/servidor-gaming-2.png)
-*Servidor Gaming 2 - Debian Server + VMs*
-
-![Red IPv6](docs/images/topologia/red-ipv6.png)
-*Esquema de direccionamiento IPv6*
-
-### Configuración del Sistema
-
-![Estructura Ansible](docs/images/configuracion/ansible-estructura.png)
-*Estructura de carpetas del proyecto Ansible*
-
-![Configuración de Red](docs/images/configuracion/netplan-servidor.png)
-*Configuración de red del servidor (netplan)*
-
-### Servicios en Funcionamiento
-
-![BIND9 Zona](docs/images/servicios/bind9-zona-directa.png)
-*Archivo de zona DNS (db.gamecenter.local)*
-
-![Nginx Web](docs/images/servicios/nginx-pagina-web.png)
-*Página web accesible desde http://gamecenter.local*
-
-![Firewall UFW](docs/images/servicios/firewall-reglas.png)
-*Reglas de firewall configuradas*
-
-### Pruebas de Funcionamiento
-
-![Resolución DNS](docs/images/pruebas/dns-resolucion.png)
-*Prueba de resolución DNS con dig*
-
-![Asignación DHCP](docs/images/pruebas/dhcp-asignacion.png)
-*IP asignada por DHCPv6 al cliente*
-
-![Acceso Web](docs/images/pruebas/web-acceso-nombre.png)
-*Acceso exitoso a http://gamecenter.local*
-
-### Monitoreo y Diagnóstico
-
-![Monitoreo Recursos](docs/images/monitoreo/top-servidor.png)
-*Monitoreo de recursos del servidor con htop*
-
-![Logs Sistema](docs/images/monitoreo/logs-sistema.png)
-*Logs del sistema con journalctl*
+> 📋 **Documentación de pruebas:** Ver [PRUEBAS.md](docs/PRUEBAS.md) para evidencias detalladas
 
 ---
 
