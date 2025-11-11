@@ -7,4 +7,5 @@ network:
       accept-ra: false  # No aceptar Router Advertisements
       ipv6-privacy: false  # Desactivar IPs temporales
       addresses:
-        - 2025:db8:10::2/64
+        - 2025:db8:10::1/64  # Gateway de la red
+        - 2025:db8:10::2/64  # IP del servidor DNS/DHCP
