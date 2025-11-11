@@ -38,7 +38,7 @@ fi
 
 echo ""
 echo "🌐 NAT66:"
-if ip6tables -t nat -L POSTROUTING -n | grep -q "MASQUERADE"; then
+if sudo ip6tables -t nat -L POSTROUTING -n 2>/dev/null | grep -q "MASQUERADE"; then
     echo "✅ NAT66 configurado"
 else
     echo "❌ NAT66 no configurado"
