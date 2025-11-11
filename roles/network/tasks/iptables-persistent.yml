@@ -1,0 +1,172 @@
+---
+# Configuración de persistencia de reglas iptables/ip6tables
+
+- name: "📦 Instalar iptables-persistent"
+  ansible.builtin.apt:
+    name: 
+      - iptables-persistent
+      - netfilter-persistent
+    state: present
+    update_cache: no
+  become: true
+
+- name: "✓ iptables-persistent instalado"
+  ansible.builtin.debug:
+    msg: "→ Las reglas de firewall ahora persistirán después de reiniciar"
+
+- name: "📁 Crear directorio para reglas de iptables"
+  ansible.builtin.file:
+    path: /etc/iptables
+    state: directory
+    mode: '0755'
+  become: true
+
+- name: "🧹 Limpiar reglas antiguas de NAT (IPv4)"
+  ansible.builtin.shell: |
+    # Limpiar reglas antiguas
+    iptables -t nat -F POSTROUTING 2>/dev/null || true
+  become: true
+  changed_when: false
+
+- name: "🛡️ Configurar NAT para IPv4 (MASQUERADE)"
+  ansible.builtin.shell: |
+    # Verificar si ya existe la regla
+    iptables -t nat -C POSTROUTING -o {{ wan_interface }} -j MASQUERADE 2>/dev/null || \
+    # Si no existe, agregarla
+    iptables -t nat -A POSTROUTING -o {{ wan_interface }} -j MASQUERADE
+  become: true
+  changed_when: false
+
+- name: "🔀 Configurar reglas de FORWARD para IPv4"
+  ansible.builtin.shell: |
+    # Permitir tráfico de LAN a WAN
+    iptables -C FORWARD -i {{ lan_interface }} -o {{ wan_interface }} -j ACCEPT 2>/dev/null || \
+    iptables -A FORWARD -i {{ lan_interface }} -o {{ wan_interface }} -j ACCEPT
+    
+    # Permitir tráfico de retorno
+    iptables -C FORWARD -i {{ wan_interface }} -o {{ lan_interface }} -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \
+    iptables -A FORWARD -i {{ wan_interface }} -o {{ lan_interface }} -m state --state RELATED,ESTABLISHED -j ACCEPT
+  become: true
+  changed_when: false
+
+- name: "✓ NAT IPv4 configurado"
+  ansible.builtin.debug:
+    msg:
+      - "→ Interfaz salida: {{ wan_interface }}"
+      - "→ Método: MASQUERADE (dinámico)"
+
+- name: "🧹 Limpiar reglas antiguas de NAT66 (IPv6)"
+  ansible.builtin.shell: |
+    # Eliminar reglas antiguas con SNAT incorrectas
+    ip6tables -t nat -D POSTROUTING -s 2025:db8:10::/64 -o {{ wan_interface }} -j SNAT --to ::/0 2>/dev/null || true
+    # Limpiar todas las reglas de POSTROUTING para reconfigurar
+    ip6tables -t nat -F POSTROUTING 2>/dev/null || true
+  become: true
+  changed_when: false
+
+- name: "🛡️ Configurar NAT66 para IPv6 (MASQUERADE)"
+  ansible.builtin.shell: |
+    # Verificar si ya existe la regla
+    ip6tables -t nat -C POSTROUTING -s 2025:db8:10::/64 -o {{ wan_interface }} -j MASQUERADE 2>/dev/null || \
+    # Si no existe, agregarla
+    ip6tables -t nat -A POSTROUTING -s 2025:db8:10::/64 -o {{ wan_interface }} -j MASQUERADE
+  become: true
+  changed_when: false
+
+- name: "🔀 Configurar reglas de FORWARD para IPv6"
+  ansible.builtin.shell: |
+    # Permitir tráfico de LAN a WAN
+    ip6tables -C FORWARD -i {{ lan_interface }} -o {{ wan_interface }} -j ACCEPT 2>/dev/null || \
+    ip6tables -A FORWARD -i {{ lan_interface }} -o {{ wan_interface }} -j ACCEPT
+    
+    # Permitir tráfico de retorno
+    ip6tables -C FORWARD -i {{ wan_interface }} -o {{ lan_interface }} -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \
+    ip6tables -A FORWARD -i {{ wan_interface }} -o {{ lan_interface }} -m state --state RELATED,ESTABLISHED -j ACCEPT
+  become: true
+  changed_when: false
+
+- name: "✓ NAT66 IPv6 configurado"
+  ansible.builtin.debug:
+    msg:
+      - "→ Red origen: 2025:db8:10::/64"
+      - "→ Interfaz salida: {{ wan_interface }}"
+      - "→ Método: MASQUERADE (dinámico)"
+
+- name: "💾 Guardar reglas de iptables IPv4"
+  ansible.builtin.shell: |
+    iptables-save > /etc/iptables/rules.v4
+    cp /etc/iptables/rules.v4 /etc/iptables/rules.v4.backup
+  become: true
+  changed_when: true
+
+- name: "💾 Guardar reglas de ip6tables IPv6"
+  ansible.builtin.shell: |
+    ip6tables-save > /etc/iptables/rules.v6
+    cp /etc/iptables/rules.v6 /etc/iptables/rules.v6.backup
+  become: true
+  changed_when: true
+
+- name: "✓ Reglas guardadas"
+  ansible.builtin.debug:
+    msg:
+      - "→ IPv4: /etc/iptables/rules.v4"
+      - "→ IPv6: /etc/iptables/rules.v6"
+      - "→ Backups creados"
+
+- name: "🔗 Crear enlaces simbólicos para netfilter-persistent"
+  ansible.builtin.file:
+    src: "/etc/iptables/rules.{{ item }}"
+    dest: "/etc/iptables/rules.{{ item }}"
+    state: file
+  become: true
+  loop:
+    - v4
+    - v6
+  ignore_errors: yes
+
+- name: "🔄 Habilitar netfilter-persistent"
+  ansible.builtin.systemd:
+    name: netfilter-persistent
+    enabled: yes
+    state: started
+  become: true
+
+- name: "✓ Persistencia de reglas habilitada"
+  ansible.builtin.debug:
+    msg:
+      - "→ Las reglas de firewall se cargarán automáticamente al iniciar"
+      - "→ Servicio: netfilter-persistent"
+
+- name: "🔍 Verificar reglas activas de NAT IPv4"
+  ansible.builtin.command: iptables -t nat -L POSTROUTING -n -v
+  register: nat_rules_v4
+  become: true
+  changed_when: false
+
+- name: "📋 Reglas NAT IPv4 activas"
+  ansible.builtin.debug:
+    msg: "{{ nat_rules_v4.stdout_lines }}"
+
+- name: "🔍 Verificar reglas activas de NAT66 IPv6"
+  ansible.builtin.command: ip6tables -t nat -L POSTROUTING -n -v
+  register: nat_rules_v6
+  become: true
+  changed_when: false
+
+- name: "📋 Reglas NAT66 IPv6 activas"
+  ansible.builtin.debug:
+    msg: "{{ nat_rules_v6.stdout_lines }}"
+
+- name: "✅ Configuración de NAT completada"
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════"
+      - "✅ NAT configurado correctamente"
+      - "════════════════════════════════════════"
+      - "→ IPv4: MASQUERADE en {{ wan_interface }}"
+      - "→ IPv6: MASQUERADE para 2025:db8:10::/64"
+      - "→ Forwarding: Habilitado"
+      - "→ Persistencia: Activa (sobrevive reinicios)"
+      - "════════════════════════════════════════"
+      - "Las VMs ahora deberían tener acceso a internet"
+      - "════════════════════════════════════════"

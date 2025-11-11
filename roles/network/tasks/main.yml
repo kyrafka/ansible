@@ -29,10 +29,32 @@
   changed_when: false
   ignore_errors: yes
 
-- name: "📝 Creando configuración netplan limpia para {{ lan_interface }}"
-  ansible.builtin.template:
-    src: netplan-ens34.yaml.j2
-    dest: /etc/netplan/99-ens34-ipv6.yaml
+- name: "📝 Creando configuración netplan completa (ens33 + ens34)"
+  ansible.builtin.copy:
+    content: |
+      network:
+        version: 2
+        renderer: networkd
+        ethernets:
+          ens33:
+            # WAN - Internet
+            dhcp4: true
+            dhcp6: false
+            nameservers:
+              addresses:
+                - 8.8.8.8
+                - 8.8.4.4
+                - 2001:4860:4860::8888
+          ens34:
+            # LAN - Red interna IPv6
+            dhcp4: false
+            dhcp6: false
+            accept-ra: false
+            ipv6-privacy: false
+            addresses:
+              - 2025:db8:10::1/64
+              - 2025:db8:10::2/64
+    dest: /etc/netplan/99-server-network.yaml
     owner: root
     group: root
     mode: '0600'
@@ -40,7 +62,7 @@
 
 - name: "✓ Configuración netplan creada"
   ansible.builtin.debug:
-    msg: "→ Archivo: /etc/netplan/99-ens34-ipv6.yaml"
+    msg: "→ Archivo: /etc/netplan/99-server-network.yaml (ens33 + ens34 + DNS)"
 
 - name: "🔄 Aplicando configuración de netplan"
   ansible.builtin.command: netplan apply
@@ -50,6 +72,42 @@
 - name: "✓ Netplan aplicado"
   ansible.builtin.debug:
     msg: "→ IPv6 configurada en {{ lan_interface }}: 2025:db8:10::2/64"
+
+- name: "🌐 Configurar DNS del servidor (para que pueda resolver nombres)"
+  ansible.builtin.file:
+    path: /etc/systemd/resolved.conf.d
+    state: directory
+    mode: '0755'
+  become: true
+
+- name: "🌐 Agregar servidores DNS públicos"
+  ansible.builtin.copy:
+    content: |
+      [Resolve]
+      DNS=8.8.8.8
+      DNS=8.8.4.4
+      DNS=2001:4860:4860::8888
+      DNS=2001:4860:4860::8844
+      FallbackDNS=1.1.1.1
+      FallbackDNS=1.0.0.1
+    dest: /etc/systemd/resolved.conf.d/dns.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: "🔄 Reiniciar systemd-resolved"
+  ansible.builtin.systemd:
+    name: systemd-resolved
+    state: restarted
+  become: true
+
+- name: "✓ DNS del servidor configurado"
+  ansible.builtin.debug:
+    msg:
+      - "→ El servidor ahora puede resolver nombres"
+      - "→ DNS: 8.8.8.8, 8.8.4.4 (Google)"
+      - "→ Esto es necesario para que BIND9 funcione correctamente"
 
 - name: "🔀 Habilitando IP forwarding IPv4"
   ansible.posix.sysctl:
@@ -114,62 +172,17 @@
   ansible.builtin.debug:
     msg: "→ IPs SLAAC antiguas eliminadas, solo quedará la IP fija"
 
-- name: "📁 Creando directorio para reglas de iptables"
-  ansible.builtin.file:
-    path: /etc/iptables
-    state: directory
-    mode: '0755'
-  become: true
-
-- name: "🧹 Limpiar reglas NAT66 antiguas"
-  ansible.builtin.shell: |
-    # Eliminar reglas antiguas con SNAT incorrectas
-    ip6tables -t nat -D POSTROUTING -s 2025:db8:10::/64 -o {{ wan_interface }} -j SNAT --to ::/0 2>/dev/null || true
-    # Eliminar reglas MASQUERADE antiguas para reconfigurar
-    ip6tables -t nat -D POSTROUTING -s 2025:db8:10::/64 -o {{ wan_interface }} -j MASQUERADE 2>/dev/null || true
-  become: true
-  changed_when: false
-  ignore_errors: yes
-
-- name: "🛡️  Configurando NAT66 con MASQUERADE (IPv6 → Internet)"
-  ansible.builtin.shell: |
-    # Verificar si ya existe la regla correcta
-    ip6tables -t nat -C POSTROUTING -s 2025:db8:10::/64 -o {{ wan_interface }} -j MASQUERADE 2>/dev/null || \
-    # Si no existe, agregarla
-    ip6tables -t nat -A POSTROUTING -s 2025:db8:10::/64 -o {{ wan_interface }} -j MASQUERADE
-  become: true
-  changed_when: false
-
-- name: "🔀 Configurando reglas de FORWARD para NAT66"
-  ansible.builtin.shell: |
-    # Permitir tráfico de LAN a WAN
-    ip6tables -C FORWARD -i {{ lan_interface }} -o {{ wan_interface }} -j ACCEPT 2>/dev/null || \
-    ip6tables -A FORWARD -i {{ lan_interface }} -o {{ wan_interface }} -j ACCEPT
-    
-    # Permitir tráfico de retorno (established/related)
-    ip6tables -C FORWARD -i {{ wan_interface }} -o {{ lan_interface }} -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \
-    ip6tables -A FORWARD -i {{ wan_interface }} -o {{ lan_interface }} -m state --state RELATED,ESTABLISHED -j ACCEPT
-  become: true
-  changed_when: false
-
-- name: "✓ NAT66 configurado correctamente"
-  ansible.builtin.debug:
-    msg:
-      - "→ Red origen: 2025:db8:10::/64"
-      - "→ Interfaz salida: {{ wan_interface }}"
-      - "→ Método: MASQUERADE (dinámico)"
-      - "→ Las VMs podrán salir a internet a través del servidor"
-
-- name: "💾 Guardando reglas de iptables"
-  ansible.builtin.shell: |
-    ip6tables-save > /etc/iptables/rules.v6
-  become: true
-  args:
-    creates: /etc/iptables/rules.v6
-
-- name: "✓ Reglas guardadas"
-  ansible.builtin.debug:
-    msg: "→ Archivo: /etc/iptables/rules.v6"
+- name: "🛡️ Configurar NAT y persistencia de reglas iptables"
+  block:
+    - ansible.builtin.include_tasks: iptables-persistent.yml
+  rescue:
+    - name: "❌ Error en configuración de iptables"
+      ansible.builtin.debug:
+        msg: "Error al configurar iptables: {{ ansible_failed_result }}"
+    - name: "⚠️ Continuando sin persistencia"
+      ansible.builtin.debug:
+        msg: "iptables no se pudo configurar completamente"
+  tags: [network, iptables, nat]
 
 - name: "📡 Configurar Router Advertisements (radvd)"
   block:
