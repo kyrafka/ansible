@@ -1,466 +1,579 @@
-# 🎮 Infraestructura Gaming con IPv6 + NAT64/DNS64
+# Informe Técnico de Propuesta de Sistema Operativo para un Laboratorio Académico y un Game Center
 
-Proyecto completo de Ansible para crear una infraestructura gaming automatizada con Ubuntu Desktop, usando IPv6 puro con traducción NAT64/DNS64 a internet IPv4.
-
-## 🏗️ Arquitectura
-
-```
-     internet (ipv4/Vm network)
-     ↓
-     router (fisico)
-    ↓
-    switch (fisico)
-    ↓
-    switch_virtual (----no hecho-----)
-    ↓
-Servidor Ubuntu (UBPC)
-    ├─ ens33: Internet IPv4 (DHCP/VM network)
-    └─ ens34: Red interna IPv6 (2025:db8:10::/64)
-        ├─ DHCP IPv6 (asigna IPs automáticamente)
-        ├─ DNS + DNS64 (traduce nombres a IPs IPv6)
-        ├─ Tayga NAT64 (traduce paquetes IPv6→IPv4)
-        ├─ Squid Proxy (HTTP/HTTPS sobre IPv6)
-        └─ radvd (Router Advertisements)
-            ↓
-            switch virtual (M_vm's)
-            ↓
-        VMs Ubuntu Desktop (solo IPv6)
-            ├─ IP automática por DHCP: 2025:db8:10::100-200
-            ├─ DNS64 traduce google.com → 64:ff9b::xxx
-            ├─ NAT64 traduce paquetes a IPv4
-            └─ Acceso completo a internet
-```
-
-**Red:** `2025:db8:10::/64`  
-**Dominio:** `gamecenter.local`  
-**Servidor:** `2025:db8:10::2`  
-**VMs (DHCP):** `2025:db8:10::10-200` (debe ser literalmente la ip 2025:db8:10::10 y asi, sin cosas en medio)
+**FACULTAD DE INGENIERÍA Y ARQUITECTURA**  
+**ESCUELA PROFESIONAL DE INGENIERÍA DE SISTEMAS**
 
 ---
 
-## 📁 Estructura del Proyecto
+## 📋 Información del Proyecto
 
-```
-ansible/
-├── playbooks/              # Playbooks principales
-│   ├── setup-complete-infrastructure.yml  # Configura TODO el servidor
-│   ├── create-vm-ubuntu-desktop.yml      # Crea VMs en ESXi
-│   ├── configure-ubuntu-desktop.yml      # Configura usuarios en VMs
-│   └── setup-gaming-desktop.yml          # Instala software gaming
-│
-├── roles/                  # Roles de Ansible
-│   ├── network/           # Configuración de red, NAT64, Squid
-│   ├── dhcpv6/            # Servidor DHCP IPv6
-│   ├── dns_bind/          # DNS con BIND9 + DNS64
-│   ├── firewall/          # Firewall con UFW
-│   ├── ubuntu_gaming/     # Software y optimizaciones gaming
-│   └── storage/           # NFS y almacenamiento
-│
-├── scripts/               # Scripts auxiliares
-│   ├── install-nat64-tayga.sh        # Instala Tayga manualmente
-│   ├── install-squid-proxy.sh       # Instala Squid manualmente
-│   ├── fix-nat64-routes.sh          # Corrige rutas NAT64
-│   └── check-nat64-status.sh        # Verifica estado NAT64
-│
-├── inventory/             # Inventarios de hosts
-│   └── hosts.ini         # Definición de servidores y VMs
-│
-└── group_vars/           # Variables globales
-    ├── all.yml          # Variables comunes
-    └── all.vault.yml    # Contraseñas encriptadas
-```
+**Curso:** Sistemas Operativos  
+**Profesor:** Villegas Alex  
+**Año:** 2025  
+**Ubicación:** Lima, Perú
+
+### 👥 Autores
+
+- **Quispe Chumbes Boris Santiago**
+- **Zúñiga Medina José Darío**
 
 ---
 
-## 🚀 Guía de Uso Rápida
+## 📖 Índice
 
-### 1️⃣ Configurar Servidor Completo
-
-```bash
-# Activa el entorno virtual
-source .ansible-venv/bin/activate
-
-# Configura TODO: Red, DHCP, DNS, NAT64, Squid, Firewall
-ansible-playbook -i inventory/hosts.ini setup-complete-infrastructure.yml -K
-```
-
-**Esto configura:**
-- ✅ Red IPv6 en ens34
-- ✅ DHCP IPv6 (rango 2025:db8:10::10d-200)
-- ✅ DNS con BIND9 + DNS64
-- ✅ Tayga NAT64 (traduce IPv6→IPv4)
-- ✅ Squid Proxy (HTTP/HTTPS)
-- ✅ radvd (Router Advertisements)
-- ✅ Firewall configurado
-
-### 2️⃣ Crear VM Ubuntu Desktop
-
-```bash
-# Crea una VM en ESXi con Ubuntu Desktop
-ansible-playbook -i inventory/hosts.ini create-vm-ubuntu-desktop.yml
-```
-
-**Especificaciones de la VM:**
-- 8GB RAM
-- 4 CPUs
-- 40GB disco
-- Conectada a red M_vm's (ens34 del servidor)
-
-**Después:**
-1. Instala Ubuntu Desktop manualmente
-2. Crea usuario inicial: `administrador` / `123456`
-3. Configura red IPv6 (ver sección "Configurar Red en VM")
-
-### 3️⃣ Configurar Usuarios en la VM
-
-```bash
-# Crea 3 usuarios: admin, auditor, gamer01
-ansible-playbook -i inventory/hosts.ini configure-ubuntu-desktop.yml
-```
-
-**Usuarios creados:**
-- `admin`: Administrador con sudo (contraseña: 123456)
-- `auditor`: Solo lectura (contraseña: 123456)
-- `gamer01`: Usuario gaming (contraseña: 123456)
-
-### 4️⃣ Instalar Software Gaming
-
-```bash
-# Instala y optimiza para gaming
-ansible-playbook -i inventory/hosts.ini setup-gaming-desktop.yml
-```
-
-**Software instalado:**
-- Steam, Lutris, Heroic Games Launcher
-- Discord, OBS Studio
-- GameMode, MangoHud, ProtonUp-Qt
-- Bottles, emuladores (RetroArch, PCSX2, Dolphin)
-
-**Optimizaciones:**
-- Kernel XanMod gaming
-- CPU governor en performance
-- Swap optimizado (swappiness=10)
-- Audio de baja latencia
-
-**Personalización:**
-- Tema Sweet Dark
-- Iconos Papirus
-- Wallpapers gaming
-- Conky para monitoreo
+1. [Descripción del Proyecto](#descripción-del-proyecto)
+2. [Topología de Red](#topología-de-red)
+3. [Arquitectura del Sistema](#arquitectura-del-sistema)
+4. [Servicios Implementados](#servicios-implementados)
+5. [Gestión de Procesos y Servicios](#gestión-de-procesos-y-servicios)
+6. [Administración de Usuarios y Permisos](#administración-de-usuarios-y-permisos)
+7. [Automatización de Tareas](#automatización-de-tareas)
+8. [Seguridad y Políticas](#seguridad-y-políticas)
+9. [Mantenimiento y Monitoreo](#mantenimiento-y-monitoreo)
+10. [Guía de Uso](#guía-de-uso)
 
 ---
 
-## 📋 Playbooks Disponibles
+## 🎯 Descripción del Proyecto
 
-### Playbooks Principales
+Este proyecto implementa una infraestructura completa de red IPv6 para un laboratorio académico y game center, utilizando tecnologías de virtualización y automatización con Ansible.
 
-| Playbook | Descripción | Uso |
-|----------|-------------|-----|
-| `setup-complete-infrastructure.yml` | Configura TODO el servidor desde cero | `ansible-playbook -i inventory/hosts.ini setup-complete-infrastructure.yml -K` |
-| `create-vm-ubuntu-desktop.yml` | Crea VM en ESXi | `ansible-playbook -i inventory/hosts.ini create-vm-ubuntu-desktop.yml` |
-| `configure-ubuntu-desktop.yml` | Configura usuarios en VM | `ansible-playbook -i inventory/hosts.ini configure-ubuntu-desktop.yml` |
-| `setup-gaming-desktop.yml` | Instala software gaming | `ansible-playbook -i inventory/hosts.ini setup-gaming-desktop.yml` |
+### Objetivos
 
-### Playbooks por Componente
-
-| Playbook | Descripción |
-|----------|-------------|
-| `playbook-network.yml` | Solo configuración de red |
-| `playbook-dhcp.yml` | Solo DHCP IPv6 |
-| `playbook-dns.yml` | Solo DNS + DNS64 |
-| `playbook-firewall.yml` | Solo firewall |
-
-### Scripts de Ejecución Rápida
-
-| Script | Descripción |
-|--------|-------------|
-| `run-network.sh` | Ejecuta playbook de red |
-| `run-dhcp.sh` | Ejecuta playbook de DHCP |
-| `run-dns.sh` | Ejecuta playbook de DNS |
-| `run-firewall.sh` | Ejecuta playbook de firewall |
+- ✅ Implementar una red IPv6 pura (`2025:db8:10::/64`)
+- ✅ Configurar servicios de red esenciales (DNS, DHCP, Web)
+- ✅ Automatizar el despliegue con Ansible
+- ✅ Gestionar múltiples sistemas operativos (Linux, Windows, macOS)
+- ✅ Implementar seguridad con firewall y fail2ban
 
 ---
 
-## 🔧 Scripts Auxiliares
+## 🌐 Topología de Red
 
-### Scripts de NAT64
+### Servidor Gaming 1
+- **Servidor Ubuntu** (Principal)
+  - IP: `2025:db8:10::2`
+  - Servicios: DNS (BIND9), DHCPv6, Nginx, Firewall
+- **Estaciones:**
+  - macOS
+  - Linux
+  - Windows 11
 
-| Script | Descripción | Uso |
-|--------|-------------|-----|
-| `install-nat64-tayga.sh` | Instala Tayga NAT64 manualmente | `sudo bash install-nat64-tayga.sh` |
-| `install-squid-proxy.sh` | Instala Squid Proxy manualmente | `sudo bash install-squid-proxy.sh` |
-| `fix-nat64-routes.sh` | Corrige rutas y reglas de NAT64 | `sudo bash fix-nat64-routes.sh` |
-| `check-nat64-status.sh` | Verifica estado completo de NAT64 | `sudo bash check-nat64-status.sh` |
-| `fix-dhcp-quick.sh` | Corrige servicio DHCP rápidamente | `sudo bash fix-dhcp-quick.sh` |
+### Servidor Gaming 2
+- **Servidor Debian**
+  - Servicios: Secundario/Backup
+- **Estaciones:**
+  - macOS
+  - Linux
+  - Windows 11
 
----
+### Diagrama de Red
 
-## 🌐 Configurar Red en VM
-
-Después de instalar Ubuntu Desktop en la VM, configura la red IPv6:
-
-```bash
-# Editar netplan
-sudo nano /etc/netplan/01-netcfg.yaml
 ```
-
-Contenido:
-
-```yaml
-network:
-  version: 2
-  ethernets:
-    ens34:
-      dhcp4: no
-      dhcp6: yes
-      accept-ra: yes
-      nameservers:
-        addresses:
-          - 2025:db8:10::2
-        search:
-          - gamecenter.local
-```
-
-Aplicar:
-
-```bash
-sudo netplan apply
-
-# Verificar IP obtenida
-ip -6 addr show ens34
-
-# Probar internet
-ping6 google.com
+                    Internet (NAT)
+                          |
+                    [VMware ESXi]
+                          |
+        +-----------------+------------------+
+        |                                    |
+   [Servidor 1]                        [Servidor 2]
+   Ubuntu Server                       Debian Server
+   2025:db8:10::2                     2025:db8:10::3
+        |                                    |
+   +----+----+                          +----+----+
+   |    |    |                          |    |    |
+  Mac Linux Win                        Mac Linux Win
 ```
 
 ---
 
-## 🔍 Verificación y Diagnóstico
+## 🏗️ Arquitectura del Sistema
 
-### En el Servidor
+### Tecnologías Utilizadas
 
-```bash
-# Ver servicios activos
-sudo systemctl status isc-dhcp-server6
-sudo systemctl status bind9
-sudo systemctl status radvd
-sudo systemctl status squid
+| Componente | Tecnología | Versión |
+|------------|-----------|---------|
+| Virtualización | VMware ESXi | 7.0+ |
+| Automatización | Ansible | 2.15+ |
+| Servidor DNS | BIND9 | 9.18+ |
+| Servidor DHCP | isc-dhcp-server | 4.4+ |
+| Servidor Web | Nginx | 1.24+ |
+| Firewall | UFW + fail2ban | - |
+| Sistema Base | Ubuntu Server | 24.04 LTS |
 
-# Ver NAT64
-ps aux | grep tayga
-ip addr show nat64
-ip -6 route | grep 64:ff9b
+### Estructura del Proyecto
 
-# Ver reglas de firewall
-sudo iptables -L -v -n
-sudo ip6tables -L -v -n
-
-# Verificar estado completo
-sudo bash check-nat64-status.sh
 ```
-
-### En la VM
-
-```bash
-# Ver IP obtenida
-ip -6 addr show ens34
-
-# Ver rutas
-ip -6 route show
-
-# Probar DNS64
-dig @2025:db8:10::2 google.com AAAA
-
-# Probar internet
-ping6 google.com
-curl http://google.com
+ansible-gestion-despliegue/
+├── roles/
+│   ├── common/          # Configuración base
+│   ├── network/         # Red IPv6 y radvd
+│   ├── dns_bind/        # Servidor DNS
+│   ├── dhcpv6/          # Servidor DHCPv6
+│   ├── http_web/        # Servidor web Nginx
+│   ├── firewall/        # UFW y fail2ban
+│   └── storage/         # Gestión de almacenamiento
+├── playbooks/           # Playbooks de Ansible
+├── scripts/
+│   ├── run/            # Scripts de ejecución
+│   ├── diagnostics/    # Scripts de diagnóstico
+│   └── setup/          # Scripts de instalación
+├── inventory/          # Inventario de hosts
+└── group_vars/         # Variables de configuración
 ```
 
 ---
 
-## 📦 Roles Detallados
+## 🔧 Servicios Implementados
 
-### `network`
-Configura red IPv6, NAT64, Squid Proxy y radvd.
+### 1. DNS (BIND9)
+- **Dominio:** `gamecenter.local`
+- **Zona directa:** Resolución de nombres a IPs
+- **Zona inversa:** Resolución de IPs a nombres
+- **Registros configurados:**
+  - `gamecenter.local` → `2025:db8:10::2`
+  - `servidor.gamecenter.local` → `2025:db8:10::2`
+  - `www.gamecenter.local` → CNAME a servidor
+  - `web.gamecenter.local` → CNAME a servidor
 
-**Tareas:**
-- Configura interfaces ens33 (WAN) y ens34 (LAN)
-- Habilita IP forwarding
-- Instala y configura radvd
-- Instala y configura Tayga NAT64
-- Instala y configura Squid Proxy
-- Configura iptables para NAT
+### 2. DHCPv6
+- **Rango de IPs:** `2025:db8:10::10` - `2025:db8:10::FFFF`
+- **Asignación dinámica** con DUID
+- **Configuración automática** de DNS y dominio
+- **SLAAC desactivado** para control centralizado
 
-### `dhcpv6`
-Configura servidor DHCP IPv6.
+### 3. Servidor Web (Nginx)
+- **Puerto:** 80 (HTTP)
+- **Página de bienvenida** personalizada
+- **Acceso por nombre:** `http://gamecenter.local`
+- **Headers de seguridad** configurados
 
-**Tareas:**
-- Instala isc-dhcp-server
-- Configura rango 2025:db8:10::100-200
-- Configura permisos y AppArmor
-- Crea directorio PID correcto
-
-### `dns_bind`
-Configura DNS con BIND9 + DNS64.
-
-**Tareas:**
-- Instala BIND9
-- Configura zona gamecenter.local
-- Configura DNS64 (prefijo 64:ff9b::/96)
-- Configura forwarders a 8.8.8.8
-
-### `firewall`
-Configura firewall con UFW.
-
-**Tareas:**
-- Instala UFW
-- Abre puertos: SSH (22), DNS (53), DHCP (546/547)
-- Configura rate limiting para SSH
-
-### `ubuntu_gaming`
-Instala software gaming y optimizaciones.
-
-**Tareas:**
-- Instala Steam, Lutris, Heroic, Discord, OBS
-- Instala kernel XanMod gaming
-- Optimiza CPU, swap, audio
-- Instala tema Sweet Dark
-- Configura Conky para monitoreo
+### 4. Firewall y Seguridad
+- **UFW:** Firewall con reglas específicas
+- **fail2ban:** Protección contra ataques de fuerza bruta
+- **Puertos abiertos:**
+  - 22/tcp (SSH con rate limiting)
+  - 53/tcp+udp (DNS)
+  - 80/tcp (HTTP)
+  - 546-547/udp (DHCPv6)
 
 ---
 
-## 🔐 Seguridad
+## 📊 Gestión de Procesos y Servicios
+
+### Linux (Servidor Ubuntu/Debian)
+
+#### Herramientas Clave
+- `top`, `htop` - Monitoreo en tiempo real
+- `ps aux` - Lista de procesos
+- `systemctl` - Gestión de servicios
+- `journalctl` - Logs del sistema
+- `ss`, `netstat` - Puertos y conexiones
+
+#### Comandos Esenciales
+
+```bash
+# Monitorización
+top                                    # Ver CPU/RAM
+ps aux --sort=-%cpu | head -n 20      # Top procesos por CPU
+ps aux --sort=-%mem | head -n 20      # Top procesos por memoria
+
+# Gestión de servicios
+systemctl status nombre_servicio       # Ver estado
+sudo systemctl restart nombre_servicio # Reiniciar
+sudo systemctl enable nombre_servicio  # Habilitar al inicio
+sudo systemctl disable nombre_servicio # Deshabilitar
+
+# Logs
+sudo journalctl -u nombre_servicio --since "2 hours ago"
+sudo journalctl -p err -b             # Errores del boot actual
+sudo journalctl -f                    # Seguir logs en tiempo real
+
+# Puertos y conexiones
+ss -tulnp                             # Ver puertos abiertos
+sudo ss -tulnp | grep :80             # Ver quién usa puerto 80
+```
+
+#### Ejemplo: Reiniciar Nginx
+
+```bash
+sudo systemctl restart nginx
+sudo systemctl status nginx --no-pager
+sudo journalctl -u nginx -n 50
+```
+
+#### Comportamiento ante Cuelgue de Servicio
+
+1. Ver estado: `systemctl status servicio`
+2. Revisar logs: `journalctl -u servicio -n 200`
+3. Reiniciar: `sudo systemctl restart servicio`
+4. Si persiste: `sudo reboot` (con aviso previo)
+
+### Windows 11 (Estaciones)
+
+#### Herramientas Clave
+- Administrador de tareas (Task Manager)
+- `tasklist` - Lista de procesos
+- PowerShell (`Get-Process`, `Get-Service`)
+- `services.msc` - Gestión de servicios
+- `eventvwr.msc` - Visor de eventos
+
+#### Comandos PowerShell
+
+```powershell
+# Ver procesos top CPU
+Get-Process | Sort-Object CPU -Descending | Select-Object -First 10
+
+# Ver procesos top memoria
+Get-Process | Sort-Object WS -Descending | Select-Object -First 10
+
+# Gestión de servicios
+Get-Service -Name "Spooler"
+Restart-Service -Name "Spooler"
+Stop-Service -Name "Spooler"
+Start-Service -Name "Spooler"
+
+# Ver eventos críticos
+Get-EventLog -LogName System -EntryType Error -Newest 50
+```
+
+---
+
+## 👤 Administración de Usuarios y Permisos
+
+### Principios y Convenciones
+
+- **Nombres de cuenta:** `rol_area_num` (ej: `alumno_redes_01`, `tec_soporte_01`)
+- **No usar cuentas admin** para tareas diarias
+- **Roles definidos:**
+  - Estudiante/Jugador
+  - Staff/Técnico
+  - Administrador
+
+### Linux - Gestión de Usuarios
+
+```bash
+# Crear grupo
+sudo groupadd alumnos
+
+# Crear usuario
+sudo useradd -m -s /bin/bash -G alumnos nombre_usuario
+sudo passwd nombre_usuario
+
+# Cambiar propietario y permisos
+sudo chown usuario:grupo /ruta/recurso
+sudo chmod 750 /ruta/recurso
+
+# ACLs (permisos avanzados)
+sudo setfacl -m u:usuario:rwx /ruta/carpeta
+getfacl /ruta/carpeta
+```
+
+#### Ejemplo Completo
+
+```bash
+# Crear usuario para jugador
+sudo groupadd jugadores
+sudo useradd -m -s /bin/bash -G jugadores pepe
+sudo passwd pepe
+
+# Crear directorio personal
+sudo mkdir -p /srv/games/pepe
+sudo chown pepe:jugadores /srv/games/pepe
+sudo chmod 750 /srv/games/pepe
+```
+
+### Compartir Recursos (Samba)
+
+#### Configuración en `/etc/samba/smb.conf`
+
+```ini
+[games]
+    path = /srv/games
+    browseable = yes
+    read only = no
+    valid users = @jugadores
+    create mask = 0750
+    directory mask = 0750
+```
+
+#### Agregar Usuario Samba
+
+```bash
+sudo smbpasswd -a pepe
+```
+
+#### Conectar desde Windows
+
+```cmd
+net use Z: \\192.168.1.10\games /user:pepe contraseña
+```
+
+---
+
+## ⚙️ Automatización de Tareas
+
+### Linux - Cron
+
+#### Editar Crontab
+
+```bash
+crontab -e          # Usuario actual
+sudo crontab -e     # Root
+```
+
+#### Ejemplos de Tareas
+
+```cron
+# Limpiar /tmp cada día a las 02:00
+0 2 * * * /usr/bin/find /tmp -mindepth 1 -mtime +1 -delete
+
+# Backup diario a las 03:00
+0 3 * * * /usr/local/bin/backup_rsync.sh
+
+# Actualizar sistema semanalmente (domingos 04:00)
+0 4 * * 0 /usr/bin/apt update && /usr/bin/apt -y upgrade >> /var/log/apt-upgrade.log 2>&1
+```
+
+#### Script de Backup (`/usr/local/bin/backup_rsync.sh`)
+
+```bash
+#!/bin/bash
+SRC="/srv/data/"
+DEST="/mnt/backup/data/"
+LOG="/var/log/backup_rsync.log"
+
+rsync -a --delete --exclude='tmp/' $SRC $DEST >> $LOG 2>&1
+```
+
+```bash
+sudo chmod +x /usr/local/bin/backup_rsync.sh
+```
+
+### Windows - Task Scheduler
+
+#### Script de Limpieza (`limpieza.bat`)
+
+```batch
+@echo off
+del /q /f C:\Windows\Temp\*
+del /q /f %temp%\*
+echo Limpieza completada >> C:\logs\limpieza.log
+```
+
+#### PowerShell Backup (`C:\scripts\backup.ps1`)
+
+```powershell
+$source = "C:\Users\Public\Documents"
+$dest = "\\192.168.1.10\backup\PC01"
+
+New-Item -ItemType Directory -Path $dest -Force
+robocopy $source $dest /MIR /FFT /R:3 /W:5 /LOG:C:\scripts\logs\robocopy-PC01.log
+```
+
+---
+
+## 🔒 Seguridad y Políticas
 
 ### Contraseñas
 
-Las contraseñas están en `group_vars/all.vault.yml` (encriptado con Ansible Vault).
+- **Longitud mínima:** 12 caracteres
+- **Complejidad:** Mayúsculas, minúsculas, números y símbolos
+- **Cambio:** Cada 90 días para administradores
+- **Prohibido:** Cuentas compartidas
 
-**Contraseñas por defecto:**
-- Usuarios VM: `123456`
-- Usuario servidor: (tu contraseña actual)
+### Actualizaciones
 
-### Encriptar/Desencriptar
+#### Linux
 
 ```bash
-# Encriptar archivo
-ansible-vault encrypt group_vars/all.vault.yml
+# Actualización manual
+sudo apt update && sudo apt upgrade -y
 
-# Desencriptar
-ansible-vault decrypt group_vars/all.vault.yml
+# Actualización automática (cron semanal)
+0 4 * * 0 /usr/bin/apt update && /usr/bin/apt -y upgrade >> /var/log/apt-upgrade.log 2>&1
+```
 
-# Editar
-ansible-vault edit group_vars/all.vault.yml
+#### Windows
+
+- Programar Windows Update fuera de horario pico
+- Mejor control manual en game centers
+- Actualizaciones en madrugada
+
+### Firewall
+
+#### Linux (UFW)
+
+```bash
+# Habilitar UFW
+sudo ufw enable
+
+# Reglas básicas
+sudo ufw allow from 192.168.1.0/24 to any port 22 proto tcp
+sudo ufw allow 53/tcp
+sudo ufw allow 53/udp
+sudo ufw allow 80/tcp
+sudo ufw allow 139,445/tcp  # Samba
+
+# Ver estado
+sudo ufw status verbose
+```
+
+#### Windows
+
+- Configurar reglas en Windows Defender Firewall
+- Permitir solo puertos necesarios
+- Bloquear tráfico entrante por defecto
+
+### Antivirus
+
+- **Windows:** Windows Defender + análisis semanales
+- **Linux:** ClamAV (opcional)
+- Mantener firmas actualizadas
+
+---
+
+## 🔧 Mantenimiento y Monitoreo
+
+### Checklist Diario
+
+- [ ] Verificar estado del servidor (`top`, `df -h`)
+- [ ] Revisar logs de errores (`journalctl -p err -n 100`)
+- [ ] Comprobar backups diarios
+- [ ] Verificar disponibilidad de servicios
+- [ ] Revisar tickets/incidencias
+
+### Checklist Semanal
+
+- [ ] Aplicar actualizaciones de seguridad
+- [ ] Escaneo antivirus completo
+- [ ] Limpieza de logs grandes
+- [ ] Probar restauración de archivos desde backup
+- [ ] Revisar uso de disco
+
+### Checklist Mensual
+
+- [ ] Revisión de cuentas inactivas
+- [ ] Limpieza profunda de discos
+- [ ] Pruebas de rendimiento
+- [ ] Revisión de permisos
+
+### Checklist Trimestral
+
+- [ ] Prueba completa de restauración desde backup
+- [ ] Revisión de políticas de contraseñas
+- [ ] Inventario de hardware
+- [ ] Revisión física de equipos
+
+---
+
+## 📚 Guía de Uso
+
+### Instalación Inicial
+
+```bash
+# 1. Clonar repositorio
+git clone <url-repositorio>
+cd ansible-gestion-despliegue
+
+# 2. Configurar entorno Ansible
+bash scripts/setup/setup-ansible-env.sh --auto
+
+# 3. Activar entorno
+source activate-ansible.sh
+
+# 4. Configurar inventario
+nano inventory/hosts.ini
+
+# 5. Ejecutar playbook completo
+ansible-playbook site.yml
+```
+
+### Scripts Disponibles
+
+#### Ejecución de Servicios
+
+```bash
+bash scripts/run/run-network.sh      # Configurar red
+bash scripts/run/run-dns.sh          # Configurar DNS
+bash scripts/run/run-dhcp.sh         # Configurar DHCP
+bash scripts/run/run-web.sh          # Configurar Nginx
+bash scripts/run/run-firewall.sh     # Configurar firewall
+bash scripts/run/run-all-services.sh # Ejecutar todo
+```
+
+#### Validación
+
+```bash
+bash scripts/run/validate-network.sh # Validar red
+bash scripts/run/validate-dns.sh     # Validar DNS
+bash scripts/run/validate-dhcp.sh    # Validar DHCP
+bash scripts/run/validate-web.sh     # Validar web
+```
+
+#### Diagnóstico
+
+```bash
+bash scripts/diagnostics/diagnose-dns.sh      # Diagnóstico DNS
+bash scripts/diagnostics/test-dns-records.sh  # Probar registros DNS
 ```
 
 ---
 
-## 🐛 Solución de Problemas
+## 📸 Capturas de Pantalla
 
-### DHCP no asigna IPs
+<!-- Puedes agregar imágenes así: -->
 
-```bash
-# Verificar servicio
-sudo systemctl status isc-dhcp-server6
+### Topología de Red
+![Topología](docs/images/topologia.png)
 
-# Ver logs
-sudo journalctl -u isc-dhcp-server6 -n 50
+### Panel de Administración
+![Panel](docs/images/panel.png)
 
-# Corregir permisos
-sudo bash fix-dhcp-quick.sh
+### Página Web
+![Web](docs/images/web.png)
+
+---
+
+## 📝 Notas Adicionales
+
+### Procedimiento ante Incidentes
+
+1. **Descripción:** Recoger reporte (quién, qué, cuándo)
+2. **Impacto:** ¿Afecta a todos o solo a una máquina?
+3. **Contención:** Aislar máquina/red si es necesario
+4. **Diagnóstico:** Revisar logs, procesos, recursos
+5. **Mitigación:** Reinicio, restaurar backup, aplicar parche
+6. **Recuperación:** Volver a servicio normal
+7. **Postmortem:** Documentar causa raíz y prevención
+
+### Template de Reporte de Incidente
+
 ```
-
-### NAT64 no funciona
-
-```bash
-# Verificar Tayga
-ps aux | grep tayga
-ip addr show nat64
-
-# Corregir rutas
-sudo bash fix-nat64-routes.sh
-
-# Verificar estado completo
-sudo bash check-nat64-status.sh
-```
-
-### HTTP/HTTPS no funciona
-
-```bash
-# Usar Squid Proxy en la VM
-echo 'Acquire::http::Proxy "http://[2025:db8:10::2]:3128";' | sudo tee /etc/apt/apt.conf.d/proxy.conf
-
-# Verificar Squid en servidor
-sudo systemctl status squid
-```
-
-### DNS no resuelve
-
-```bash
-# Verificar BIND
-sudo systemctl status bind9
-
-# Probar DNS64
-dig @2025:db8:10::2 google.com AAAA
-
-# Ver logs
-sudo journalctl -u bind9 -n 50
+Fecha/hora: 
+Reportado por: 
+Afectados: 
+Síntomas: 
+Acciones tomadas: 
+Resultado: 
+Recomendaciones: 
 ```
 
 ---
 
-## 📚 Documentación Adicional
+## 🔗 Referencias
 
-- `GUIA-RAPIDA.md`: Guía rápida de uso
-- `TOPOLOGIA-RED.md`: Diagrama de red detallado
-- `USUARIOS-Y-CONTRASEÑAS.md`: Lista de usuarios y contraseñas
-- `DONDE-EJECUTAR-PLAYBOOKS.md`: Dónde ejecutar cada playbook
-- `SCRIPTS-Y-PLAYBOOKS.md`: Descripción de scripts
-
----
-
-## 🎮 Comandos Útiles Gaming
-
-### En la VM
-
-```bash
-# Optimizar para jugar
-sudo gaming-mode.sh
-
-# Restaurar configuración normal
-sudo normal-mode.sh
-
-# Ver FPS y stats
-mangohud <juego>
-
-# Monitoreo del sistema
-btop
-```
+- [Documentación de Ansible](https://docs.ansible.com/)
+- [BIND9 Documentation](https://bind9.readthedocs.io/)
+- [Nginx Documentation](https://nginx.org/en/docs/)
+- [Ubuntu Server Guide](https://ubuntu.com/server/docs)
 
 ---
 
-## 🤝 Contribuir
+## 📄 Licencia
 
-Este proyecto es para uso educativo y gaming. Siéntete libre de adaptarlo a tus necesidades.
-
----
-
-## 📝 Licencia
-
-MIT License - Ver `LICENSE.txt`
+Este proyecto es parte de un trabajo académico para el curso de Sistemas Operativos.
 
 ---
 
-## ✨ Características Principales
-
-- ✅ IPv6 puro en VMs (sin IPv4)
-- ✅ NAT64/DNS64 funcional
-- ✅ DHCP IPv6 automático
-- ✅ Software gaming completo
-- ✅ Optimizaciones de rendimiento
-- ✅ Personalización visual gaming
-- ✅ Todo automatizado con Ansible
-- ✅ Fácil de replicar y mantener
-
----
-
-**¡Disfruta tu infraestructura gaming!** 🎮🚀
+**Última actualización:** Noviembre 2025
