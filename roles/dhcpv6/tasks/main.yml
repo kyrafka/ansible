@@ -4,6 +4,7 @@
 - name: "🔍 FASE 1: Validaciones previas"
   include_tasks: validate.yml
   tags: [dhcp, dhcp-validate]
+  ignore_errors: yes  # No fallar en validaciones previas
 
 - name: "📦 FASE 2: Instalación y configuración"
   include_tasks: install.yml
