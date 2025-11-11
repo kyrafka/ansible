@@ -365,7 +365,7 @@ ansible-gestion-despliegue/
 
 ### Configuración de Red del Servidor
 
-#### Netplan - Servidor Gaming 1 (/etc/netplan/50-cloud-init.yaml)
+#### Netplan (/etc/netplan/50-cloud-init.yaml)
 
 ```yaml
 network:
@@ -373,62 +373,19 @@ network:
   renderer: networkd
   ethernets:
     ens33:
-      # Internet - Viene del switch físico externo
+      # Interfaz externa (NAT/Internet)
       dhcp4: true
       dhcp6: false
       
     ens34:
-      # Switch Virtual - Conexión al switch virtual (GNS3)
-      dhcp4: false
-      dhcp6: false
-      addresses:
-        - 2025:db8:10::TL1/64
-      routes:
-        - to: ::/0
-          via: 2025:db8:10::1
-    
-    ens35:
-      # VMs Internas - Red de las VMs clientes
+      # Interfaz interna (Red del laboratorio)
       dhcp4: false
       dhcp6: false
       addresses:
         - 2025:db8:10::2/64
-      nameservers:
-        addresses:
-          - 2001:4860:4860::8888
-          - 2001:4860:4860::8844
-        search:
-          - gamecenter.local
-```
-
-#### Netplan - Servidor Gaming 2 (/etc/netplan/50-cloud-init.yaml)
-
-```yaml
-network:
-  version: 2
-  renderer: networkd
-  ethernets:
-    ens33:
-      # Internet - Viene del switch físico externo
-      dhcp4: true
-      dhcp6: false
-      
-    ens34:
-      # Switch Virtual - Conexión al switch virtual (GNS3)
-      dhcp4: false
-      dhcp6: false
-      addresses:
-        - 2025:db8:20::TL2/64
       routes:
         - to: ::/0
-          via: 2025:db8:20::1
-    
-    ens35:
-      # VMs Internas - Red de las VMs clientes
-      dhcp4: false
-      dhcp6: false
-      addresses:
-        - 2025:db8:20::2/64
+          via: 2025:db8:10::1
       nameservers:
         addresses:
           - 2001:4860:4860::8888
@@ -441,17 +398,17 @@ network:
 
 | Interfaz | Tipo | Dirección | Uso |
 |----------|------|-----------|-----|
-| **ens33** | Internet | IPv4 (DHCP) | Conexión a Internet desde switch físico externo |
-| **ens34** | Switch Virtual | 2025:db8:10::TL1/64 | Conexión al switch virtual (GNS3) |
-| **ens35** | VMs Internas | 2025:db8:10::2/64 | Red de las VMs clientes (DNS, DHCP, Web) |
+| **ens33** | WAN | IPv4 (DHCP) | Internet/NAT - Acceso externo |
+| **ens34** | LAN Interna | 2025:db8:10::2/64 | Red de VMs (clientes gaming) |
+| **ens35** | LAN Física | 2025:db8:10::TL1 | Conexión al switch físico |
 
 #### Interfaces de Red - Servidor Gaming 2 (Debian)
 
 | Interfaz | Tipo | Dirección | Uso |
 |----------|------|-----------|-----|
-| **ens33** | Internet | IPv4 (DHCP) | Conexión a Internet desde switch físico externo |
-| **ens34** | Switch Virtual | 2025:db8:20::TL2/64 | Conexión al switch virtual (GNS3) |
-| **ens35** | VMs Internas | 2025:db8:20::2/64 | Red de las VMs clientes |
+| **ens33** | WAN | IPv4 (DHCP) | Internet/NAT - Acceso externo |
+| **ens34** | LAN Interna | 2025:db8:20::2/64 | Red de VMs (clientes gaming) |
+| **ens35** | LAN Física | 2025:db8:20::TL2 | Conexión al switch físico |
 
 **Comandos de verificación:**
 ```bash
@@ -489,7 +446,7 @@ El servidor DNS permite acceder a los servicios por nombre en lugar de recordar 
 - Esto permite cambiar la IP del servidor sin actualizar todos los registros
 
 ### 2. DHCPv6
-- **Rango de IPs:** `2025:db8:10::10` - `2025:db8:10::FFFF`
+- **Rango de IPs(/dinamico):** `2025:db8:10::10` - `2025:db8:10::FFFF` 
 - **Asignación dinámica** con DUID
 - **Configuración automática** de DNS y dominio
 - **SLAAC desactivado** para control centralizado
@@ -859,7 +816,7 @@ source activate-ansible.sh  # Activa el entorno
 # 4. Configurar inventario
 nano inventory/hosts.ini
 
-# 5. Ejecutar playbook completo
+# 5. Ejecutar playbook completo / no sugerido de momento por problemas con el firewall
 ansible-playbook site.yml
 ```
 
@@ -872,10 +829,10 @@ El proyecto utiliza scripts bash para facilitar la ejecución y validación de s
 | Script | Descripción | Uso |
 |--------|-------------|-----|
 | `run-network.sh` | Configura red IPv6, radvd, NAT66 | `bash scripts/run/run-network.sh` |
-| `run-dns.sh` | Instala y configura BIND9 | `bash scripts/run/run-dns.sh` |
 | `run-dhcp.sh` | Configura servidor DHCPv6 | `bash scripts/run/run-dhcp.sh` |
 | `run-web.sh` | Instala Nginx y configura sitio web | `bash scripts/run/run-web.sh` |
 | `run-firewall.sh` | Configura UFW y fail2ban | `bash scripts/run/run-firewall.sh` |
+| `run-dns.sh` | Instala y configura BIND9 | `bash scripts/run/run-dns.sh` |
 | `run-all-services.sh` | Ejecuta todos los servicios en orden | `bash scripts/run/run-all-services.sh` |
 
 #### ✅ Scripts de Validación (`scripts/run/`)
@@ -926,7 +883,6 @@ ansible-playbook site.yml --tags firewall  # Solo firewall
 
 ## 📸 Evidencias y Capturas de Pantalla
 
-> 📁 **Ubicación de imágenes:** `docs/images/`  
 > 📋 **Documentación de pruebas:** Ver [PRUEBAS.md](docs/PRUEBAS.md) para evidencias detalladas
 
 ---
