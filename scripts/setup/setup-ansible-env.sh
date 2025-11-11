@@ -201,24 +201,56 @@ show_status() {
     echo -e "${BLUE}╚═══════════════════════════════════════════════════════════════╝${NC}"
 }
 
+# Función para instalar paquetes del sistema
+install_system_packages() {
+    echo ""
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${YELLOW}📦 Instalando paquetes del sistema...${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    
+    echo "→ Actualizando lista de paquetes..."
+    if sudo apt update; then
+        echo -e "${GREEN}✓ Lista de paquetes actualizada${NC}"
+    else
+        echo -e "${RED}✗ Error al actualizar paquetes${NC}"
+        return 1
+    fi
+    
+    local packages=(
+        "python3"
+        "python3-pip"
+        "python3-venv"
+        "python3-dev"
+        "build-essential"
+        "libssl-dev"
+        "libffi-dev"
+        "sshpass"
+        "git"
+    )
+    
+    echo "→ Instalando paquetes necesarios..."
+    for pkg in "${packages[@]}"; do
+        if ! dpkg -l | grep -q "^ii  $pkg"; then
+            echo "  → Instalando $pkg..."
+            if sudo apt install -y "$pkg" > /dev/null 2>&1; then
+                echo -e "    ${GREEN}✓ $pkg instalado${NC}"
+            else
+                echo -e "    ${RED}✗ Error al instalar $pkg${NC}"
+            fi
+        else
+            echo -e "  ${GREEN}✓ $pkg ya instalado${NC}"
+        fi
+    done
+    
+    echo -e "${GREEN}✅ Paquetes del sistema instalados${NC}"
+}
+
 # Función para instalar venv
 install_venv() {
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
-    echo -e "${YELLOW}📦 Instalando entorno virtual...${NC}"
+    echo -e "${YELLOW}📦 Creando entorno virtual...${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
-    
-    if ! dpkg -l | grep -q python3-venv; then
-        echo "→ Instalando python3-venv..."
-        if sudo apt update && sudo apt install python3-venv -y; then
-            echo -e "${GREEN}✓ python3-venv instalado${NC}"
-        else
-            echo -e "${RED}✗ Error al instalar python3-venv${NC}"
-            return 1
-        fi
-    else
-        echo -e "${GREEN}✓ python3-venv ya instalado${NC}"
-    fi
     
     if [ ! -d "$VENV_DIR" ]; then
         echo "→ Creando entorno virtual en $VENV_DIR..."
@@ -406,6 +438,7 @@ install_all() {
     echo -e "${YELLOW}Instalando TODO...${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     
+    install_system_packages
     check_python || exit 1
     
     install_venv
@@ -431,23 +464,25 @@ show_menu() {
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     echo ""
     echo "1) Ver estado de dependencias"
-    echo "2) Instalar entorno virtual (venv)"
-    echo "3) Instalar Ansible y paquetes Python"
-    echo "4) Instalar colecciones Ansible"
-    echo "5) Configurar ansible.cfg"
-    echo "6) Instalar TODO (opción rápida)"
-    echo "7) Salir"
+    echo "2) Instalar paquetes del sistema (python3, pip, etc)"
+    echo "3) Instalar entorno virtual (venv)"
+    echo "4) Instalar Ansible y paquetes Python"
+    echo "5) Instalar colecciones Ansible"
+    echo "6) Configurar ansible.cfg"
+    echo "7) Instalar TODO (opción rápida)"
+    echo "8) Salir"
     echo ""
-    read -p "Selecciona una opción [1-7]: " option
+    read -p "Selecciona una opción [1-8]: " option
     
     case $option in
         1) show_status; show_menu ;;
-        2) install_venv; show_menu ;;
-        3) install_ansible; show_menu ;;
-        4) install_collections; show_menu ;;
-        5) configure_ansible_cfg; show_menu ;;
-        6) install_all ;;
-        7) echo "Saliendo..."; exit 0 ;;
+        2) install_system_packages; show_menu ;;
+        3) install_venv; show_menu ;;
+        4) install_ansible; show_menu ;;
+        5) install_collections; show_menu ;;
+        6) configure_ansible_cfg; show_menu ;;
+        7) install_all ;;
+        8) echo "Saliendo..."; exit 0 ;;
         *) echo -e "${RED}Opción inválida${NC}"; show_menu ;;
     esac
 }
