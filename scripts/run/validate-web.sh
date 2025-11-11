@@ -18,9 +18,6 @@ echo -e "${BLUE}   🔍 VALIDACIÓN DE SERVIDOR WEB (NGINX)${NC}"
 echo -e "${BLUE}════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# Cargar funciones comunes
-source "$SCRIPT_DIR/validate-common.sh"
-
 ERRORS=0
 
 # 1. Verificar que Nginx está instalado

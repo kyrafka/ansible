@@ -33,29 +33,49 @@ if [[ ! $REPLY =~ ^[Ss]$ ]]; then
 fi
 
 # 1. Red
-echo ""
-echo -e "${BLUE}═══ 1/5: Configurando Red ═══${NC}"
-bash "$SCRIPT_DIR/run-network.sh" || { echo -e "${RED}❌ Error en red${NC}"; exit 1; }
+if [ -f "$SCRIPT_DIR/run-network.sh" ]; then
+    echo ""
+    echo -e "${BLUE}═══ 1/5: Configurando Red ═══${NC}"
+    bash "$SCRIPT_DIR/run-network.sh" || { echo -e "${RED}❌ Error en red${NC}"; exit 1; }
+else
+    echo -e "${YELLOW}⚠️  Script run-network.sh no encontrado, saltando...${NC}"
+fi
 
 # 2. DHCP
-echo ""
-echo -e "${BLUE}═══ 2/5: Configurando DHCP ═══${NC}"
-bash "$SCRIPT_DIR/run-dhcp.sh" || { echo -e "${RED}❌ Error en DHCP${NC}"; exit 1; }
+if [ -f "$SCRIPT_DIR/run-dhcp.sh" ]; then
+    echo ""
+    echo -e "${BLUE}═══ 2/5: Configurando DHCP ═══${NC}"
+    bash "$SCRIPT_DIR/run-dhcp.sh" || { echo -e "${RED}❌ Error en DHCP${NC}"; exit 1; }
+else
+    echo -e "${YELLOW}⚠️  Script run-dhcp.sh no encontrado, saltando...${NC}"
+fi
 
 # 3. DNS
-echo ""
-echo -e "${BLUE}═══ 3/5: Configurando DNS ═══${NC}"
-bash "$SCRIPT_DIR/run-dns.sh" || { echo -e "${RED}❌ Error en DNS${NC}"; exit 1; }
+if [ -f "$SCRIPT_DIR/run-dns.sh" ]; then
+    echo ""
+    echo -e "${BLUE}═══ 3/5: Configurando DNS ═══${NC}"
+    bash "$SCRIPT_DIR/run-dns.sh" || { echo -e "${RED}❌ Error en DNS${NC}"; exit 1; }
+else
+    echo -e "${YELLOW}⚠️  Script run-dns.sh no encontrado, saltando...${NC}"
+fi
 
 # 4. Web
-echo ""
-echo -e "${BLUE}═══ 4/5: Configurando Servidor Web ═══${NC}"
-bash "$SCRIPT_DIR/run-web.sh" || { echo -e "${RED}❌ Error en Web${NC}"; exit 1; }
+if [ -f "$SCRIPT_DIR/run-web.sh" ]; then
+    echo ""
+    echo -e "${BLUE}═══ 4/5: Configurando Servidor Web ═══${NC}"
+    bash "$SCRIPT_DIR/run-web.sh" || { echo -e "${RED}❌ Error en Web${NC}"; exit 1; }
+else
+    echo -e "${YELLOW}⚠️  Script run-web.sh no encontrado, saltando...${NC}"
+fi
 
 # 5. Firewall
-echo ""
-echo -e "${BLUE}═══ 5/5: Configurando Firewall ═══${NC}"
-bash "$SCRIPT_DIR/run-firewall.sh" || { echo -e "${RED}❌ Error en Firewall${NC}"; exit 1; }
+if [ -f "$SCRIPT_DIR/run-firewall.sh" ]; then
+    echo ""
+    echo -e "${BLUE}═══ 5/5: Configurando Firewall ═══${NC}"
+    bash "$SCRIPT_DIR/run-firewall.sh" || { echo -e "${RED}❌ Error en Firewall${NC}"; exit 1; }
+else
+    echo -e "${YELLOW}⚠️  Script run-firewall.sh no encontrado, saltando...${NC}"
+fi
 
 # Resumen final
 echo ""

@@ -18,12 +18,6 @@ echo -e "${BLUE}   🌐 CONFIGURACIÓN DE SERVIDOR WEB (NGINX)${NC}"
 echo -e "${BLUE}════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# Cargar funciones comunes
-source "$SCRIPT_DIR/run-common.sh"
-
-# Verificar que estamos en WSL
-check_wsl
-
 # Cambiar al directorio del proyecto
 cd "$PROJECT_ROOT"
 
