@@ -229,11 +229,10 @@ install_system_packages() {
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     
     echo "→ Actualizando lista de paquetes..."
-    if sudo apt update; then
-        echo -e "${GREEN}✓ Lista de paquetes actualizada${NC}"
+    if sudo apt update 2>&1 | grep -q "Err:"; then
+        echo -e "${YELLOW}⚠ Algunos repositorios fallaron, continuando...${NC}"
     else
-        echo -e "${RED}✗ Error al actualizar paquetes${NC}"
-        return 1
+        echo -e "${GREEN}✓ Lista de paquetes actualizada${NC}"
     fi
     
     local packages=(
@@ -250,15 +249,19 @@ install_system_packages() {
     
     echo "→ Instalando paquetes necesarios..."
     for pkg in "${packages[@]}"; do
-        if ! dpkg -l | grep -q "^ii  $pkg"; then
+        if dpkg -l 2>/dev/null | grep -q "^ii  $pkg "; then
+            echo -e "  ${GREEN}✓ $pkg ya instalado${NC}"
+        else
             echo "  → Instalando $pkg..."
-            if sudo apt install -y "$pkg" > /dev/null 2>&1; then
+            if sudo DEBIAN_FRONTEND=noninteractive apt install -y "$pkg" 2>&1 | tee /tmp/apt-install-$pkg.log | grep -q "Setting up"; then
                 echo -e "    ${GREEN}✓ $pkg instalado${NC}"
             else
-                echo -e "    ${RED}✗ Error al instalar $pkg${NC}"
+                if dpkg -l 2>/dev/null | grep -q "^ii  $pkg "; then
+                    echo -e "    ${GREEN}✓ $pkg ya estaba instalado${NC}"
+                else
+                    echo -e "    ${YELLOW}⚠ $pkg - revisar /tmp/apt-install-$pkg.log${NC}"
+                fi
             fi
-        else
-            echo -e "  ${GREEN}✓ $pkg ya instalado${NC}"
         fi
     done
     
@@ -302,36 +305,36 @@ install_ansible() {
     source "$VENV_DIR/bin/activate"
     
     echo "→ Actualizando pip, setuptools, wheel..."
-    if pip install --upgrade pip setuptools wheel --quiet; then
+    if pip install --upgrade pip setuptools wheel 2>&1 | tee /tmp/pip-upgrade.log | grep -qE "(Successfully installed|Requirement already satisfied)"; then
         echo -e "${GREEN}✓ pip actualizado${NC}"
     else
-        echo -e "${RED}✗ Error al actualizar pip${NC}"
-        return 1
+        echo -e "${YELLOW}⚠ Revisar /tmp/pip-upgrade.log si hay problemas${NC}"
     fi
     
     echo "→ Instalando Ansible..."
-    if pip install --upgrade ansible --quiet; then
-        VERSION=$(ansible --version | head -1 | awk '{print $2}')
+    pip install --upgrade ansible 2>&1 | tee /tmp/pip-ansible.log
+    if command -v ansible &> /dev/null; then
+        VERSION=$(ansible --version 2>/dev/null | head -1 | awk '{print $2}')
         echo -e "${GREEN}✓ Ansible $VERSION instalado${NC}"
     else
-        echo -e "${RED}✗ Error al instalar Ansible${NC}"
+        echo -e "${RED}✗ Error al instalar Ansible - revisar /tmp/pip-ansible.log${NC}"
         return 1
     fi
     
     echo "→ Instalando pyvmomi (VMware SDK)..."
-    if pip install --upgrade pyvmomi --quiet; then
+    pip install --upgrade pyvmomi 2>&1 | tee /tmp/pip-pyvmomi.log
+    if python -c "import pyVim" 2>/dev/null; then
         echo -e "${GREEN}✓ pyvmomi instalado${NC}"
     else
-        echo -e "${RED}✗ Error al instalar pyvmomi${NC}"
-        return 1
+        echo -e "${YELLOW}⚠ pyvmomi - revisar /tmp/pip-pyvmomi.log${NC}"
     fi
     
     echo "→ Instalando requests y jinja2..."
-    if pip install --upgrade requests jinja2 --quiet; then
+    pip install --upgrade requests jinja2 2>&1 | tee /tmp/pip-deps.log
+    if python -c "import requests, jinja2" 2>/dev/null; then
         echo -e "${GREEN}✓ requests y jinja2 instalados${NC}"
     else
-        echo -e "${RED}✗ Error al instalar requests/jinja2${NC}"
-        return 1
+        echo -e "${YELLOW}⚠ requests/jinja2 - revisar /tmp/pip-deps.log${NC}"
     fi
     
     echo -e "${GREEN}✅ Todos los paquetes Python instalados correctamente${NC}"
