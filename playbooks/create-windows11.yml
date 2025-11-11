@@ -4,6 +4,10 @@
   connection: local
   gather_facts: false
   
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/all.vault.yml
+  
   vars_prompt:
     - name: vm_name
       prompt: "Nombre de la VM"
@@ -43,12 +47,13 @@
     
     - name: Crear VM Windows 11
       community.vmware.vmware_guest:
-        hostname: "{{ vmware.vcenter_hostname }}"
-        username: "{{ vmware.vcenter_username }}"
-        password: "{{ vmware.vcenter_password }}"
+        hostname: "{{ vault_vcenter_hostname }}"
+        username: "{{ vault_vcenter_username }}"
+        password: "{{ vault_vcenter_password }}"
+        port: "{{ vault_vcenter_port }}"
         validate_certs: false
-        datacenter: "{{ vmware.datacenter }}"
-        folder: "/{{ vmware.datacenter }}/vm"
+        datacenter: "ha-datacenter"
+        folder: "/ha-datacenter/vm"
         name: "{{ vm_name }}"
         state: poweredon
         guest_id: windows9_64Guest
@@ -64,7 +69,7 @@
         disk:
           - size_gb: "{{ role_resources[vm_role].disk }}"
             type: thin
-            datastore: "{{ vmware.datastore }}"
+            datastore: "datastore1"
         
         networks:
           - name: "{{ network_name }}"

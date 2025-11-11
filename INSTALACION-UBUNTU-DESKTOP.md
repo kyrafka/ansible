@@ -54,20 +54,40 @@ Esto crea la VM vacía con la ISO montada.
 
 ### 3. ⚠️ CONFIGURACIÓN DE USUARIO (IMPORTANTE)
 
+**Ejemplo para rol admin (como en tu caso):**
 ```
-Tu nombre: [Tu nombre o nombre del rol]
-Nombre del equipo: ubuntu-cliente01 (o el nombre que elegiste)
-Nombre de usuario: cliente (o admin/auditor según el rol)
-Contraseña: [TU-CONTRASEÑA]
-Confirmar contraseña: [TU-CONTRASEÑA]
+Su nombre: Administrador
+El nombre del equipo: admin-ubuntu
+Elija un nombre de usuario: administrador
+Elija una contraseña: 123456
+Confirme su contraseña: 123456
 ```
 
-**Recomendaciones por rol:**
-- **admin**: usuario `admin`, contraseña fuerte (50GB disco)
-- **auditor**: usuario `auditor`, contraseña fuerte (30GB disco)
-- **cliente**: usuario `cliente`, contraseña simple (40GB disco)
+**✅ MARCAR:** "Solicitar mi contraseña para acceder"
+**❌ NO marcar:** "Utilizar Active Directory"
 
-**⚠️ NO marcar:** "Iniciar sesión automáticamente"
+**Configuraciones por rol:**
+
+**🔑 Admin:**
+- Su nombre: `Administrador`
+- Nombre del equipo: `admin-ubuntu`
+- Usuario: `administrador`
+- Contraseña: `123456` (o la que prefieras)
+- Disco: 50GB
+
+**📊 Auditor:**
+- Su nombre: `Auditor`
+- Nombre del equipo: `auditor-ubuntu`
+- Usuario: `auditor`
+- Contraseña: `123456`
+- Disco: 30GB
+
+**🎮 Cliente/Gaming:**
+- Su nombre: `Gamer`
+- Nombre del equipo: `gaming-ubuntu`
+- Usuario: `gamer`
+- Contraseña: `123456`
+- Disco: 40GB
 
 ### 4. Instalación
 - Espera a que termine (10-15 minutos)
