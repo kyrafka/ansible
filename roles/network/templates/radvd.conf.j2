@@ -16,13 +16,20 @@ interface {{ lan_interface }}
         # El prefijo está en el mismo enlace
         AdvOnLink on;
         
-        # Los clientes pueden autoconfigurar sus IPs
-        AdvAutonomous on;
+        # DESACTIVAR SLAAC - Solo usar DHCPv6
+        # Los clientes NO pueden autoconfigurar sus IPs
+        AdvAutonomous off;
         
         # Tiempo de vida del prefijo
         AdvValidLifetime 3600;
         AdvPreferredLifetime 1800;
     };
+    
+    # Flags para forzar DHCPv6
+    # M = Managed (obtener IP por DHCPv6)
+    # O = Other (obtener DNS/dominio por DHCPv6)
+    AdvManagedFlag on;
+    AdvOtherConfigFlag on;
     
     # Servidor DNS recursivo
     RDNSS 2025:db8:10::2
