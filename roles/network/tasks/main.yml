@@ -12,22 +12,21 @@
       - "→ Interfaz WAN: {{ wan_interface }} (internet)"
       - "→ Interfaz LAN: {{ lan_interface }} (red interna IPv6)"
 
-- name: "🧹 Limpiar configuraciones antiguas de netplan para {{ lan_interface }}"
+- name: "🧹 Eliminar solo configuración de {{ lan_interface }}"
   ansible.builtin.file:
-    path: "/etc/netplan/{{ item }}"
+    path: "/etc/netplan/99-{{ lan_interface }}-ipv6.yaml"
     state: absent
-  loop:
-    - "99-ens34-ipv6.yaml"
-    - "50-cloud-init.yaml"
-    - "01-netcfg.yaml"
   become: true
   ignore_errors: yes
 
-- name: "🧹 Flush IPs existentes en {{ lan_interface }}"
+- name: "🧹 Limpiar IPs SLAAC en {{ lan_interface }} (solo scope global dynamic)"
   ansible.builtin.shell: |
-    ip -6 addr flush dev {{ lan_interface }} scope global
+    # Solo eliminar IPs dinámicas (SLAAC), no la fija
+    ip -6 addr show dev {{ lan_interface }} scope global dynamic | grep 'inet6' | awk '{print $2}' | while read addr; do
+      ip -6 addr del $addr dev {{ lan_interface }} 2>/dev/null || true
+    done
   become: true
-  changed_when: true
+  changed_when: false
   ignore_errors: yes
 
 - name: "📝 Creando configuración netplan limpia para {{ lan_interface }}"
