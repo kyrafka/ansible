@@ -36,7 +36,7 @@
     
     # ISO de Windows 11
     iso_path: "[datastore1] Win11_24H2_Spanish_Mexico_x64.iso"
-    network_name: "M_vm's"
+    network_name: "M_vm's"  # Red interna donde está el DHCP/DNS (ens34 del servidor)
   
   tasks:
     - name: Validar rol
