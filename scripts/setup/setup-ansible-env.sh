@@ -257,18 +257,25 @@ install_system_packages() {
         echo -e "${GREEN}✓ Sistema completamente actualizado${NC}"
     fi
     
-    local packages=(
+    # Paquetes críticos (deben instalarse)
+    local critical_packages=(
         "python3"
         "python3-pip"
         "python3-venv"
         "python3-dev"
-        "build-essential"
-        "libssl-dev"
-        "libffi-dev"
         "sshpass"
         "git"
         "apparmor-utils"
     )
+    
+    # Paquetes opcionales (útiles pero no críticos)
+    local optional_packages=(
+        "build-essential"
+        "libssl-dev"
+        "libffi-dev"
+    )
+    
+    local packages=("${critical_packages[@]}" "${optional_packages[@]}")
     
     local to_install=()
     local to_upgrade=()
@@ -300,7 +307,20 @@ install_system_packages() {
     if [ ${#to_install[@]} -gt 0 ]; then
         echo ""
         echo "→ Instalando ${#to_install[@]} paquetes faltantes..."
-        sudo DEBIAN_FRONTEND=noninteractive apt install -y "${to_install[@]}" 2>&1 | tee /tmp/apt-install.log
+        
+        # Intentar instalar todos juntos primero
+        if sudo DEBIAN_FRONTEND=noninteractive apt install -y "${to_install[@]}" 2>&1 | tee /tmp/apt-install.log | grep -q "no se pudo instalar"; then
+            echo -e "${YELLOW}→ Algunos paquetes fallaron, intentando uno por uno...${NC}"
+            
+            # Intentar instalar uno por uno
+            for pkg in "${to_install[@]}"; do
+                if sudo DEBIAN_FRONTEND=noninteractive apt install -y "$pkg" 2>/dev/null; then
+                    echo -e "  ${GREEN}✓ $pkg instalado${NC}"
+                else
+                    echo -e "  ${YELLOW}⚠ $pkg no disponible (omitiendo)${NC}"
+                fi
+            done
+        fi
         
         # Verificar si realmente se instalaron
         local install_failed=0
@@ -314,7 +334,19 @@ install_system_packages() {
         if [ $install_failed -eq 0 ]; then
             echo -e "${GREEN}✓ Todos los paquetes instalados correctamente${NC}"
         else
-            echo -e "${YELLOW}⚠ $install_failed paquetes no se instalaron, pero el sistema debería funcionar${NC}"
+            # Verificar si los paquetes críticos están instalados
+            local critical_missing=0
+            for pkg in "${critical_packages[@]}"; do
+                if ! dpkg -l 2>/dev/null | grep -q "^ii  $pkg "; then
+                    critical_missing=$((critical_missing + 1))
+                fi
+            done
+            
+            if [ $critical_missing -eq 0 ]; then
+                echo -e "${GREEN}✓ Paquetes críticos instalados (algunos opcionales fallaron, pero no son necesarios)${NC}"
+            else
+                echo -e "${YELLOW}⚠ $install_failed paquetes no se instalaron, incluyendo $critical_missing críticos${NC}"
+            fi
         fi
     fi
     
