@@ -9,8 +9,9 @@ $TTL    604800
 ; Servidores de nombres
 @                       IN      NS      servidor.{{ dns_domain_name }}.
 
-; Registro para el dominio raíz - usando nombre explícito
-{{ dns_domain_name }}   IN      AAAA    2025:db8:10::2
+; Registro para el dominio raíz (@ y nombre explícito)
+@                       IN      AAAA    2025:db8:10::2
+{{ dns_domain_name }}.  IN      AAAA    2025:db8:10::2
 
 ; Registros AAAA (IPv6)
 {% for record in dns_records %}

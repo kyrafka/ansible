@@ -227,3 +227,54 @@ dns_forwarders:
   - "2001:4860:4860::8888"
   - "2001:4860:4860::8844"
 
+
+# Registros DNS para la zona
+dns_ipv6_gateway: "2025:db8:10::1"
+dns_ipv6_reverse_zone: "0.1.0.8.b.d.5.2.0.2.ip6.arpa"
+
+dns_records:
+  # Servidor principal
+  - name: "servidor"
+    type: "AAAA"
+    value: "2025:db8:10::2"
+  
+  # Alias para el servidor
+  - name: "ns1"
+    type: "AAAA"
+    value: "2025:db8:10::2"
+  
+  - name: "dns"
+    type: "AAAA"
+    value: "2025:db8:10::2"
+  
+  # Servidor web
+  - name: "www"
+    type: "CNAME"
+    value: "servidor"
+  
+  # Servicios
+  - name: "ftp"
+    type: "CNAME"
+    value: "servidor"
+  
+  - name: "nfs"
+    type: "CNAME"
+    value: "servidor"
+  
+  # VMs Ubuntu Desktop (ejemplos - ajustar según tu inventario)
+  - name: "ubuntu-gaming"
+    type: "AAAA"
+    value: "2025:db8:10::10"
+  
+  - name: "ubuntu-admin"
+    type: "AAAA"
+    value: "2025:db8:10::11"
+  
+  - name: "ubuntu-auditor"
+    type: "AAAA"
+    value: "2025:db8:10::12"
+  
+  # VMs Windows (ejemplos)
+  - name: "win11-gaming"
+    type: "AAAA"
+    value: "2025:db8:10::20"
