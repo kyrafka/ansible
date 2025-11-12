@@ -235,6 +235,28 @@ install_system_packages() {
         echo -e "${GREEN}✓ Lista de paquetes actualizada${NC}"
     fi
     
+    # Verificar cuántos paquetes tienen actualizaciones
+    local upgradable_count=$(apt list --upgradable 2>/dev/null | grep -c "upgradable")
+    if [ "$upgradable_count" -gt 0 ]; then
+        echo -e "${YELLOW}⚠ Hay $upgradable_count paquetes del sistema con actualizaciones disponibles${NC}"
+        
+        if [ "$AUTO_MODE" = true ]; then
+            echo "→ Modo automático: actualizando todos los paquetes del sistema..."
+            sudo DEBIAN_FRONTEND=noninteractive apt upgrade -y
+            echo -e "${GREEN}✓ Sistema actualizado${NC}"
+        else
+            read -p "¿Deseas actualizar TODOS los paquetes del sistema? (s/n): " upgrade_all
+            if [ "$upgrade_all" == "s" ] || [ "$upgrade_all" == "S" ]; then
+                sudo apt upgrade -y
+                echo -e "${GREEN}✓ Sistema actualizado${NC}"
+            else
+                echo -e "${YELLOW}→ Actualización del sistema omitida${NC}"
+            fi
+        fi
+    else
+        echo -e "${GREEN}✓ Sistema completamente actualizado${NC}"
+    fi
+    
     local packages=(
         "python3"
         "python3-pip"
