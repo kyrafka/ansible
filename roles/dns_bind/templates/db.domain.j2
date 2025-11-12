@@ -5,12 +5,9 @@ $TTL    604800
                           86400         ; Retry
                         2419200         ; Expire
                          604800 )       ; Negative Cache TTL
-
-; Servidores de nombres
-@                       IN      NS      servidor.{{ dns_domain_name }}.
-
-; Registro para el dominio raíz
-@                       IN      AAAA    2025:db8:10::2
+;
+@       IN      NS      servidor.{{ dns_domain_name }}.
+@       IN      AAAA    2025:db8:10::2
 
 ; Registros AAAA (IPv6)
 {% for record in dns_records %}
