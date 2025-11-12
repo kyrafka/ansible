@@ -20,6 +20,7 @@
       - bind9utils
       - bind9-doc
       - dnsutils
+      - apparmor-utils
     state: present
   retries: 3
   delay: 10
