@@ -225,7 +225,7 @@ show_status() {
 install_system_packages() {
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
-    echo -e "${YELLOW}📦 Instalando paquetes del sistema...${NC}"
+    echo -e "${YELLOW}📦 Verificando paquetes del sistema...${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     
     echo "→ Actualizando lista de paquetes..."
@@ -248,25 +248,56 @@ install_system_packages() {
         "apparmor-utils"
     )
     
-    echo "→ Instalando paquetes necesarios..."
+    local to_install=()
+    local to_upgrade=()
+    
+    echo "→ Verificando paquetes..."
     for pkg in "${packages[@]}"; do
         if dpkg -l 2>/dev/null | grep -q "^ii  $pkg "; then
             echo -e "  ${GREEN}✓ $pkg ya instalado${NC}"
-        else
-            echo "  → Instalando $pkg..."
-            if sudo DEBIAN_FRONTEND=noninteractive apt install -y "$pkg" 2>&1 | tee /tmp/apt-install-$pkg.log | grep -q "Setting up"; then
-                echo -e "    ${GREEN}✓ $pkg instalado${NC}"
-            else
-                if dpkg -l 2>/dev/null | grep -q "^ii  $pkg "; then
-                    echo -e "    ${GREEN}✓ $pkg ya estaba instalado${NC}"
-                else
-                    echo -e "    ${YELLOW}⚠ $pkg - revisar /tmp/apt-install-$pkg.log${NC}"
-                fi
+            # Verificar si hay actualizaciones
+            if apt list --upgradable 2>/dev/null | grep -q "^$pkg/"; then
+                to_upgrade+=("$pkg")
+                echo -e "    ${YELLOW}→ Actualización disponible${NC}"
             fi
+        else
+            to_install+=("$pkg")
+            echo -e "  ${YELLOW}→ $pkg necesita instalarse${NC}"
         fi
     done
     
-    echo -e "${GREEN}✅ Paquetes del sistema instalados${NC}"
+    # Instalar paquetes faltantes
+    if [ ${#to_install[@]} -gt 0 ]; then
+        echo ""
+        echo "→ Instalando ${#to_install[@]} paquetes faltantes..."
+        sudo DEBIAN_FRONTEND=noninteractive apt install -y "${to_install[@]}" 2>&1 | tee /tmp/apt-install.log
+        echo -e "${GREEN}✓ Paquetes instalados${NC}"
+    fi
+    
+    # Actualizar paquetes si hay disponibles
+    if [ ${#to_upgrade[@]} -gt 0 ]; then
+        echo ""
+        echo -e "${YELLOW}Hay ${#to_upgrade[@]} paquetes con actualizaciones disponibles:${NC}"
+        for pkg in "${to_upgrade[@]}"; do
+            echo "  - $pkg"
+        done
+        
+        if [ "$AUTO_MODE" = true ]; then
+            echo "→ Modo automático: actualizando paquetes..."
+            sudo apt upgrade -y "${to_upgrade[@]}"
+            echo -e "${GREEN}✓ Paquetes actualizados${NC}"
+        else
+            read -p "¿Deseas actualizar estos paquetes? (s/n): " upgrade_choice
+            if [ "$upgrade_choice" == "s" ] || [ "$upgrade_choice" == "S" ]; then
+                sudo apt upgrade -y "${to_upgrade[@]}"
+                echo -e "${GREEN}✓ Paquetes actualizados${NC}"
+            else
+                echo -e "${YELLOW}→ Actualizaciones omitidas${NC}"
+            fi
+        fi
+    fi
+    
+    echo -e "${GREEN}✅ Verificación de paquetes completada${NC}"
 }
 
 # Función para instalar venv
@@ -298,52 +329,100 @@ install_ansible() {
     echo -e "${YELLOW}📦 Instalando Ansible...${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     
-    # Opción 1: Instalar Ansible desde repositorios oficiales (recomendado)
-    echo "→ Agregando repositorio oficial de Ansible..."
-    if ! grep -q "ansible/ansible" /etc/apt/sources.list.d/* 2>/dev/null; then
-        sudo apt-add-repository --yes --update ppa:ansible/ansible 2>&1 | tee /tmp/ansible-repo.log
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}✓ Repositorio agregado${NC}"
-        else
-            echo -e "${YELLOW}⚠ No se pudo agregar repositorio PPA, usando repositorios por defecto${NC}"
-        fi
-    else
-        echo -e "${GREEN}✓ Repositorio ya existe${NC}"
-    fi
-    
-    echo "→ Instalando Ansible desde apt..."
-    sudo apt update
-    sudo apt install -y ansible 2>&1 | tee /tmp/ansible-install.log
-    
+    # Verificar si Ansible ya está instalado
     if command -v ansible &> /dev/null; then
         VERSION=$(ansible --version 2>/dev/null | head -1)
-        echo -e "${GREEN}✓ Ansible instalado: $VERSION${NC}"
-    else
-        echo -e "${RED}✗ Error al instalar Ansible${NC}"
-        echo -e "${YELLOW}Intentando instalación alternativa con pip...${NC}"
+        echo -e "${GREEN}✓ Ansible ya está instalado: $VERSION${NC}"
         
-        # Fallback: Instalar con pip3 del sistema
-        sudo pip3 install ansible 2>&1 | tee /tmp/ansible-pip-install.log
+        # Verificar si hay actualizaciones disponibles
+        echo "→ Verificando actualizaciones..."
+        if sudo apt list --upgradable 2>/dev/null | grep -q "ansible"; then
+            echo -e "${YELLOW}⚠ Hay actualizaciones disponibles para Ansible${NC}"
+            
+            if [ "$AUTO_MODE" = true ]; then
+                echo "→ Modo automático: actualizando Ansible..."
+                sudo apt update
+                sudo apt upgrade -y ansible
+                echo -e "${GREEN}✓ Ansible actualizado${NC}"
+            else
+                read -p "¿Deseas actualizar Ansible? (s/n): " update_choice
+                if [ "$update_choice" == "s" ] || [ "$update_choice" == "S" ]; then
+                    sudo apt update
+                    sudo apt upgrade -y ansible
+                    echo -e "${GREEN}✓ Ansible actualizado${NC}"
+                else
+                    echo -e "${YELLOW}→ Actualización omitida${NC}"
+                fi
+            fi
+        else
+            echo -e "${GREEN}✓ Ansible está actualizado${NC}"
+        fi
+    else
+        # Instalar Ansible desde repositorios oficiales
+        echo "→ Agregando repositorio oficial de Ansible..."
+        if ! grep -q "ansible/ansible" /etc/apt/sources.list.d/* 2>/dev/null; then
+            sudo apt-add-repository --yes --update ppa:ansible/ansible 2>&1 | tee /tmp/ansible-repo.log
+            if [ $? -eq 0 ]; then
+                echo -e "${GREEN}✓ Repositorio agregado${NC}"
+            else
+                echo -e "${YELLOW}⚠ No se pudo agregar repositorio PPA, usando repositorios por defecto${NC}"
+            fi
+        else
+            echo -e "${GREEN}✓ Repositorio ya existe${NC}"
+        fi
+        
+        echo "→ Instalando Ansible desde apt..."
+        sudo apt update
+        sudo apt install -y ansible 2>&1 | tee /tmp/ansible-install.log
         
         if command -v ansible &> /dev/null; then
             VERSION=$(ansible --version 2>/dev/null | head -1)
-            echo -e "${GREEN}✓ Ansible instalado con pip: $VERSION${NC}"
+            echo -e "${GREEN}✓ Ansible instalado: $VERSION${NC}"
         else
-            echo -e "${RED}✗ Error al instalar Ansible - revisar logs${NC}"
+            echo -e "${RED}✗ Error al instalar Ansible - revisar /tmp/ansible-install.log${NC}"
             return 1
         fi
     fi
     
-    echo "→ Instalando dependencias Python adicionales..."
-    sudo pip3 install pyvmomi requests jinja2 netaddr 2>&1 | tee /tmp/pip-deps.log
+    # Verificar dependencias Python (sin instalar con pip del sistema)
+    echo "→ Verificando dependencias Python..."
     
-    if python3 -c "import pyVim, requests, jinja2" 2>/dev/null; then
-        echo -e "${GREEN}✓ Dependencias Python instaladas${NC}"
-    else
-        echo -e "${YELLOW}⚠ Algunas dependencias pueden faltar - revisar /tmp/pip-deps.log${NC}"
+    local missing_deps=()
+    
+    if ! python3 -c "import pyVim" 2>/dev/null; then
+        missing_deps+=("python3-pyvmomi")
     fi
     
-    echo -e "${GREEN}✅ Ansible y dependencias instalados${NC}"
+    if ! python3 -c "import requests" 2>/dev/null; then
+        missing_deps+=("python3-requests")
+    fi
+    
+    if ! python3 -c "import jinja2" 2>/dev/null; then
+        missing_deps+=("python3-jinja2")
+    fi
+    
+    if ! python3 -c "import netaddr" 2>/dev/null; then
+        missing_deps+=("python3-netaddr")
+    fi
+    
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        echo -e "${YELLOW}→ Instalando dependencias faltantes con apt...${NC}"
+        for dep in "${missing_deps[@]}"; do
+            echo "  → Instalando $dep..."
+            sudo apt install -y "$dep" 2>&1 | tee /tmp/apt-install-$dep.log
+        done
+    else
+        echo -e "${GREEN}✓ Todas las dependencias Python ya están instaladas${NC}"
+    fi
+    
+    # Verificar nuevamente
+    if python3 -c "import pyVim, requests, jinja2" 2>/dev/null; then
+        echo -e "${GREEN}✓ Dependencias Python verificadas${NC}"
+    else
+        echo -e "${YELLOW}⚠ Algunas dependencias pueden faltar, pero Ansible debería funcionar${NC}"
+    fi
+    
+    echo -e "${GREEN}✅ Ansible y dependencias listos${NC}"
 }
 
 # Función para instalar colecciones
@@ -531,8 +610,12 @@ show_menu() {
     esac
 }
 
+# Variable global para modo automático
+AUTO_MODE=false
+
 # Verificar si se ejecuta con argumentos
 if [ "$1" == "--auto" ] || [ "$1" == "-a" ]; then
+    AUTO_MODE=true
     install_all
 else
     check_python || exit 1
