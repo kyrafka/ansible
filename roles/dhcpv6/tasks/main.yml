@@ -17,6 +17,10 @@
   include_tasks: systemd.yml
   tags: [dhcp, dhcp-systemd]
 
-- name: "✅ FASE 5: Validación final completa"
+- name: "🔑 FASE 5: Configurar DNS Dinámico"
+  include_tasks: configure-ddns.yml
+  tags: [dhcp, dhcp-ddns]
+
+- name: "✅ FASE 6: Validación final completa"
   include_tasks: validate-final.yml
   tags: [dhcp, dhcp-validate]

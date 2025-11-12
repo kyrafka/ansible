@@ -25,13 +25,21 @@
   retries: 3
   delay: 10
 
-- name: "Crear directorio para zonas DNS"
+- name: "Crear directorio para zonas DNS estáticas"
   file:
     path: /etc/bind/zones
     state: directory
     owner: bind
     group: bind
     mode: '0755'
+
+- name: "Crear directorio para zonas DNS dinámicas"
+  file:
+    path: /var/lib/bind
+    state: directory
+    owner: bind
+    group: bind
+    mode: '0775'
 
 - name: "Crear directorio para logs de BIND"
   file:
@@ -71,7 +79,7 @@
     backup: yes
   notify: restart bind9
 
-- name: "Crear zona directa para el dominio"
+- name: "Crear zona directa para el dominio (template inicial)"
   template:
     src: db.domain.j2
     dest: "/etc/bind/zones/db.{{ dns_domain_name }}"
@@ -79,9 +87,19 @@
     group: bind
     mode: '0644'
     backup: yes
+
+- name: "Copiar zona directa a directorio dinámico"
+  copy:
+    src: "/etc/bind/zones/db.{{ dns_domain_name }}"
+    dest: "/var/lib/bind/db.{{ dns_domain_name }}"
+    owner: bind
+    group: bind
+    mode: '0644'
+    remote_src: yes
+    force: no
   notify: restart bind9
 
-- name: "Crear zona inversa IPv6"
+- name: "Crear zona inversa IPv6 (template inicial)"
   template:
     src: db.ipv6.reverse.j2
     dest: "/etc/bind/zones/db.{{ dns_ipv6_reverse_zone }}"
@@ -89,6 +107,16 @@
     group: bind
     mode: '0644'
     backup: yes
+
+- name: "Copiar zona inversa a directorio dinámico"
+  copy:
+    src: "/etc/bind/zones/db.{{ dns_ipv6_reverse_zone }}"
+    dest: "/var/lib/bind/db.{{ dns_ipv6_reverse_zone }}"
+    owner: bind
+    group: bind
+    mode: '0644'
+    remote_src: yes
+    force: no
   notify: restart bind9
 
 - name: "Configurar logrotate para BIND"
@@ -164,6 +192,10 @@
       - "💡 Verifica el archivo: /etc/bind/zones/db.{{ dns_domain_name }}"
       - "💡 Ejecuta: sudo rndc reload"
   when: dns_test.stdout == ""
+
+- name: "🔑 Configurar DNS Dinámico (DDNS)"
+  ansible.builtin.include_tasks: configure-ddns.yml
+  tags: [dns, ddns]
 
 - name: "🌐 Configurar DNS64"
   ansible.builtin.include_tasks: dns64.yml

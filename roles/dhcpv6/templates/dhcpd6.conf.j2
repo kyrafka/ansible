@@ -1,12 +1,44 @@
-# BIEN (así debería verse tu plantilla dhcpd6.conf.j2)
-# Configuración global de DHCPv6
+# Configuración global de DHCPv6 con DNS Dinámico
 default-lease-time {{ dhcp6_config.default_lease_time | default(600) }};
 max-lease-time {{ dhcp6_config.max_lease_time | default(7200) }};
-option dhcp6.domain-search "{{ network_config.domain_name }}"; # <--- CORREGIDO
+
+# Configuración de DNS Dinámico (DDNS)
+ddns-update-style interim;
+ddns-domainname "{{ network_config.domain_name }}";
+ddns-rev-domainname "in-addr.arpa.";
+ignore client-updates;
+update-static-leases on;
+
+# Clave compartida con BIND9
+include "/etc/dhcp/dhcp-key.key";
+
+# Zona DNS para actualizaciones dinámicas
+zone {{ network_config.domain_name }}. {
+    primary 127.0.0.1;
+    key dhcp-key;
+}
+
+zone 0.1.0.8.b.d.5.2.0.2.ip6.arpa. {
+    primary 127.0.0.1;
+    key dhcp-key;
+}
 
 # Configuración de la red principal
 subnet6 {{ network_config.ipv6_network }} {
     range6 {{ network_config.dhcp_range_start }} {{ network_config.dhcp_range_end }};
     option dhcp6.name-servers 2025:db8:10::2;
     option dhcp6.domain-search "{{ network_config.domain_name }}";
+    
+    # Actualizar DNS cuando se asigna un lease
+    on commit {
+        set ClientIP = binary-to-ascii(16, 16, ":", substring(hardware, 1, 16));
+        set ClientName = pick-first-value(option host-name, concat("host-", ClientIP));
+        execute("/usr/local/bin/dhcp-ddns-update.sh", "add", ClientName, ClientIP);
+    }
+    
+    on release {
+        set ClientIP = binary-to-ascii(16, 16, ":", substring(hardware, 1, 16));
+        set ClientName = pick-first-value(option host-name, concat("host-", ClientIP));
+        execute("/usr/local/bin/dhcp-ddns-update.sh", "delete", ClientName, ClientIP);
+    }
 }

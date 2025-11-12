@@ -1,0 +1,16 @@
+---
+# Configurar DDNS en DHCPv6
+
+- name: "🔑 Copiar clave DDNS para DHCP"
+  copy:
+    src: /etc/bind/dhcp-key.key
+    dest: /etc/dhcp/dhcp-key.key
+    owner: root
+    group: root
+    mode: '0640'
+    remote_src: yes
+  become: true
+
+- name: "✅ Clave DDNS configurada para DHCP"
+  debug:
+    msg: "→ DHCP puede actualizar DNS dinámicamente"

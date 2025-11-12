@@ -1,0 +1,34 @@
+---
+# Configurar DNS Dinámico (DDNS) para integración con DHCPv6
+
+- name: "🔑 Generar clave TSIG para DDNS"
+  command: >
+    tsig-keygen -a hmac-sha256 dhcp-key
+  register: tsig_key_output
+  changed_when: false
+
+- name: "📝 Guardar clave TSIG en archivo"
+  copy:
+    content: "{{ tsig_key_output.stdout }}"
+    dest: /etc/bind/dhcp-key.key
+    owner: bind
+    group: bind
+    mode: '0640'
+  become: true
+
+- name: "🔗 Incluir clave TSIG en named.conf"
+  lineinfile:
+    path: /etc/bind/named.conf
+    line: 'include "/etc/bind/dhcp-key.key";'
+    insertafter: EOF
+    state: present
+  become: true
+  notify: restart bind9
+
+- name: "📋 Extraer nombre de la clave"
+  set_fact:
+    ddns_key_name: "{{ tsig_key_output.stdout | regex_search('key \"([^\"]+)\"', '\\1') | first }}"
+
+- name: "✅ Clave DDNS generada"
+  debug:
+    msg: "→ Clave: {{ ddns_key_name }}"
