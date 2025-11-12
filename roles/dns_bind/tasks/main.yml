@@ -1,6 +1,9 @@
 ---
 # Instalación y configuración de BIND9 para DNS
 
+- name: "🔧 Configurar systemd-resolved para coexistir con BIND9"
+  include_tasks: configure-systemd-resolved.yml
+
 - name: "Actualizar caché de apt"
   apt:
     update_cache: yes
