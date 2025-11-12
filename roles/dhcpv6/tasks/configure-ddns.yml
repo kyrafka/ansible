@@ -6,6 +6,20 @@
     path: /etc/bind/dhcp-key.key
   register: ddns_key_exists
   become: true
+  changed_when: false  # Solo es verificación, no cambia nada
+
+- name: "📋 Estado de DDNS"
+  debug:
+    msg: |
+      {% if ddns_key_exists.stat.exists %}
+      ✅ Clave DDNS encontrada en /etc/bind/dhcp-key.key
+      → Se configurará actualización dinámica de DNS
+      {% else %}
+      ⚠️  Clave DDNS NO encontrada en /etc/bind/dhcp-key.key
+      → DHCP funcionará SIN actualización dinámica de DNS
+      → Esto es NORMAL si no ejecutaste run-dns.sh primero
+      → Para habilitar DDNS: bash scripts/run/run-dns.sh
+      {% endif %}
 
 - name: "🔑 Copiar clave DDNS para DHCP"
   copy:
@@ -17,16 +31,21 @@
     remote_src: yes
   become: true
   when: ddns_key_exists.stat.exists
+  register: ddns_copy_result
 
-- name: "✅ Clave DDNS configurada para DHCP"
-  debug:
-    msg: "→ DHCP puede actualizar DNS dinámicamente"
-  when: ddns_key_exists.stat.exists
-
-- name: "⚠️  Clave DDNS no encontrada"
+- name: "📊 Resultado de copia de clave DDNS"
   debug:
     msg: |
-      → La clave DDNS no existe en /etc/bind/dhcp-key.key
-      → DHCP funcionará sin actualización dinámica de DNS
-      → Para habilitar DDNS, ejecuta primero: bash scripts/run/run-dns.sh
-  when: not ddns_key_exists.stat.exists
+      {% if ddns_copy_result.changed %}
+      ✅ CHANGED: Clave DDNS copiada a /etc/dhcp/dhcp-key.key
+      → Motivo: Primera instalación o clave actualizada
+      → DHCP ahora puede actualizar registros DNS automáticamente
+      {% elif ddns_copy_result.skipped is defined %}
+      ⏭️  SKIPPED: Copia de clave DDNS omitida
+      → Motivo: Clave DDNS no existe (DNS no configurado)
+      → Esto es NORMAL si ejecutas DHCP antes que DNS
+      {% else %}
+      ✅ OK: Clave DDNS ya estaba configurada correctamente
+      → No se necesitaron cambios
+      {% endif %}
+  when: ddns_copy_result is defined
