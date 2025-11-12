@@ -43,10 +43,10 @@ else
     ((ERRORS++))
 fi
 
-if [ -f "/etc/bind/zones/db.gamecenter.local" ]; then
-    echo "✅ Zona gamecenter.local existe"
+if [ -f "/etc/bind/zones/db.gamecenter.lan" ]; then
+    echo "✅ Zona gamecenter.lan existe"
 else
-    echo "❌ Zona gamecenter.local NO existe"
+    echo "❌ Zona gamecenter.lan NO existe"
     ((ERRORS++))
 fi
 
