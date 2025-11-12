@@ -21,8 +21,8 @@ bash scripts/setup/setup-ansible-env.sh
 ### 2️⃣ Activar Entorno Virtual
 
 ```bash
-# Siempre antes de usar Ansible
-source scripts/activate-ansible.sh
+# Ansible está disponible globalmente, no necesitas activar nada
+ansible --version  # Verificar que esté instalado
 ```
 
 ---
@@ -295,7 +295,7 @@ sudo apt update
 ```
 1. Setup Inicial
    └─> scripts/setup/setup-ansible-env.sh
-   └─> scripts/activate-ansible.sh
+   └─> Ansible queda disponible globalmente
 
 2. Configurar Servidor
    └─> playbooks/infrastructure/setup-complete-infrastructure.yml
@@ -396,9 +396,9 @@ curl http://google.com
 
 ## 📝 Notas Importantes
 
-1. **Siempre activa el entorno virtual** antes de usar Ansible:
+1. **Ansible está disponible globalmente**, úsalo directamente:
    ```bash
-   source scripts/activate-ansible.sh
+   ansible --version  # Verificar instalación
    ```
 
 2. **Ejecuta playbooks desde el directorio raíz** del proyecto

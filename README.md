@@ -754,8 +754,8 @@ cd ansible
 # 2. Configurar entorno Ansible
 bash scripts/setup/setup-ansible-env.sh --auto
 
-# 3. Activar entorno virtual
-source activate-ansible.sh
+# 3. Verificar instalación (opcional)
+ansible --version
 ```
 
 #### ¿Qué es el entorno virtual de Ansible?
@@ -773,10 +773,11 @@ El **entorno virtual** (`~/.ansible-venv/`) es un ambiente aislado de Python que
 - 🧹 **Limpieza:** Fácil de eliminar sin dejar rastros
 - 🚀 **Portabilidad:** Funciona igual en cualquier máquina
 
-**Activación:**
+**Uso:**
 ```bash
-source activate-ansible.sh  # Activa el entorno
-# Ahora puedes usar ansible-playbook, ansible, etc.
+# Ansible está disponible globalmente, úsalo directamente
+ansible --version
+ansible-playbook playbooks/create-ubuntu-desktop.yml
 ```
 
 ### Configuración y Ejecución

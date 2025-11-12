@@ -151,12 +151,11 @@ check_ansible_cfg() {
 # Función para verificar activate script
 check_activate_script() {
     if [ -f "activate-ansible.sh" ]; then
-        echo -e "${GREEN}✓${NC} activate-ansible.sh existe"
+        echo -e "${GREEN}✓${NC} activate-ansible.sh existe (ya no necesario)"
         return 0
     else
-        echo -e "${RED}✗${NC} activate-ansible.sh no existe"
-        echo -e "  ${YELLOW}→ Ejecuta opción 5 para crear${NC}"
-        return 1
+        echo -e "${YELLOW}⚠${NC} activate-ansible.sh no existe (opcional)"
+        return 0  # No es crítico
     fi
 }
 
@@ -615,24 +614,27 @@ EOF
         fi
     fi
     
-    # Crear script de activación (ya no necesario con instalación de sistema)
-    echo "→ Creando activate-ansible.sh..."
+    # Crear script de verificación (opcional, ya no necesario)
+    echo "→ Creando activate-ansible.sh (solo para compatibilidad)..."
     cat > activate-ansible.sh << 'EOF'
 #!/bin/bash
-# Ansible está instalado a nivel de sistema, no necesita activación
+# NOTA: Ansible está instalado a nivel de sistema, no necesita activación
+# Este script solo verifica que Ansible esté disponible
+
 if command -v ansible &> /dev/null; then
     echo "✓ Ansible está disponible en el sistema"
     ansible --version | head -1
     echo ""
-    echo "Puedes ejecutar directamente:"
+    echo "Puedes ejecutar directamente (sin source):"
     echo "  ansible-playbook playbooks/create-ubuntu-desktop.yml"
+    echo "  ansible-playbook playbooks/create-windows11.yml"
 else
     echo "✗ Error: Ansible no está instalado"
     echo "Ejecuta: bash scripts/setup/setup-ansible-env.sh --auto"
 fi
 EOF
     chmod +x activate-ansible.sh
-    echo -e "${GREEN}✓ activate-ansible.sh creado${NC}"
+    echo -e "${GREEN}✓ activate-ansible.sh creado (solo para verificación)${NC}"
     
     echo -e "${GREEN}✅ Configuración completada${NC}"
 }
@@ -657,8 +659,9 @@ install_all() {
     echo -e "${GREEN}║                    ✅ Instalación Completa                    ║${NC}"
     echo -e "${GREEN}╚════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo "Para usar Ansible:"
-    echo "  source activate-ansible.sh"
+    echo "Ansible está listo para usar. Puedes ejecutar directamente:"
+    echo "  ansible --version"
+    echo "  ansible-playbook playbooks/create-ubuntu-desktop.yml"
     echo ""
 }
 
