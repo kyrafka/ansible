@@ -31,10 +31,9 @@ fi
 
 # Variables globales
 PYTHON_BIN="/usr/bin/python3"
-VENV_DIR="$HOME/.ansible-venv"
 
 echo -e "${GREEN}✓${NC} Ejecutando como usuario: ${YELLOW}$USER${NC}"
-echo -e "${GREEN}✓${NC} Entorno se creará en: ${YELLOW}$VENV_DIR${NC}"
+echo -e "${GREEN}✓${NC} Ansible se instalará a nivel de sistema${NC}"
 echo ""
 
 # Función para verificar Python
