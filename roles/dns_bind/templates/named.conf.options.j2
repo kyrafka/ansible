@@ -40,6 +40,10 @@ options {
     version none;
     hostname none;
     server-id none;
+    
+    // Configuración para zonas dinámicas
+    ixfr-from-differences yes;
+    journal "/var/lib/bind/named.journal";
 };
 
 // Configuración de logging

@@ -88,6 +88,11 @@
     mode: '0644'
     backup: yes
 
+- name: "Verificar si zona dinámica existe"
+  stat:
+    path: "/var/lib/bind/db.{{ dns_domain_name }}"
+  register: dynamic_zone_exists
+
 - name: "Copiar zona directa a directorio dinámico"
   copy:
     src: "/etc/bind/zones/db.{{ dns_domain_name }}"
@@ -96,8 +101,14 @@
     group: bind
     mode: '0644'
     remote_src: yes
-    force: no
+  when: not dynamic_zone_exists.stat.exists
   notify: restart bind9
+
+- name: "Eliminar journal antiguo si existe"
+  file:
+    path: "/var/lib/bind/db.{{ dns_domain_name }}.jnl"
+    state: absent
+  when: not dynamic_zone_exists.stat.exists
 
 - name: "Crear zona inversa IPv6 (template inicial)"
   template:
@@ -108,6 +119,11 @@
     mode: '0644'
     backup: yes
 
+- name: "Verificar si zona inversa dinámica existe"
+  stat:
+    path: "/var/lib/bind/db.{{ dns_ipv6_reverse_zone }}"
+  register: dynamic_reverse_exists
+
 - name: "Copiar zona inversa a directorio dinámico"
   copy:
     src: "/etc/bind/zones/db.{{ dns_ipv6_reverse_zone }}"
@@ -116,8 +132,14 @@
     group: bind
     mode: '0644'
     remote_src: yes
-    force: no
+  when: not dynamic_reverse_exists.stat.exists
   notify: restart bind9
+
+- name: "Eliminar journal inverso antiguo si existe"
+  file:
+    path: "/var/lib/bind/db.{{ dns_ipv6_reverse_zone }}.jnl"
+    state: absent
+  when: not dynamic_reverse_exists.stat.exists
 
 - name: "Configurar logrotate para BIND"
   template:
@@ -196,6 +218,15 @@
 - name: "🔑 Configurar DNS Dinámico (DDNS)"
   ansible.builtin.include_tasks: configure-ddns.yml
   tags: [dns, ddns]
+
+- name: "⏰ Configurar sincronización automática de zonas"
+  cron:
+    name: "Sincronizar zonas DNS dinámicas"
+    minute: "*/5"
+    job: "/usr/bin/rndc sync -clean > /dev/null 2>&1"
+    user: root
+    state: present
+  become: true
 
 - name: "🌐 Configurar DNS64"
   ansible.builtin.include_tasks: dns64.yml
