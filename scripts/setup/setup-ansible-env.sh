@@ -275,6 +275,7 @@ install_system_packages() {
     
     echo "→ Verificando paquetes..."
     for pkg in "${packages[@]}"; do
+        # Verificar si está instalado (ii = installed)
         if dpkg -l 2>/dev/null | grep -q "^ii  $pkg "; then
             echo -e "  ${GREEN}✓ $pkg ya instalado${NC}"
             # Verificar si hay actualizaciones
@@ -282,9 +283,16 @@ install_system_packages() {
                 to_upgrade+=("$pkg")
                 echo -e "    ${YELLOW}→ Actualización disponible${NC}"
             fi
-        else
+        # Verificar si está en estado "rc" (removed but config remains) o similar
+        elif dpkg -l 2>/dev/null | grep -q "^rc  $pkg "; then
+            to_install+=("$pkg")
+            echo -e "  ${YELLOW}→ $pkg necesita reinstalarse${NC}"
+        # Verificar si el paquete existe en los repositorios
+        elif apt-cache show "$pkg" &>/dev/null; then
             to_install+=("$pkg")
             echo -e "  ${YELLOW}→ $pkg necesita instalarse${NC}"
+        else
+            echo -e "  ${YELLOW}⚠ $pkg no encontrado en repositorios (omitiendo)${NC}"
         fi
     done
     
@@ -293,7 +301,21 @@ install_system_packages() {
         echo ""
         echo "→ Instalando ${#to_install[@]} paquetes faltantes..."
         sudo DEBIAN_FRONTEND=noninteractive apt install -y "${to_install[@]}" 2>&1 | tee /tmp/apt-install.log
-        echo -e "${GREEN}✓ Paquetes instalados${NC}"
+        
+        # Verificar si realmente se instalaron
+        local install_failed=0
+        for pkg in "${to_install[@]}"; do
+            if ! dpkg -l 2>/dev/null | grep -q "^ii  $pkg "; then
+                echo -e "    ${YELLOW}⚠ $pkg no se pudo instalar (puede no estar disponible)${NC}"
+                install_failed=$((install_failed + 1))
+            fi
+        done
+        
+        if [ $install_failed -eq 0 ]; then
+            echo -e "${GREEN}✓ Todos los paquetes instalados correctamente${NC}"
+        else
+            echo -e "${YELLOW}⚠ $install_failed paquetes no se instalaron, pero el sistema debería funcionar${NC}"
+        fi
     fi
     
     # Actualizar paquetes si hay disponibles
