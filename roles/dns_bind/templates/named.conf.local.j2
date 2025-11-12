@@ -6,20 +6,14 @@
 zone "{{ dns_domain_name }}" {
     type master;
     file "/var/lib/bind/db.{{ dns_domain_name }}";
+    allow-update { key dhcp-key; localhost; };
     allow-query { any; };
-    update-policy {
-        grant dhcp-key zonesub any;
-    };
-    journal "/var/lib/bind/db.{{ dns_domain_name }}.jnl";
 };
 
 // Zona inversa IPv6 con soporte DDNS
 zone "{{ dns_ipv6_reverse_zone }}" {
     type master;
     file "/var/lib/bind/db.{{ dns_ipv6_reverse_zone }}";
+    allow-update { key dhcp-key; localhost; };
     allow-query { any; };
-    update-policy {
-        grant dhcp-key zonesub any;
-    };
-    journal "/var/lib/bind/db.{{ dns_ipv6_reverse_zone }}.jnl";
 };
