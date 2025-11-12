@@ -219,11 +219,20 @@
   ansible.builtin.include_tasks: configure-ddns.yml
   tags: [dns, ddns]
 
-- name: "⏰ Configurar sincronización automática de zonas"
+- name: "📋 Copiar script de sincronización DHCP-DNS"
+  copy:
+    src: "{{ playbook_dir }}/scripts/dhcp-dns-sync.sh"
+    dest: /usr/local/bin/dhcp-dns-sync.sh
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
+- name: "⏰ Configurar sincronización automática DHCP → DNS"
   cron:
-    name: "Sincronizar zonas DNS dinámicas"
-    minute: "*/5"
-    job: "/usr/bin/rndc sync -clean > /dev/null 2>&1"
+    name: "Sincronizar clientes DHCP con DNS"
+    minute: "*/2"
+    job: "/usr/local/bin/dhcp-dns-sync.sh > /dev/null 2>&1"
     user: root
     state: present
   become: true
