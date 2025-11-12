@@ -1,6 +1,6 @@
 ---
 # Configurar systemd-resolved para coexistir con BIND9
-# En lugar de deshabilitarlo completamente, lo configuramos para que no use el puerto 53
+# systemd-resolved NO escucha en puerto 53, pero sigue funcionando para el sistema
 
 - name: "⚙️  Configurar systemd-resolved para NO usar puerto 53"
   lineinfile:
@@ -10,7 +10,8 @@
     create: yes
   loop:
     - { regexp: '^#?DNSStubListener=', line: 'DNSStubListener=no' }
-    - { regexp: '^#?DNS=', line: 'DNS=127.0.0.1' }
+    - { regexp: '^#?DNS=', line: 'DNS=127.0.0.1 8.8.8.8 8.8.4.4' }
+    - { regexp: '^#?FallbackDNS=', line: 'FallbackDNS=1.1.1.1 1.0.0.1' }
     - { regexp: '^#?Domains=', line: 'Domains={{ dns_domain_name }}' }
   notify: restart systemd-resolved
 
@@ -20,22 +21,9 @@
     state: restarted
     daemon_reload: yes
 
-- name: "🔗 Eliminar enlace simbólico de resolv.conf"
+- name: "🔗 Recrear enlace simbólico de resolv.conf a systemd-resolved"
   file:
-    path: /etc/resolv.conf
-    state: absent
-
-- name: "📝 Crear resolv.conf para usar BIND9 local con fallback"
-  copy:
-    content: |
-      # Configuración DNS gestionada por Ansible
-      # Usa BIND9 local como servidor DNS autoritativo
-      # Con fallback a DNS públicos si BIND falla
-      nameserver 127.0.0.1
-      nameserver 8.8.8.8
-      nameserver 8.8.4.4
-      search {{ dns_domain_name }}
+    src: /run/systemd/resolve/resolv.conf
     dest: /etc/resolv.conf
-    owner: root
-    group: root
-    mode: '0644'
+    state: link
+    force: yes
