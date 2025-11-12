@@ -1,379 +1,114 @@
 #!/bin/bash
-# Script para configurar Ubuntu Desktop con su rol
-# Ejecutar desde el servidor: bash scripts/vms/configure-ubuntu-desktop.sh
+# Script para configurar Ubuntu Desktop con los 3 roles
 
-set -euo pipefail  # Salir si hay error
+# Auto-otorgar permisos de ejecución si no los tiene
+if [ ! -x "$0" ]; then
+    chmod +x "$0"
+    echo "✓ Permisos de ejecución otorgados"
+fi
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+set -e
 
-cd "$PROJECT_ROOT"
+# Colores
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
-echo "════════════════════════════════════════════════════════"
-echo "🖥️  Configurar Ubuntu Desktop con Rol"
-echo "════════════════════════════════════════════════════════"
+echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║   🖥️  Configurar Ubuntu Desktop con 3 Roles                  ║${NC}"
+echo -e "${BLUE}╚════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# ============================================
-# VALIDACIONES PREVIAS
-# ============================================
-
-echo "🔍 Validando requisitos previos..."
-echo ""
-
-# 1. Verificar ansible-playbook
-if ! command -v ansible-playbook &> /dev/null; then
-    echo "❌ Error: ansible-playbook no está instalado"
-    echo "   Instala con: bash scripts/setup/setup-ansible-env.sh --auto"
-    exit 1
-fi
-echo "✅ Ansible instalado"
-
-# 2. Verificar que existe el playbook
-if [ ! -f "playbooks/configure-ubuntu-role.yml" ]; then
-    echo "❌ Error: playbooks/configure-ubuntu-role.yml no existe"
-    exit 1
-fi
-echo "✅ Playbook encontrado"
-
-# 3. Verificar que existe el rol
-if [ ! -d "roles/ubuntu_desktop" ]; then
-    echo "❌ Error: roles/ubuntu_desktop no existe"
-    exit 1
-fi
-echo "✅ Rol ubuntu_desktop encontrado"
-
-# 4. Verificar inventario
-if [ ! -f "inventory/hosts.ini" ]; then
-    echo "❌ Error: inventory/hosts.ini no existe"
-    exit 1
-fi
-echo "✅ Inventario encontrado"
-
-# 5. Verificar variables de grupo
-if [ ! -f "group_vars/all.yml" ]; then
-    echo "❌ Error: group_vars/all.yml no existe"
-    exit 1
-fi
-echo "✅ Variables de grupo encontradas"
-
-# 6. Verificar que existen las contraseñas en vault
-if ! grep -q "ubuntu_desktop_users:" group_vars/all.yml; then
-    echo "❌ Error: No se encontraron ubuntu_desktop_users en group_vars/all.yml"
-    exit 1
-fi
-echo "✅ Usuarios Ubuntu Desktop configurados"
-
-# 7. Verificar que existe el vault (si está encriptado)
-if [ -f "group_vars/all.vault.yml" ]; then
-    if [ ! -f ".vault_pass" ]; then
-        echo "⚠️  Advertencia: Existe all.vault.yml pero no .vault_pass"
-        echo "   Si las contraseñas están encriptadas, necesitas .vault_pass"
-    else
-        echo "✅ Vault password encontrado"
-    fi
-fi
-
-echo ""
-echo "════════════════════════════════════════════════════════"
-
-# Listar VMs en ESXi
-echo "📋 Listando VMs en ESXi..."
-echo ""
-
-# Obtener credenciales de ESXi
-ESXI_HOST=$(grep "vcenter_hostname:" group_vars/ubpc.yml | awk '{print $2}' | tr -d '"')
-ESXI_USER=$(grep "vcenter_username:" group_vars/ubpc.yml | awk '{print $2}' | tr -d '"' | sed 's/{{.*vault_vcenter_username.*}}/root/')
-ESXI_PASS=$(grep "vault_vcenter_password:" group_vars/all.vault.yml | awk '{print $2}' | tr -d '"')
-
-if [ -z "$ESXI_HOST" ] || [ -z "$ESXI_USER" ] || [ -z "$ESXI_PASS" ]; then
-    echo "❌ Error: No se pudieron obtener credenciales de ESXi"
+# Verificar que estamos en el directorio correcto
+if [ ! -f "ansible.cfg" ]; then
+    echo -e "${RED}Error: Ejecuta este script desde el directorio raíz del proyecto${NC}"
     exit 1
 fi
 
-echo "🔍 Conectando a ESXi: $ESXI_HOST"
-echo ""
-
-# Simplemente usar el inventario (más rápido y confiable)
-echo "VMs Ubuntu Desktop en el inventario:"
-echo ""
-
-VM_LIST=$(grep -A 20 "\[ubuntu_desktops\]" inventory/hosts.ini | grep -v "^#" | grep -v "^\[" | grep -v "^$" | grep -v ":vars" | awk '{print $1}')
-
-if [ -z "$VM_LIST" ]; then
-    echo "❌ Error: No hay VMs en el inventario"
-    echo ""
-    echo "Agrega tu VM en inventory/hosts.ini:"
-    echo "[ubuntu_desktops]"
-    echo "nombre-vm ansible_host=2025:db8:10::XX ansible_user=administrador ansible_password=123456 vm_role=cliente"
-    echo ""
-    exit 1
-else
-    echo "$VM_LIST" | nl -w2 -s') '
-    echo ""
-    read -p "Selecciona el número de la VM: " vm_number
-    
-    if [ -z "$vm_number" ]; then
-        echo "❌ Debes seleccionar una VM"
-        exit 1
-    fi
-    
-    vm_name=$(echo "$VM_LIST" | sed -n "${vm_number}p")
-    
-    if [ -z "$vm_name" ]; then
-        echo "❌ Número inválido"
-        exit 1
-    fi
-    
-    echo ""
-    echo "✅ VM seleccionada: $vm_name"
-    echo ""
-fi
+# Pedir nombre de la VM
+echo -e "${YELLOW}Nombre de la VM en inventory/hosts.ini:${NC}"
+read -p "Ejemplo: ubuntu-gaming: " vm_name
 
 if [ -z "$vm_name" ]; then
-    echo "❌ El nombre no puede estar vacío"
+    echo -e "${RED}El nombre no puede estar vacío${NC}"
     exit 1
 fi
 
-# Verificar que la VM está en el inventario
-if ! grep -q "$vm_name" inventory/hosts.ini; then
-    echo "❌ Error: $vm_name no está en inventory/hosts.ini"
+# Verificar que la VM existe en el inventario
+if ! grep -q "^$vm_name" inventory/hosts.ini 2>/dev/null; then
+    echo -e "${RED}Error: La VM '$vm_name' no existe en inventory/hosts.ini${NC}"
     echo ""
-    echo "Agrégala primero:"
+    echo -e "${YELLOW}Agrega la VM al inventario primero:${NC}"
+    echo ""
     echo "[ubuntu_desktops]"
-    echo "$vm_name ansible_host=2025:db8:10::XX vm_role=cliente"
-    exit 1
-fi
-echo "✅ VM encontrada en inventario"
-
-# Obtener el rol de la VM
-vm_role=$(grep "$vm_name" inventory/hosts.ini | grep -o "vm_role=[^ ]*" | cut -d'=' -f2)
-
-if [ -z "$vm_role" ]; then
-    echo "⚠️  Advertencia: No se encontró vm_role para $vm_name"
+    echo "$vm_name ansible_host=2025:db8:10::XXX ansible_user=administrador ansible_password=123456"
     echo ""
-    read -p "Rol (admin/auditor/cliente): " vm_role
-fi
-
-# Validar que el rol es válido
-if [[ ! "$vm_role" =~ ^(admin|auditor|cliente)$ ]]; then
-    echo "❌ Error: Rol inválido '$vm_role'"
-    echo "   Debe ser: admin, auditor o cliente"
     exit 1
 fi
-echo "✅ Rol válido: $vm_role"
 
-# Obtener la IP de la VM
-vm_ip=$(grep "$vm_name" inventory/hosts.ini | grep -o "ansible_host=[^ ]*" | cut -d'=' -f2)
-
-if [ -z "$vm_ip" ]; then
-    echo "❌ Error: No se encontró ansible_host para $vm_name"
-    exit 1
-fi
-echo "✅ IP encontrada: $vm_ip"
-
-# ============================================
-# VALIDAR CONECTIVIDAD
-# ============================================
-
+# Probar conexión
 echo ""
-echo "🔍 Validando conectividad con $vm_name ($vm_ip)..."
-echo ""
-
-# Verificar ping IPv6
-if ! ping6 -c 2 -W 3 "$vm_ip" &> /dev/null; then
-    echo "❌ Error: No se puede hacer ping a $vm_ip"
-    echo ""
-    echo "⚠️  La VM parece estar apagada o sin red"
-    echo ""
-    read -p "¿Intentar encender la VM desde ESXi? (s/n): " -n 1 -r
-    echo ""
-    
-    if [[ $REPLY =~ ^[Ss]$ ]]; then
-        echo "🔌 Intentando encender VM..."
-        
-        # Obtener credenciales de ESXi
-        ESXI_HOST=$(grep "vcenter_hostname:" group_vars/ubpc.yml 2>/dev/null | awk '{print $2}' | tr -d '"' || echo "172.17.25.11")
-        ESXI_USER="root"
-        ESXI_PASS=$(grep "vault_vcenter_password:" group_vars/all.vault.yml 2>/dev/null | awk '{print $2}' | tr -d '"' || echo "qwe123")
-        
-        # Intentar encender con ansible
-        if ansible localhost -m community.vmware.vmware_guest_powerstate \
-           -a "hostname=$ESXI_HOST username=$ESXI_USER password=$ESXI_PASS validate_certs=no name=$vm_name state=powered-on" \
-           2>&1 | grep -q "success"; then
-            echo "✅ VM encendida"
-            echo "⏳ Esperando 45 segundos para que arranque y configure red..."
-            sleep 45
-            
-            # Verificar ping de nuevo
-            if ping6 -c 2 -W 3 "$vm_ip" &> /dev/null; then
-                echo "✅ Ping exitoso después de encender"
-            else
-                echo "⚠️  Aún no responde ping, pero continuaremos..."
-                echo "   (Puede tardar más en arrancar)"
-            fi
-        else
-            echo "❌ No se pudo encender la VM automáticamente"
-            echo ""
-            echo "Enciéndela manualmente desde ESXi y vuelve a ejecutar el script"
-            exit 1
-        fi
-    else
-        echo "❌ No se puede configurar una VM apagada"
-        echo ""
-        echo "Verifica:"
-        echo "  - La VM está encendida"
-        echo "  - La VM tiene red IPv6 configurada"
-        echo "  - La IP en inventory/hosts.ini es correcta"
-        echo ""
-        exit 1
-    fi
+echo -e "${BLUE}Probando conexión con $vm_name...${NC}"
+if ansible $vm_name -m ping; then
+    echo -e "${GREEN}✓ Conexión exitosa${NC}"
 else
-    echo "✅ Ping exitoso"
-fi
-
-# Verificar SSH
-echo "🔍 Verificando acceso SSH..."
-if ! ansible "$vm_name" -m ping &> /dev/null; then
-    echo "❌ Error: No se puede conectar por SSH a $vm_name"
+    echo -e "${RED}✗ No se puede conectar a la VM${NC}"
     echo ""
-    echo "Verifica:"
-    echo "  - SSH está habilitado en la VM"
-    echo "  - Las credenciales en inventory/hosts.ini son correctas"
-    echo "  - El firewall permite SSH"
-    echo ""
-    echo "Intenta manualmente:"
-    echo "  ssh usuario@$vm_ip"
-    echo ""
+    echo -e "${YELLOW}Verifica:${NC}"
+    echo "1. La VM está encendida"
+    echo "2. SSH está instalado: sudo apt install openssh-server"
+    echo "3. La IP en inventory/hosts.ini es correcta"
+    echo "4. El usuario y contraseña son correctos"
     exit 1
 fi
-echo "✅ SSH funcionando"
 
-# Verificar que es Ubuntu
-echo "🔍 Verificando sistema operativo..."
-os_check=$(ansible "$vm_name" -m shell -a "lsb_release -si" 2>/dev/null | grep -i ubuntu || echo "")
-if [ -z "$os_check" ]; then
-    echo "❌ Error: La VM no parece ser Ubuntu"
-    echo "   Este script solo funciona con Ubuntu Desktop"
-    exit 1
-fi
-echo "✅ Sistema operativo: Ubuntu"
-
-# Verificar privilegios sudo
-echo "🔍 Verificando privilegios sudo..."
-if ! ansible "$vm_name" -m shell -a "sudo -n true" -b &> /dev/null; then
-    echo "⚠️  Advertencia: No se pudo verificar sudo sin contraseña"
-    echo "   Puede que necesites ingresar la contraseña durante la ejecución"
-fi
-echo "✅ Privilegios verificados"
-
+# Ejecutar playbook
 echo ""
-echo "════════════════════════════════════════════════════════"
-echo "Configuración:"
-echo "  VM: $vm_name"
-echo "  Rol: $vm_role"
-echo "════════════════════════════════════════════════════════"
+echo -e "${BLUE}Configurando Ubuntu Desktop...${NC}"
+echo -e "${YELLOW}Esto creará 3 usuarios:${NC}"
+echo "  - administrador (admin)"
+echo "  - auditor (auditor)"
+echo "  - gamer01 (cliente)"
 echo ""
 
-read -p "¿Continuar? (s/n): " -n 1 -r
-echo ""
+ansible-playbook playbooks/configure-ubuntu-role.yml \
+    --limit "$vm_name" \
+    -v
 
-if [[ ! $REPLY =~ ^[Ss]$ ]]; then
-    echo "❌ Cancelado"
-    exit 0
-fi
-
-echo ""
-echo "════════════════════════════════════════════════════════"
-echo "🔧 Ejecutando configuración..."
-echo "════════════════════════════════════════════════════════"
-echo ""
-
-# Crear backup de configuración actual (si existe)
-echo "📦 Creando backup de configuración..."
-timestamp=$(date +%Y%m%d_%H%M%S)
-backup_dir="backups/ubuntu-desktop-$vm_name-$timestamp"
-mkdir -p "$backup_dir"
-
-# Guardar configuración actual
-ansible "$vm_name" -m shell -a "cat /etc/ssh/sshd_config" > "$backup_dir/sshd_config.bak" 2>/dev/null || true
-ansible "$vm_name" -m shell -a "sudo ufw status verbose" -b > "$backup_dir/ufw_status.bak" 2>/dev/null || true
-echo "✅ Backup creado en $backup_dir"
-
-echo ""
-echo "🔧 Configurando $vm_name con rol $vm_role..."
-echo ""
-
-# Ejecutar playbook con validación
-if ansible-playbook playbooks/configure-ubuntu-role.yml --limit "$vm_name" --check; then
+if [ $? -eq 0 ]; then
     echo ""
-    echo "✅ Validación en modo dry-run exitosa"
+    echo -e "${GREEN}╔════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║                  ✅ Configuración Completada                  ║${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    read -p "¿Aplicar cambios reales? (s/n): " -n 1 -r
+    echo -e "${YELLOW}👥 Usuarios creados:${NC}"
     echo ""
-    
-    if [[ ! $REPLY =~ ^[Ss]$ ]]; then
-        echo "❌ Cancelado por el usuario"
-        exit 0
-    fi
-    
-    # Ejecutar playbook real
-    if ansible-playbook playbooks/configure-ubuntu-role.yml --limit "$vm_name"; then
-        echo ""
-        echo "════════════════════════════════════════════════════════"
-        echo "✅ $vm_name configurado exitosamente"
-        echo "════════════════════════════════════════════════════════"
-        echo ""
-        echo "Configuración aplicada:"
-        echo "  VM: $vm_name"
-        echo "  IP: $vm_ip"
-        echo "  Rol: $vm_role"
-        echo ""
-        echo "Usuarios creados:"
-        echo "  - admin (sudo, acceso total)"
-        echo "  - auditor (solo lectura)"
-        echo "  - gamer01 (sin privilegios)"
-        echo ""
-        echo "Carpetas creadas:"
-        echo "  - /srv/admin"
-        echo "  - /srv/audits"
-        echo "  - /srv/games"
-        echo "  - /srv/instaladores"
-        echo ""
-        echo "Backup guardado en: $backup_dir"
-        echo ""
-        
-        # Verificar que la configuración se aplicó correctamente
-        echo "🔍 Verificando configuración aplicada..."
-        if ansible "$vm_name" -m shell -a "id admin && id auditor && id gamer01" &> /dev/null; then
-            echo "✅ Usuarios creados correctamente"
-        else
-            echo "⚠️  Advertencia: No se pudieron verificar todos los usuarios"
-        fi
-        
-        if ansible "$vm_name" -m shell -a "ls -la /srv/games /srv/admin /srv/audits /srv/instaladores" -b &> /dev/null; then
-            echo "✅ Carpetas creadas correctamente"
-        else
-            echo "⚠️  Advertencia: No se pudieron verificar todas las carpetas"
-        fi
-        
-        echo ""
-        echo "✅ Configuración completada y verificada"
-        echo ""
-    else
-        echo ""
-        echo "════════════════════════════════════════════════════════"
-        echo "❌ Error al configurar $vm_name"
-        echo "════════════════════════════════════════════════════════"
-        echo ""
-        echo "Para restaurar el backup:"
-        echo "  ansible $vm_name -m copy -a \"src=$backup_dir/sshd_config.bak dest=/etc/ssh/sshd_config\" -b"
-        echo ""
-        exit 1
-    fi
+    echo -e "${GREEN}  🔑 administrador / 123456${NC}"
+    echo "     - Sudo completo"
+    echo "     - Puede SSH al servidor"
+    echo "     - Escritura en /srv/games"
+    echo ""
+    echo -e "${BLUE}  👁️  auditor / 123456${NC}"
+    echo "     - Solo lectura de logs"
+    echo "     - NO puede SSH al servidor"
+    echo "     - Solo lectura en /srv/games"
+    echo ""
+    echo -e "${YELLOW}  🎮 gamer01 / 123456${NC}"
+    echo "     - Sin sudo"
+    echo "     - NO puede SSH al servidor"
+    echo "     - Solo lectura en /srv/games"
+    echo ""
+    echo -e "${YELLOW}📁 Carpetas creadas:${NC}"
+    echo "  - /srv/admin (privada admin)"
+    echo "  - /srv/audits (privada auditor)"
+    echo "  - /srv/games (compartida)"
+    echo "  - /srv/instaladores (compartida)"
+    echo ""
+    echo -e "${YELLOW}🔥 Firewall configurado y activo${NC}"
+    echo ""
 else
-    echo ""
-    echo "❌ Error en validación dry-run"
-    echo "   Revisa los errores antes de continuar"
+    echo -e "${RED}✗ Error en la configuración${NC}"
     exit 1
 fi
