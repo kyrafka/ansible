@@ -83,7 +83,7 @@ network_config:
   dns_servers: 
     - "2001:4860:4860::8888"              # Google DNS IPv6
     - "2001:4860:4860::8844"
-  domain_name: "gamecenter.local"
+  domain_name: "gamecenter.lan"
 
 # Configuración del servidor DHCPv6
 dhcp6_config:
