@@ -1,12 +1,16 @@
 $TTL    604800
-@       IN      SOA     {{ dns_domain_name }}. admin.{{ dns_domain_name }}. (
+@       IN      SOA     ns1.{{ dns_domain_name }}. admin.{{ dns_domain_name }}. (
                      {{ ansible_date_time.epoch }}         ; Serial
                          604800         ; Refresh
                           86400         ; Retry
                         2419200         ; Expire
                          604800 )       ; Negative Cache TTL
 ;
-@       IN      NS      servidor.{{ dns_domain_name }}.
+; Servidor de nombres
+@       IN      NS      ns1.{{ dns_domain_name }}.
+ns1     IN      AAAA    2025:db8:10::2
+
+; Registro raíz del dominio
 @       IN      AAAA    2025:db8:10::2
 
 ; Registros AAAA (IPv6)
