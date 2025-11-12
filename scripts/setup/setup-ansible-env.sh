@@ -295,50 +295,55 @@ install_venv() {
 install_ansible() {
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
-    echo -e "${YELLOW}📦 Instalando Ansible y dependencias Python...${NC}"
+    echo -e "${YELLOW}📦 Instalando Ansible...${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     
-    if [ ! -d "$VENV_DIR" ]; then
-        echo -e "${RED}✗ Error: Primero debes crear el entorno virtual (opción 2)${NC}"
-        return 1
-    fi
-    
-    source "$VENV_DIR/bin/activate"
-    
-    echo "→ Actualizando pip, setuptools, wheel..."
-    if pip install --upgrade pip setuptools wheel 2>&1 | tee /tmp/pip-upgrade.log | grep -qE "(Successfully installed|Requirement already satisfied)"; then
-        echo -e "${GREEN}✓ pip actualizado${NC}"
+    # Opción 1: Instalar Ansible desde repositorios oficiales (recomendado)
+    echo "→ Agregando repositorio oficial de Ansible..."
+    if ! grep -q "ansible/ansible" /etc/apt/sources.list.d/* 2>/dev/null; then
+        sudo apt-add-repository --yes --update ppa:ansible/ansible 2>&1 | tee /tmp/ansible-repo.log
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}✓ Repositorio agregado${NC}"
+        else
+            echo -e "${YELLOW}⚠ No se pudo agregar repositorio PPA, usando repositorios por defecto${NC}"
+        fi
     else
-        echo -e "${YELLOW}⚠ Revisar /tmp/pip-upgrade.log si hay problemas${NC}"
+        echo -e "${GREEN}✓ Repositorio ya existe${NC}"
     fi
     
-    echo "→ Instalando Ansible..."
-    pip install --upgrade ansible 2>&1 | tee /tmp/pip-ansible.log
+    echo "→ Instalando Ansible desde apt..."
+    sudo apt update
+    sudo apt install -y ansible 2>&1 | tee /tmp/ansible-install.log
+    
     if command -v ansible &> /dev/null; then
-        VERSION=$(ansible --version 2>/dev/null | head -1 | awk '{print $2}')
-        echo -e "${GREEN}✓ Ansible $VERSION instalado${NC}"
+        VERSION=$(ansible --version 2>/dev/null | head -1)
+        echo -e "${GREEN}✓ Ansible instalado: $VERSION${NC}"
     else
-        echo -e "${RED}✗ Error al instalar Ansible - revisar /tmp/pip-ansible.log${NC}"
-        return 1
+        echo -e "${RED}✗ Error al instalar Ansible${NC}"
+        echo -e "${YELLOW}Intentando instalación alternativa con pip...${NC}"
+        
+        # Fallback: Instalar con pip3 del sistema
+        sudo pip3 install ansible 2>&1 | tee /tmp/ansible-pip-install.log
+        
+        if command -v ansible &> /dev/null; then
+            VERSION=$(ansible --version 2>/dev/null | head -1)
+            echo -e "${GREEN}✓ Ansible instalado con pip: $VERSION${NC}"
+        else
+            echo -e "${RED}✗ Error al instalar Ansible - revisar logs${NC}"
+            return 1
+        fi
     fi
     
-    echo "→ Instalando pyvmomi (VMware SDK)..."
-    pip install --upgrade pyvmomi 2>&1 | tee /tmp/pip-pyvmomi.log
-    if python -c "import pyVim" 2>/dev/null; then
-        echo -e "${GREEN}✓ pyvmomi instalado${NC}"
+    echo "→ Instalando dependencias Python adicionales..."
+    sudo pip3 install pyvmomi requests jinja2 netaddr 2>&1 | tee /tmp/pip-deps.log
+    
+    if python3 -c "import pyVim, requests, jinja2" 2>/dev/null; then
+        echo -e "${GREEN}✓ Dependencias Python instaladas${NC}"
     else
-        echo -e "${YELLOW}⚠ pyvmomi - revisar /tmp/pip-pyvmomi.log${NC}"
+        echo -e "${YELLOW}⚠ Algunas dependencias pueden faltar - revisar /tmp/pip-deps.log${NC}"
     fi
     
-    echo "→ Instalando requests y jinja2..."
-    pip install --upgrade requests jinja2 2>&1 | tee /tmp/pip-deps.log
-    if python -c "import requests, jinja2" 2>/dev/null; then
-        echo -e "${GREEN}✓ requests y jinja2 instalados${NC}"
-    else
-        echo -e "${YELLOW}⚠ requests/jinja2 - revisar /tmp/pip-deps.log${NC}"
-    fi
-    
-    echo -e "${GREEN}✅ Todos los paquetes Python instalados correctamente${NC}"
+    echo -e "${GREEN}✅ Ansible y dependencias instalados${NC}"
 }
 
 # Función para instalar colecciones
@@ -348,38 +353,54 @@ install_collections() {
     echo -e "${YELLOW}📦 Instalando colecciones Ansible...${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     
-    if [ ! -f "$VENV_DIR/bin/ansible-galaxy" ]; then
-        echo -e "${RED}✗ Error: Primero debes instalar Ansible (opción 3)${NC}"
+    if ! command -v ansible-galaxy &> /dev/null; then
+        echo -e "${RED}✗ Error: Primero debes instalar Ansible (opción 4)${NC}"
         return 1
     fi
-    
-    source "$VENV_DIR/bin/activate"
     
     local failed=0
     
     if [ -f "collections/requirements.yml" ]; then
         echo "→ Instalando desde collections/requirements.yml..."
-        if ansible-galaxy collection install -r collections/requirements.yml --force; then
+        if ansible-galaxy collection install -r collections/requirements.yml --force 2>&1 | tee /tmp/ansible-collections.log; then
             echo -e "${GREEN}✓ Colecciones desde requirements.yml instaladas${NC}"
         else
-            echo -e "${RED}✗ Error al instalar desde requirements.yml${NC}"
+            echo -e "${YELLOW}⚠ Algunos errores al instalar desde requirements.yml${NC}"
+            echo -e "${YELLOW}→ Continuando con instalación individual...${NC}"
             failed=1
         fi
     else
         echo -e "${YELLOW}⚠ collections/requirements.yml no encontrado${NC}"
-        echo "→ Instalando colecciones individualmente..."
-        
-        echo "  → community.vmware..."
-        ansible-galaxy collection install community.vmware --force && echo -e "    ${GREEN}✓${NC}" || { echo -e "    ${RED}✗${NC}"; failed=1; }
-        
-        echo "  → community.general..."
-        ansible-galaxy collection install community.general --force && echo -e "    ${GREEN}✓${NC}" || { echo -e "    ${RED}✗${NC}"; failed=1; }
-        
-        echo "  → ansible.posix..."
-        ansible-galaxy collection install ansible.posix --force && echo -e "    ${GREEN}✓${NC}" || { echo -e "    ${RED}✗${NC}"; failed=1; }
-        
-        echo "  → community.windows..."
-        ansible-galaxy collection install community.windows --force && echo -e "    ${GREEN}✓${NC}" || { echo -e "    ${RED}✗${NC}"; failed=1; }
+    fi
+    
+    echo "→ Instalando colecciones individualmente..."
+    
+    echo "  → community.vmware..."
+    if ansible-galaxy collection install community.vmware --force 2>&1 | grep -q "successfully"; then
+        echo -e "    ${GREEN}✓ Instalado${NC}"
+    else
+        echo -e "    ${YELLOW}⚠ Error o ya instalado${NC}"
+    fi
+    
+    echo "  → community.general..."
+    if ansible-galaxy collection install community.general --force 2>&1 | grep -q "successfully"; then
+        echo -e "    ${GREEN}✓ Instalado${NC}"
+    else
+        echo -e "    ${YELLOW}⚠ Error o ya instalado${NC}"
+    fi
+    
+    echo "  → ansible.posix..."
+    if ansible-galaxy collection install ansible.posix --force 2>&1 | grep -q "successfully"; then
+        echo -e "    ${GREEN}✓ Instalado${NC}"
+    else
+        echo -e "    ${YELLOW}⚠ Error o ya instalado${NC}"
+    fi
+    
+    echo "  → community.windows..."
+    if ansible-galaxy collection install community.windows --force 2>&1 | grep -q "successfully"; then
+        echo -e "    ${GREEN}✓ Instalado${NC}"
+    else
+        echo -e "    ${YELLOW}⚠ Error o ya instalado${NC}"
     fi
     
     echo "→ Instalando vmware.vmware (opcional)..."
@@ -389,13 +410,12 @@ install_collections() {
         echo -e "${YELLOW}⚠ vmware.vmware no disponible (opcional, no es crítico)${NC}"
     fi
     
-    if [ $failed -eq 0 ]; then
-        echo -e "${GREEN}✅ Todas las colecciones instaladas correctamente${NC}"
-        return 0
-    else
-        echo -e "${RED}✗ Algunas colecciones fallaron${NC}"
-        return 1
-    fi
+    echo ""
+    echo "→ Verificando colecciones instaladas..."
+    ansible-galaxy collection list 2>/dev/null | grep -E "(community|ansible|vmware)" || echo "No se pudieron listar colecciones"
+    
+    echo -e "${GREEN}✅ Proceso de instalación de colecciones completado${NC}"
+    return 0
 }
 
 # Función para configurar ansible.cfg
@@ -488,9 +508,9 @@ show_menu() {
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     echo ""
     echo "1) Ver estado de dependencias"
-    echo "2) Instalar paquetes del sistema (python3, pip, etc)"
-    echo "3) Instalar entorno virtual (venv)"
-    echo "4) Instalar Ansible y paquetes Python"
+    echo "2) Instalar paquetes del sistema (python3, pip, apparmor-utils, etc)"
+    echo "3) Instalar entorno virtual (venv) - OPCIONAL"
+    echo "4) Instalar Ansible (desde apt o pip)"
     echo "5) Instalar colecciones Ansible"
     echo "6) Configurar ansible.cfg"
     echo "7) Instalar TODO (opción rápida)"
