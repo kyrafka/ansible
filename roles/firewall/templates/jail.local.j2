@@ -32,7 +32,8 @@ logpath = /var/log/auth.log
 maxretry = 3
 bantime = 3600
 
-# Protección para Nginx
+# Protección para Nginx (solo si está instalado)
+{% if ansible_facts.services['nginx.service'] is defined %}
 [nginx-http-auth]
 enabled = true
 port = http,https
@@ -64,6 +65,9 @@ filter = nginx-limit-req
 logpath = /var/log/nginx/error.log
 maxretry = 5
 bantime = 1800
+{% else %}
+# Nginx no instalado, jails deshabilitados
+{% endif %}
 
 [proyecto-so-custom]
 enabled = true

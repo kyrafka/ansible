@@ -105,4 +105,4 @@ else
     echo "   bash scripts/run/run-network.sh"
     echo ""
     exit 1
-f
+fi
