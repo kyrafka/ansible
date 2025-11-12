@@ -616,13 +616,21 @@ EOF
         fi
     fi
     
-    # Crear script de activación
+    # Crear script de activación (ya no necesario con instalación de sistema)
     echo "→ Creando activate-ansible.sh..."
     cat > activate-ansible.sh << 'EOF'
 #!/bin/bash
-source ~/.ansible-venv/bin/activate
-echo "✓ Entorno Ansible activado"
-echo "Ahora puedes ejecutar: ansible-playbook create-vm-gamecenter.yml"
+# Ansible está instalado a nivel de sistema, no necesita activación
+if command -v ansible &> /dev/null; then
+    echo "✓ Ansible está disponible en el sistema"
+    ansible --version | head -1
+    echo ""
+    echo "Puedes ejecutar directamente:"
+    echo "  ansible-playbook playbooks/create-ubuntu-desktop.yml"
+else
+    echo "✗ Error: Ansible no está instalado"
+    echo "Ejecuta: bash scripts/setup/setup-ansible-env.sh --auto"
+fi
 EOF
     chmod +x activate-ansible.sh
     echo -e "${GREEN}✓ activate-ansible.sh creado${NC}"
