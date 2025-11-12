@@ -245,21 +245,23 @@
 
 - name: "📋 Copiar script de sincronización DHCP-DNS"
   copy:
-    src: "{{ playbook_dir }}/scripts/dhcp-dns-sync.sh"
+    src: "{{ playbook_dir }}/../../scripts/dhcp-dns-sync.sh"
     dest: /usr/local/bin/dhcp-dns-sync.sh
     owner: root
     group: root
     mode: '0755'
   become: true
+  ignore_errors: yes  # Opcional si el script no existe
 
 - name: "📋 Copiar script de sincronización mejorado"
   copy:
-    src: "{{ playbook_dir }}/scripts/sync-dhcp-to-dns.sh"
+    src: "{{ playbook_dir }}/../../scripts/sync-dhcp-to-dns.sh"
     dest: /usr/local/bin/sync-dhcp-to-dns.sh
     owner: root
     group: root
     mode: '0755'
   become: true
+  ignore_errors: yes  # Opcional si el script no existe
 
 - name: "⏰ Configurar sincronización automática DHCP → DNS (cada 2 minutos)"
   cron:
