@@ -1,0 +1,20 @@
+# Archivo de hosts para DNS
+# Formato: hostname,ipv6
+# Ejemplo: ubuntu-gaming,2025:db8:10::10
+
+# Servidor
+servidor,2025:db8:10::2
+ns1,2025:db8:10::2
+dns,2025:db8:10::2
+
+# VMs Ubuntu Desktop
+ubuntu-gaming,2025:db8:10::10
+ubuntu-admin,2025:db8:10::11
+ubuntu-auditor,2025:db8:10::12
+
+# VMs Windows
+win11-gaming,2025:db8:10::20
+win11-admin,2025:db8:10::21
+
+# Agrega tus VMs aquí con sus IPs reales
+# mi-vm,2025:db8:10::885b

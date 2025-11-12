@@ -93,7 +93,7 @@
     path: "/var/lib/bind/db.{{ dns_domain_name }}"
   register: dynamic_zone_exists
 
-- name: "Copiar zona directa a directorio dinámico"
+- name: "Copiar zona directa a directorio dinámico (primera vez)"
   copy:
     src: "/etc/bind/zones/db.{{ dns_domain_name }}"
     dest: "/var/lib/bind/db.{{ dns_domain_name }}"
@@ -102,9 +102,8 @@
     mode: '0644'
     remote_src: yes
   when: not dynamic_zone_exists.stat.exists
-  notify: restart bind9
 
-- name: "Eliminar journal antiguo si existe"
+- name: "Eliminar journal antiguo en primera instalación"
   file:
     path: "/var/lib/bind/db.{{ dns_domain_name }}.jnl"
     state: absent
@@ -218,6 +217,16 @@
 - name: "🔑 Configurar DNS Dinámico (DDNS)"
   ansible.builtin.include_tasks: configure-ddns.yml
   tags: [dns, ddns]
+
+- name: "🔄 Reiniciar BIND9 después de configurar DDNS"
+  systemd:
+    name: bind9
+    state: restarted
+  become: true
+
+- name: "⏸️  Esperar a que BIND9 se estabilice"
+  pause:
+    seconds: 5
 
 - name: "📋 Copiar script de sincronización DHCP-DNS"
   copy:
