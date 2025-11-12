@@ -41,6 +41,15 @@
     group: bind
     mode: '0775'
 
+- name: "Asegurar permisos correctos en /var/lib/bind"
+  file:
+    path: /var/lib/bind
+    state: directory
+    owner: bind
+    group: bind
+    mode: '0775'
+    recurse: yes
+
 - name: "Crear directorio para logs de BIND"
   file:
     path: /var/log/named
@@ -99,7 +108,7 @@
     dest: "/var/lib/bind/db.{{ dns_domain_name }}"
     owner: bind
     group: bind
-    mode: '0644'
+    mode: '0664'
     remote_src: yes
   when: not dynamic_zone_exists.stat.exists
 
@@ -129,7 +138,7 @@
     dest: "/var/lib/bind/db.{{ dns_ipv6_reverse_zone }}"
     owner: bind
     group: bind
-    mode: '0644'
+    mode: '0664'
     remote_src: yes
   when: not dynamic_reverse_exists.stat.exists
   notify: restart bind9

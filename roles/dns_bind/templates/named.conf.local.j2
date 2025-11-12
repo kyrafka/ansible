@@ -16,4 +16,7 @@ zone "{{ dns_ipv6_reverse_zone }}" {
     file "/var/lib/bind/db.{{ dns_ipv6_reverse_zone }}";
     allow-update { key dhcp-key; localhost; };
     allow-query { any; };
+};      grant dhcp-key zonesub any;
+    };
+    journal "/var/lib/bind/db.{{ dns_ipv6_reverse_zone }}.jnl";
 };
