@@ -15,14 +15,14 @@
       default: "ubuntu-desktop"
   
   vars:
-    # Recursos fijos (sin roles)
+    # Recursos fijos
     vm_cpu: 2
     vm_ram: 4096
     vm_disk: 40
     
     # ISO de Ubuntu Desktop
     iso_path: "[datastore1] ubuntu-24.04.3-desktop-amd64.iso"
-    network_name: "M_vm's"  # Red interna donde está el DHCP/DNS (ens34 del servidor)
+    network_name: "M_vm's"
   
   tasks:
     - name: "🖥️  Crear VM Ubuntu Desktop"
