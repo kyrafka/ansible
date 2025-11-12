@@ -154,8 +154,22 @@ if [ -n "$RESULT" ]; then
     echo "✅ DNS resuelve $DOMAIN → $RESULT"
 else
     echo "❌ DNS NO resuelve $DOMAIN"
-    echo "   💡 Verifica logs: sudo journalctl -u named -n 20"
-    echo "   💡 Recarga zona: sudo rndc reload"
+    echo "   � VIntentando diagnóstico..."
+    
+    # Probar sin recursión
+    RESULT_NOREC=$(dig @localhost "$DOMAIN" AAAA +norecurse +short 2>/dev/null)
+    if [ -n "$RESULT_NOREC" ]; then
+        echo "   ⚠️  Responde sin recursión pero no con recursión"
+        echo "   💡 Problema de configuración de recursión"
+    else
+        echo "   ⚠️  No responde ni sin recursión"
+        echo "   💡 La zona no está cargada correctamente"
+    fi
+    
+    echo "   💡 Soluciones:"
+    echo "      1. sudo rndc reload"
+    echo "      2. sudo rndc reload $DOMAIN"
+    echo "      3. sudo journalctl -u named -n 20"
     ((ERRORS++))
 fi
 
@@ -186,11 +200,56 @@ if [ $ERRORS -eq 0 ]; then
     echo ""
     exit 0
 else
-    echo "❌ ENCONTRADOS $ERRORS PROBLEMAS"
+    echo "❌ ENCONTRADOS $ERRORS PROBLEMA(S)"
     echo "════════════════════════════════════════════════════════"
     echo ""
     
-    # Diagnóstico inteligente
+    # Listar problemas encontrados
+    echo "� PRAOBLEMAS DETECTADOS:"
+    echo ""
+    
+    PROBLEM_NUM=1
+    
+    if ! systemctl is-active --quiet named; then
+        echo "   $PROBLEM_NUM. ❌ Servicio BIND9 no está corriendo"
+        ((PROBLEM_NUM++))
+    fi
+    
+    if ! systemctl is-enabled --quiet named; then
+        echo "   $PROBLEM_NUM. ❌ Servicio BIND9 no está habilitado al inicio"
+        ((PROBLEM_NUM++))
+    fi
+    
+    if ! ss -tulpn 2>/dev/null | grep -q ":53.*named"; then
+        echo "   $PROBLEM_NUM. ❌ BIND9 no está escuchando en puerto 53"
+        ((PROBLEM_NUM++))
+    fi
+    
+    if ! sudo named-checkconf 2>/dev/null; then
+        echo "   $PROBLEM_NUM. ❌ Errores de sintaxis en named.conf"
+        ((PROBLEM_NUM++))
+    fi
+    
+    if [ ! -f "$ZONE_FILE" ]; then
+        echo "   $PROBLEM_NUM. ❌ Falta archivo de zona: $ZONE_FILE"
+        ((PROBLEM_NUM++))
+    elif ! sudo named-checkzone "$DOMAIN" "$ZONE_FILE" &>/dev/null; then
+        echo "   $PROBLEM_NUM. ❌ Errores de sintaxis en zona $DOMAIN"
+        ((PROBLEM_NUM++))
+    fi
+    
+    if [ -f "$ZONE_FILE" ] && ! sudo grep -q "@ *IN *AAAA" "$ZONE_FILE"; then
+        echo "   $PROBLEM_NUM. ❌ Falta registro raíz (@) en la zona"
+        ((PROBLEM_NUM++))
+    fi
+    
+    RESULT=$(dig @localhost "$DOMAIN" AAAA +short 2>/dev/null)
+    if [ -z "$RESULT" ]; then
+        echo "   $PROBLEM_NUM. ❌ DNS no resuelve el dominio raíz: $DOMAIN"
+        ((PROBLEM_NUM++))
+    fi
+    
+    echo ""
     echo "🔍 DIAGNÓSTICO AUTOMÁTICO:"
     echo ""
     
