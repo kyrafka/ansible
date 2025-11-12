@@ -245,6 +245,7 @@ install_system_packages() {
         "libffi-dev"
         "sshpass"
         "git"
+        "apparmor-utils"
     )
     
     echo "→ Instalando paquetes necesarios..."
