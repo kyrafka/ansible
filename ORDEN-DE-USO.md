@@ -53,7 +53,17 @@ ansible-playbook -i inventory/hosts.ini playbooks/infrastructure/setup-complete-
 
 Si prefieres configurar componente por componente:
 
-#### 1. Configurar Red
+#### 1. Paquetes Base
+
+```bash
+bash scripts/run/run-common.sh
+```
+
+**Qué hace:**
+- Instala paquetes básicos del sistema
+- Actualiza el sistema
+
+#### 2. Configurar Red
 
 ```bash
 bash scripts/run/run-network.sh
@@ -66,18 +76,7 @@ bash scripts/run/run-network.sh
 - Instala Squid Proxy
 - Configura iptables
 
-#### 2. Configurar DHCP IPv6
-
-```bash
-bash scripts/run/run-dhcp.sh
-```
-
-**Qué hace:**
-- Instala isc-dhcp-server
-- Configura rango 2025:db8:10::100-200
-- Corrige permisos de AppArmor
-
-#### 3. Configurar DNS + DNS64
+#### 3. Configurar DNS + DNS64 ⚠️ PRIMERO
 
 ```bash
 bash scripts/run/run-dns.sh
@@ -87,6 +86,19 @@ bash scripts/run/run-dns.sh
 - Instala BIND9
 - Configura zona gamecenter.local
 - Configura DNS64 (prefijo 64:ff9b::/96)
+- **Genera clave DDNS** (necesaria para DHCP)
+
+#### 4. Configurar DHCP IPv6 ⚠️ DESPUÉS DEL DNS
+
+```bash
+bash scripts/run/run-dhcp.sh
+```
+
+**Qué hace:**
+- Instala isc-dhcp-server
+- Configura rango 2025:db8:10::100-200
+- Corrige permisos de AppArmor
+- **Usa la clave DDNS del DNS**
 
 #### 4. Configurar Servidor Web (Nginx)
 

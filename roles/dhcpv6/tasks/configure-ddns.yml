@@ -1,6 +1,12 @@
 ---
 # Configurar DDNS en DHCPv6
 
+- name: "🔍 Verificar si existe clave DDNS"
+  stat:
+    path: /etc/bind/dhcp-key.key
+  register: ddns_key_exists
+  become: true
+
 - name: "🔑 Copiar clave DDNS para DHCP"
   copy:
     src: /etc/bind/dhcp-key.key
@@ -10,7 +16,17 @@
     mode: '0640'
     remote_src: yes
   become: true
+  when: ddns_key_exists.stat.exists
 
 - name: "✅ Clave DDNS configurada para DHCP"
   debug:
     msg: "→ DHCP puede actualizar DNS dinámicamente"
+  when: ddns_key_exists.stat.exists
+
+- name: "⚠️  Clave DDNS no encontrada"
+  debug:
+    msg: |
+      → La clave DDNS no existe en /etc/bind/dhcp-key.key
+      → DHCP funcionará sin actualización dinámica de DNS
+      → Para habilitar DDNS, ejecuta primero: bash scripts/run/run-dns.sh
+  when: not ddns_key_exists.stat.exists
