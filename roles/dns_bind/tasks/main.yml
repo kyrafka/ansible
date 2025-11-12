@@ -78,6 +78,12 @@
     backup: yes
   notify: restart bind9
 
+- name: "Eliminar named.conf.local antiguo para forzar regeneración"
+  file:
+    path: /etc/bind/named.conf.local
+    state: absent
+  become: true
+
 - name: "Configurar named.conf.local"
   template:
     src: named.conf.local.j2
@@ -85,7 +91,7 @@
     owner: root
     group: bind
     mode: '0644'
-    backup: yes
+    backup: no
   notify: restart bind9
 
 - name: "Crear zona directa para el dominio (template inicial)"
