@@ -10,6 +10,7 @@ zone "{{ dns_domain_name }}" {
     update-policy {
         grant dhcp-key zonesub any;
     };
+    journal "/var/lib/bind/db.{{ dns_domain_name }}.jnl";
 };
 
 // Zona inversa IPv6 con soporte DDNS
@@ -20,4 +21,5 @@ zone "{{ dns_ipv6_reverse_zone }}" {
     update-policy {
         grant dhcp-key zonesub any;
     };
+    journal "/var/lib/bind/db.{{ dns_ipv6_reverse_zone }}.jnl";
 };
