@@ -7,12 +7,12 @@ echo ""
 
 echo "1️⃣  Contenido del archivo de zona:"
 echo "----------------------------------------"
-sudo cat /etc/bind/zones/db.gamecenter.local
+sudo cat /etc/bind/zones/db.gamecenter.lan
 echo ""
 
 echo "2️⃣  Verificar sintaxis de la zona:"
 echo "----------------------------------------"
-sudo named-checkzone gamecenter.local /etc/bind/zones/db.gamecenter.local
+sudo named-checkzone gamecenter.lan /etc/bind/zones/db.gamecenter.lan
 echo ""
 
 echo "3️⃣  Verificar named.conf.local:"
@@ -27,11 +27,11 @@ echo ""
 
 echo "5️⃣  Probar consulta DNS directa:"
 echo "----------------------------------------"
-echo "→ Consultando gamecenter.local:"
-dig @127.0.0.1 gamecenter.local AAAA +short
+echo "→ Consultando gamecenter.lan:"
+dig @127.0.0.1 gamecenter.lan AAAA +short
 echo ""
 echo "→ Consultando con +trace:"
-dig @127.0.0.1 gamecenter.local AAAA +trace
+dig @127.0.0.1 gamecenter.lan AAAA +trace
 echo ""
 
 echo "6️⃣  Estado de BIND:"

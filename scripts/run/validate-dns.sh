@@ -63,16 +63,16 @@ else
 fi
 
 # Verificar que el archivo de zona existe
-if [ ! -f "/etc/bind/zones/db.gamecenter.local" ]; then
-    echo "❌ Archivo /etc/bind/zones/db.gamecenter.local NO existe"
+if [ ! -f "/etc/bind/zones/db.gamecenter.lan" ]; then
+    echo "❌ Archivo /etc/bind/zones/db.gamecenter.lan NO existe"
     echo "   💡 Solución: Ejecuta 'bash scripts/run/run-dns.sh' para crear el archivo"
     echo "   💡 O verifica que el template 'roles/dns_bind/templates/db.domain.j2' existe"
     ((ERRORS++))
 else
-    echo "✅ Archivo db.gamecenter.local existe"
+    echo "✅ Archivo db.gamecenter.lan existe"
     
     # Verificar contenido del archivo
-    if sudo grep -q "@ *IN *AAAA *2025:db8:10::2" /etc/bind/zones/db.gamecenter.local; then
+    if sudo grep -q "@ *IN *AAAA *2025:db8:10::2" /etc/bind/zones/db.gamecenter.lan; then
         echo "✅ Registro raíz (@) configurado correctamente"
     else
         echo "❌ Falta registro raíz (@) en la zona"
@@ -82,8 +82,8 @@ else
     fi
     
     # Verificar que tiene registros AAAA
-    if sudo grep -q "IN *AAAA" /etc/bind/zones/db.gamecenter.local; then
-        AAAA_COUNT=$(sudo grep -c "IN *AAAA" /etc/bind/zones/db.gamecenter.local)
+    if sudo grep -q "IN *AAAA" /etc/bind/zones/db.gamecenter.lan; then
+        AAAA_COUNT=$(sudo grep -c "IN *AAAA" /etc/bind/zones/db.gamecenter.lan)
         echo "✅ Archivo tiene $AAAA_COUNT registros AAAA"
     else
         echo "❌ No hay registros AAAA en el archivo"
@@ -94,31 +94,31 @@ fi
 
 echo ""
 echo "🧪 Prueba de resolución:"
-echo "→ Probando gamecenter.local..."
-RESULT=$(dig @localhost gamecenter.local AAAA +short)
+echo "→ Probando gamecenter.lan..."
+RESULT=$(dig @localhost gamecenter.lan AAAA +short)
 if echo "$RESULT" | grep -q "2025:db8:10::2"; then
-    echo "✅ DNS resuelve gamecenter.local → $RESULT"
+    echo "✅ DNS resuelve gamecenter.lan → $RESULT"
 else
-    echo "❌ DNS NO resuelve gamecenter.local"
+    echo "❌ DNS NO resuelve gamecenter.lan"
     echo "   Resultado: $RESULT"
     ((ERRORS++))
 fi
 
-echo "→ Probando servidor.gamecenter.local..."
-RESULT=$(dig @localhost servidor.gamecenter.local AAAA +short)
+echo "→ Probando servidor.gamecenter.lan..."
+RESULT=$(dig @localhost servidor.gamecenter.lan AAAA +short)
 if echo "$RESULT" | grep -q "2025:db8:10::2"; then
-    echo "✅ DNS resuelve servidor.gamecenter.local → $RESULT"
+    echo "✅ DNS resuelve servidor.gamecenter.lan → $RESULT"
 else
-    echo "❌ DNS NO resuelve servidor.gamecenter.local"
+    echo "❌ DNS NO resuelve servidor.gamecenter.lan"
     ((ERRORS++))
 fi
 
-echo "→ Probando www.gamecenter.local..."
-RESULT=$(dig @localhost www.gamecenter.local AAAA +short)
+echo "→ Probando www.gamecenter.lan..."
+RESULT=$(dig @localhost www.gamecenter.lan AAAA +short)
 if echo "$RESULT" | grep -q "2025:db8:10::2"; then
-    echo "✅ DNS resuelve www.gamecenter.local → $RESULT"
+    echo "✅ DNS resuelve www.gamecenter.lan → $RESULT"
 else
-    echo "❌ DNS NO resuelve www.gamecenter.local"
+    echo "❌ DNS NO resuelve www.gamecenter.lan"
     ((ERRORS++))
 fi
 
@@ -129,13 +129,13 @@ if [ $ERRORS -eq 0 ]; then
     echo "════════════════════════════════════════════════════════"
     echo ""
     echo "📊 Dominios disponibles:"
-    echo "   → gamecenter.local"
-    echo "   → servidor.gamecenter.local"
-    echo "   → www.gamecenter.local"
-    echo "   → web.gamecenter.local"
+    echo "   → gamecenter.lan"
+    echo "   → servidor.gamecenter.lan"
+    echo "   → www.gamecenter.lan"
+    echo "   → web.gamecenter.lan"
     echo ""
     echo "🔧 Comandos útiles:"
-    echo "   → Probar DNS: dig @localhost gamecenter.local AAAA"
+    echo "   → Probar DNS: dig @localhost gamecenter.lan AAAA"
     echo "   → Ver logs: sudo journalctl -u named -n 50"
     echo "   → Recargar zona: sudo rndc reload"
     echo ""
