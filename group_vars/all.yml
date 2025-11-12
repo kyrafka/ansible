@@ -265,20 +265,12 @@ dns_records:
     type: "CNAME"
     value: "servidor"
   
-  # VMs Ubuntu Desktop (ejemplos - ajustar según tu inventario)
-  - name: "ubuntu-gaming"
-    type: "AAAA"
-    value: "2025:db8:10::10"
-  
-  - name: "ubuntu-admin"
-    type: "AAAA"
-    value: "2025:db8:10::11"
-  
-  - name: "ubuntu-auditor"
-    type: "AAAA"
-    value: "2025:db8:10::12"
-  
-  # VMs Windows (ejemplos)
-  - name: "win11-gaming"
-    type: "AAAA"
-    value: "2025:db8:10::20"
+  # ═══════════════════════════════════════════════════════════════
+  # VMs - Los clientes se registrarán automáticamente por DDNS
+  # ═══════════════════════════════════════════════════════════════
+  # NO agregues registros estáticos aquí para VMs
+  # DHCP + DDNS los agregará automáticamente cuando se conecten
+  #
+  # Ejemplo de cómo se verán después de conectarse:
+  # - ubuntu-gaming.gamecenter.lan → 2025:db8:10::100 (asignado por DHCP)
+  # - mi-pc.gamecenter.lan → 2025:db8:10::101 (asignado por DHCP)
