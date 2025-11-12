@@ -98,6 +98,12 @@
     group: root
     mode: '0644'
 
+- name: "🛡️  Configurar AppArmor para BIND9 (modo complain)"
+  command: aa-complain /usr/sbin/named
+  register: apparmor_result
+  changed_when: false
+  failed_when: false
+
 - name: "Habilitar y iniciar servicio BIND9"
   systemd:
     name: bind9
