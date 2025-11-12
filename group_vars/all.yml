@@ -221,6 +221,10 @@ windows_maintenance:
 
 # Configuración DNS
 dns_domain_name: "{{ network_config.domain_name }}"
+dns_network_ipv6: "2025:db8:10::/64"
+dns_log_queries: true
+dns_log_file: "/var/log/named/query.log"
+dns_log_level: "info"
 dns_forwarders:
   - "8.8.8.8"
   - "8.8.4.4"
