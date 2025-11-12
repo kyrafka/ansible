@@ -2,6 +2,9 @@
 # Script para ejecutar solo el rol common
 # Ejecutar desde la raíz del proyecto: bash scripts/run/run-common.sh
 
+# Auto-otorgar permisos de ejecución
+[ ! -x "$0" ] && chmod +x "$0" 2>/dev/null
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
