@@ -243,34 +243,33 @@
   pause:
     seconds: 5
 
-- name: "📋 Copiar script de sincronización DHCP-DNS"
-  copy:
-    src: "{{ playbook_dir }}/../../scripts/dhcp-dns-sync.sh"
-    dest: /usr/local/bin/dhcp-dns-sync.sh
-    owner: root
-    group: root
-    mode: '0755'
-  become: true
-  ignore_errors: yes  # Opcional si el script no existe
+# Scripts de sincronización DHCP-DNS (comentados - no son necesarios con DDNS)
+# - name: "📋 Copiar script de sincronización DHCP-DNS"
+#   copy:
+#     src: "{{ playbook_dir }}/../../scripts/dhcp-dns-sync.sh"
+#     dest: /usr/local/bin/dhcp-dns-sync.sh
+#     owner: root
+#     group: root
+#     mode: '0755'
+#   become: true
 
-- name: "📋 Copiar script de sincronización mejorado"
-  copy:
-    src: "{{ playbook_dir }}/../../scripts/sync-dhcp-to-dns.sh"
-    dest: /usr/local/bin/sync-dhcp-to-dns.sh
-    owner: root
-    group: root
-    mode: '0755'
-  become: true
-  ignore_errors: yes  # Opcional si el script no existe
+# - name: "📋 Copiar script de sincronización mejorado"
+#   copy:
+#     src: "{{ playbook_dir }}/../../scripts/sync-dhcp-to-dns.sh"
+#     dest: /usr/local/bin/sync-dhcp-to-dns.sh
+#     owner: root
+#     group: root
+#     mode: '0755'
+#   become: true
 
-- name: "⏰ Configurar sincronización automática DHCP → DNS (cada 2 minutos)"
-  cron:
-    name: "Sincronizar clientes DHCP con DNS"
-    minute: "*/2"
-    job: "/usr/local/bin/sync-dhcp-to-dns.sh > /dev/null 2>&1"
-    user: root
-    state: present
-  become: true
+# - name: "⏰ Configurar sincronización automática DHCP → DNS (cada 2 minutos)"
+#   cron:
+#     name: "Sincronizar clientes DHCP con DNS"
+#     minute: "*/2"
+#     job: "/usr/local/bin/sync-dhcp-to-dns.sh > /dev/null 2>&1"
+#     user: root
+#     state: present
+#   become: true
 
 - name: "🌐 Configurar DNS64"
   ansible.builtin.include_tasks: dns64.yml
