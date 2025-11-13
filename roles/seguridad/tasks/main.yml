@@ -171,6 +171,15 @@
   notify: restart ssh
   become: true
 
+- name: Restringir acceso SSH solo a usuarios autorizados
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?AllowUsers'
+    line: 'AllowUsers ubuntu administrador'
+    backup: yes
+  notify: restart ssh
+  become: true
+
 - name: Configurar actualizaciones automáticas de seguridad
   apt:
     name: unattended-upgrades
