@@ -26,3 +26,8 @@ vault_ubuntu_desktop_cliente_password: "123456"    # Cliente/Gamer: sin privileg
 vault_windows11_admin_password: "Admin123!"
 vault_windows11_auditor_password: "Audit123!"
 vault_windows11_cliente_password: "Gamer123!"
+
+# Clave DDNS compartida entre DNS y DHCP
+vault_ddns_key_name: "dhcp-key"
+vault_ddns_key_algorithm: "hmac-sha256"
+vault_ddns_key_secret: "PEGA_AQUI_EL_SECRET_GENERADO"

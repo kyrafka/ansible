@@ -1,27 +1,66 @@
 ---
-# Configurar DDNS en DHCPv6
+# Configurar DDNS en DHCPv6 (Idempotente y robusto)
 
-- name: "🔍 Verificar si existe clave DDNS"
+- name: "🔍 Verificar si existe clave DDNS en BIND"
   stat:
     path: /etc/bind/dhcp-key.key
-  register: ddns_key_exists
+  register: bind_key_exists
   become: true
-  changed_when: false  # Solo es verificación, no cambia nada
+  changed_when: false
 
-- name: "📋 Estado de DDNS"
+- name: "🔍 Verificar si existe clave DDNS en DHCP"
+  stat:
+    path: /etc/dhcp/dhcp-key.key
+  register: dhcp_key_exists
+  become: true
+  changed_when: false
+
+- name: "🔍 Comparar claves DDNS (si ambas existen)"
+  shell: |
+    if [ -f /etc/bind/dhcp-key.key ] && [ -f /etc/dhcp/dhcp-key.key ]; then
+      diff -q /etc/bind/dhcp-key.key /etc/dhcp/dhcp-key.key
+      echo $?
+    else
+      echo "255"
+    fi
+  register: keys_match
+  become: true
+  changed_when: false
+  failed_when: false
+
+- name: "📋 Estado de claves DDNS"
   debug:
     msg: |
-      {% if ddns_key_exists.stat.exists %}
-      ✅ Clave DDNS encontrada en /etc/bind/dhcp-key.key
-      → Se configurará actualización dinámica de DNS
+      🔑 Estado de claves DDNS:
+      {% if bind_key_exists.stat.exists and dhcp_key_exists.stat.exists %}
+        {% if keys_match.stdout == "0" %}
+      ✅ Ambas claves existen y COINCIDEN
+      → DDNS funcionará correctamente
+        {% else %}
+      ⚠️  Ambas claves existen pero son DIFERENTES
+      → Se sincronizará la clave de BIND → DHCP
+        {% endif %}
+      {% elif bind_key_exists.stat.exists %}
+      ⚠️  Solo existe clave en BIND
+      → Se copiará a DHCP
+      {% elif dhcp_key_exists.stat.exists %}
+      ⚠️  Solo existe clave en DHCP (incorrecta)
+      → Se eliminará y esperará clave de BIND
       {% else %}
-      ⚠️  Clave DDNS NO encontrada en /etc/bind/dhcp-key.key
-      → DHCP funcionará SIN actualización dinámica de DNS
-      → Esto es NORMAL si no ejecutaste run-dns.sh primero
-      → Para habilitar DDNS: bash scripts/run/run-dns.sh
+      ⚠️  No existen claves DDNS
+      → Ejecuta primero: bash scripts/run/run-dns.sh
       {% endif %}
 
-- name: "🔑 Copiar clave DDNS para DHCP"
+- name: "🗑️  Eliminar clave incorrecta de DHCP"
+  file:
+    path: /etc/dhcp/dhcp-key.key
+    state: absent
+  become: true
+  when: 
+    - dhcp_key_exists.stat.exists
+    - not bind_key_exists.stat.exists
+
+- name: "🔑 Sincronizar clave DDNS (BIND → DHCP)"
   copy:
     src: /etc/bind/dhcp-key.key
     dest: /etc/dhcp/dhcp-key.key
@@ -29,23 +68,34 @@
     group: root
     mode: '0640'
     remote_src: yes
+    force: yes  # Sobrescribir siempre
   become: true
-  when: ddns_key_exists.stat.exists
-  register: ddns_copy_result
+  when: bind_key_exists.stat.exists
+  register: ddns_sync_result
 
-- name: "📊 Resultado de copia de clave DDNS"
+- name: "✅ Resultado de sincronización"
   debug:
     msg: |
-      {% if ddns_copy_result.changed %}
-      ✅ CHANGED: Clave DDNS copiada a /etc/dhcp/dhcp-key.key
-      → Motivo: Primera instalación o clave actualizada
-      → DHCP ahora puede actualizar registros DNS automáticamente
-      {% elif ddns_copy_result.skipped is defined %}
-      ⏭️  SKIPPED: Copia de clave DDNS omitida
-      → Motivo: Clave DDNS no existe (DNS no configurado)
-      → Esto es NORMAL si ejecutas DHCP antes que DNS
+      {% if ddns_sync_result.changed %}
+      ✅ CHANGED: Clave DDNS sincronizada correctamente
+      → BIND → DHCP
+      → Ambas claves ahora coinciden
+      → DDNS funcionará correctamente
+      {% elif ddns_sync_result.skipped is defined %}
+      ⏭️  SKIPPED: No hay clave en BIND para sincronizar
+      → Ejecuta primero: bash scripts/run/run-dns.sh
+      → DHCP funcionará sin DDNS (solo asignará IPs)
       {% else %}
-      ✅ OK: Clave DDNS ya estaba configurada correctamente
+      ✅ OK: Claves ya estaban sincronizadas
       → No se necesitaron cambios
       {% endif %}
-  when: ddns_copy_result is defined
+  when: ddns_sync_result is defined
+
+- name: "🔄 Reiniciar DHCP si se sincronizó la clave"
+  systemd:
+    name: isc-dhcp-server6
+    state: restarted
+  become: true
+  when: 
+    - ddns_sync_result is defined
+    - ddns_sync_result.changed
