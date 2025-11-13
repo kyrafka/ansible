@@ -24,6 +24,15 @@
       - "→ Fuente: group_vars/all.vault.yml (centralizada)"
       - "{% if ddns_key_created.changed %}→ Estado: Clave creada/actualizada{% else %}→ Estado: Clave ya estaba correcta{% endif %}"
 
+- name: "� RCopiar script de actualización DDNS"
+  copy:
+    src: dhcp-ddns-update.sh
+    dest: /usr/local/bin/dhcp-ddns-update.sh
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
 - name: "🔄 Reiniciar DHCP si se actualizó la clave"
   systemd:
     name: isc-dhcp-server6

@@ -4,10 +4,14 @@ max-lease-time {{ dhcp6_config.max_lease_time | default(7200) }};
 
 # Configuración de DNS Dinámico (DDNS)
 ddns-update-style interim;
-ddns-domainname "{{ network_config.domain_name }}";
-ddns-rev-domainname "in-addr.arpa.";
+ddns-domainname "{{ network_config.domain_name }}.";
+ddns-rev-domainname "ip6.arpa.";
 ignore client-updates;
 update-static-leases on;
+
+# Configuración de actualización de DNS
+ddns-updates on;
+do-forward-updates on;
 
 # Clave compartida con BIND9
 include "/etc/dhcp/dhcp-key.key";
@@ -21,6 +25,17 @@ zone {{ network_config.domain_name }}. {
 zone {{ dns_ipv6_reverse_zone }}. {
     primary 127.0.0.1;
     key dhcp-key;
+}
+
+# Configuración de hostname para DDNS
+on commit {
+    set ClientIP = binary-to-ascii(16, 16, ":", substring(hardware, 1, 16));
+    set ClientDUID = binary-to-ascii(16, 8, ":", option dhcp6.client-id);
+    set ClientName = pick-first-value(option host-name, option fqdn.hostname, "unknown");
+    
+    log(concat("Commit: IP=", ClientIP, " DUID=", ClientDUID, " Name=", ClientName));
+    
+    execute("/usr/local/bin/dhcp-ddns-update.sh", "add", ClientName, ClientIP);
 }
 
 # Configuración de la red principal
