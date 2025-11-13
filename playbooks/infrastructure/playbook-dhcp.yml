@@ -4,6 +4,10 @@
   connection: local
   become: true
   
+  vars_files:
+    - ../../group_vars/all.yml
+    - ../../group_vars/all.vault.yml
+  
   roles:
     - dhcpv6
   
