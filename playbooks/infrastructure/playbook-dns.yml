@@ -5,8 +5,8 @@
   become: true
   
   vars_files:
-    - ../../group_vars/all.yml
-    - ../../group_vars/all.vault.yml
+    - "{{ playbook_dir }}/../../group_vars/all.yml"
+    - "{{ playbook_dir }}/../../group_vars/all.vault.yml"
   
   roles:
     - dns_bind
