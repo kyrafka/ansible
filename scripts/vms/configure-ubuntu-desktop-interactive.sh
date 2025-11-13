@@ -176,7 +176,7 @@ echo -e "${BLUE}═════════════════════�
 echo ""
 
 # Ejecutar playbook
-ansible-playbook playbooks/vms/configure-ubuntu-desktop.yml \
+ansible-playbook playbooks/configure-vm-simple.yml \
     -i inventory/hosts.ini \
     --limit "$SELECTED_VM" \
     -v
