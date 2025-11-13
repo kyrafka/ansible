@@ -12,6 +12,22 @@
   ansible.builtin.debug:
     msg: "→ NAT64 disponible para traducción IPv6 → IPv4"
 
+- name: "🧹 Detener Tayga si está corriendo"
+  ansible.builtin.systemd:
+    name: tayga
+    state: stopped
+  become: true
+  failed_when: false
+
+- name: "🧹 Limpiar interfaz nat64 existente"
+  ansible.builtin.shell: |
+    if ip link show nat64 &>/dev/null; then
+      ip link set nat64 down 2>/dev/null || true
+      ip link delete nat64 2>/dev/null || true
+    fi
+  become: true
+  changed_when: false
+
 - name: "📝 Configurar Tayga"
   ansible.builtin.template:
     src: tayga.conf.j2
@@ -20,7 +36,6 @@
     group: root
     mode: '0644'
   become: true
-  notify: restart tayga
 
 - name: "📁 Crear directorio de datos de Tayga"
   ansible.builtin.file:
@@ -31,23 +46,31 @@
     mode: '0755'
   become: true
 
-- name: "🔧 Crear interfaz virtual nat64"
-  ansible.builtin.shell: |
-    if ! ip link show nat64 &>/dev/null; then
-      ip tuntap add dev nat64 mode tun
-      ip link set nat64 up
-      ip addr add 192.168.255.1/24 dev nat64
-      ip addr add 64:ff9b::1/96 dev nat64
-    fi
+- name: "🔧 Inicializar base de datos de Tayga"
+  ansible.builtin.command: tayga --mktun
   become: true
   changed_when: false
+  failed_when: false
 
-- name: "✓ Interfaz nat64 creada"
+- name: "✓ Interfaz nat64 inicializada"
   ansible.builtin.debug:
-    msg:
-      - "→ Interfaz: nat64"
-      - "→ IPv4: 192.168.255.1/24"
-      - "→ IPv6: 64:ff9b::1/96"
+    msg: "→ Tayga creará la interfaz automáticamente"
+
+- name: "🔄 Iniciar Tayga"
+  ansible.builtin.systemd:
+    name: tayga
+    state: started
+  become: true
+
+- name: "⏳ Esperar a que Tayga cree la interfaz"
+  ansible.builtin.pause:
+    seconds: 2
+
+- name: "🔧 Levantar interfaz nat64"
+  ansible.builtin.command: ip link set nat64 up
+  become: true
+  changed_when: false
+  failed_when: false
 
 - name: "🔀 Configurar rutas para NAT64"
   ansible.builtin.shell: |
@@ -80,53 +103,50 @@
   become: true
   changed_when: true
 
-- name: "🔄 Habilitar y iniciar Tayga"
+- name: "🔄 Habilitar Tayga para inicio automático"
   ansible.builtin.systemd:
     name: tayga
     enabled: yes
-    state: started
   become: true
 
 - name: "✓ Tayga activo"
   ansible.builtin.debug:
     msg: "→ NAT64 funcionando"
 
-- name: "📝 Crear script de persistencia de interfaz nat64"
+- name: "📝 Crear script de post-inicio para rutas NAT64"
   ansible.builtin.copy:
     content: |
       #!/bin/bash
-      # Script para recrear interfaz nat64 al iniciar
+      # Script para configurar rutas después de que Tayga inicie
       
-      if ! ip link show nat64 &>/dev/null; then
-        ip tuntap add dev nat64 mode tun
-        ip link set nat64 up
-        ip addr add 192.168.255.1/24 dev nat64
-        ip addr add 64:ff9b::1/96 dev nat64
-        ip -6 route add 64:ff9b::/96 dev nat64
-        ip -4 route add 192.168.255.0/24 dev nat64
-      fi
-    dest: /usr/local/bin/setup-nat64.sh
+      sleep 2
+      ip link set nat64 up 2>/dev/null || true
+      ip -6 route add 64:ff9b::/96 dev nat64 2>/dev/null || true
+      ip -4 route add 192.168.255.0/24 dev nat64 2>/dev/null || true
+    dest: /usr/local/bin/setup-nat64-routes.sh
     owner: root
     group: root
     mode: '0755'
   become: true
 
-- name: "📝 Crear servicio systemd para nat64"
+- name: "📝 Modificar servicio Tayga para configurar rutas"
   ansible.builtin.copy:
     content: |
       [Unit]
-      Description=Setup NAT64 interface
+      Description=Tayga NAT64 daemon
       After=network.target
-      Before=tayga.service
       
       [Service]
-      Type=oneshot
-      ExecStart=/usr/local/bin/setup-nat64.sh
-      RemainAfterExit=yes
+      Type=forking
+      ExecStartPre=/usr/sbin/tayga --mktun
+      ExecStart=/usr/sbin/tayga
+      ExecStartPost=/usr/local/bin/setup-nat64-routes.sh
+      ExecStopPost=/usr/sbin/tayga --rmtun
+      PIDFile=/var/run/tayga.pid
       
       [Install]
       WantedBy=multi-user.target
-    dest: /etc/systemd/system/nat64-setup.service
+    dest: /etc/systemd/system/tayga.service
     owner: root
     group: root
     mode: '0644'
@@ -137,16 +157,9 @@
     daemon_reload: yes
   become: true
 
-- name: "🔄 Habilitar servicio nat64-setup"
-  ansible.builtin.systemd:
-    name: nat64-setup
-    enabled: yes
-    state: started
-  become: true
-
 - name: "✓ Persistencia configurada"
   ansible.builtin.debug:
-    msg: "→ Interfaz nat64 se recreará automáticamente al reiniciar"
+    msg: "→ Rutas NAT64 se configurarán automáticamente al iniciar"
 
 - name: "🔍 Verificar estado de Tayga"
   ansible.builtin.command: systemctl status tayga
