@@ -63,7 +63,7 @@ sudo apt install -y git openssh-server
 
 # 4. Clona el repositorio:
 cd ~
-git clone <URL_DEL_REPO> ansible
+git clone <https://github.com/kyrafka/ansible.git> ansible
 
 # 5. Ejecuta el script de bootstrap:
 cd ~/ansible
