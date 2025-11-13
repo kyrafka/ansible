@@ -30,4 +30,4 @@ vault_windows11_cliente_password: "Gamer123!"
 # Clave DDNS compartida entre DNS y DHCP
 vault_ddns_key_name: "dhcp-key"
 vault_ddns_key_algorithm: "hmac-sha256"
-vault_ddns_key_secret: "PEGA_AQUI_EL_SECRET_GENERADO"
+vault_ddns_key_secret: "PJvdQJFNFDP/R5tVQaqdLfbuzIwOH2aQLhKPsr5WYyc="

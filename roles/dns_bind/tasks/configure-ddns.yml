@@ -1,15 +1,13 @@
 ---
-# Configurar DNS Dinámico (DDNS) para integración con DHCPv6
+# Configurar DNS Dinámico (DDNS) usando clave del vault
 
-- name: "🔑 Generar clave TSIG para DDNS"
-  command: >
-    tsig-keygen -a hmac-sha256 dhcp-key
-  register: tsig_key_output
-  changed_when: false
-
-- name: "📝 Guardar clave TSIG en archivo"
+- name: "🔑 Crear clave DDNS desde vault"
   copy:
-    content: "{{ tsig_key_output.stdout }}"
+    content: |
+      key "{{ vault_ddns_key_name }}" {
+          algorithm {{ vault_ddns_key_algorithm }};
+          secret "{{ vault_ddns_key_secret }}";
+      };
     dest: /etc/bind/dhcp-key.key
     owner: bind
     group: bind
@@ -25,10 +23,10 @@
   become: true
   notify: restart bind9
 
-- name: "📋 Extraer nombre de la clave"
-  set_fact:
-    ddns_key_name: "{{ tsig_key_output.stdout | regex_search('key \"([^\"]+)\"', '\\1') | first }}"
-
-- name: "✅ Clave DDNS generada"
+- name: "✅ Clave DDNS configurada desde vault"
   debug:
-    msg: "→ Clave: {{ ddns_key_name }}"
+    msg: 
+      - "→ Clave: {{ vault_ddns_key_name }}"
+      - "→ Algoritmo: {{ vault_ddns_key_algorithm }}"
+      - "→ Ubicación: /etc/bind/dhcp-key.key"
+      - "→ Fuente: group_vars/all.vault.yml (centralizada)"
