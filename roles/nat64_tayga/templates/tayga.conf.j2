@@ -1,0 +1,20 @@
+# Configuración de Tayga para NAT64
+# Traduce tráfico IPv6 → IPv4
+
+# Interfaz virtual para NAT64
+tun-device nat64
+
+# Prefijo IPv6 para NAT64 (estándar RFC 6052)
+ipv6-addr 64:ff9b::1
+
+# Prefijo que se usará para traducir direcciones IPv4 a IPv6
+prefix 64:ff9b::/96
+
+# Pool de direcciones IPv4 dinámicas para clientes IPv6
+dynamic-pool 192.168.255.0/24
+
+# Dirección IPv4 de la interfaz nat64
+ipv4-addr 192.168.255.1
+
+# Directorio de datos
+data-dir /var/db/tayga

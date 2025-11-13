@@ -188,9 +188,9 @@
         msg: "radvd no se pudo configurar, pero continuamos"
   tags: [network, radvd]
 
-- name: "⏭️  Omitiendo NAT64 (Tayga) - No necesario para IPv6 puro"
-  ansible.builtin.debug:
-    msg: "→ Tayga omitido (solo necesario si usas IPv4)"
+- name: "🌐 Configurar NAT64 (Tayga) para acceso a internet IPv4"
+  ansible.builtin.include_role:
+    name: nat64_tayga
   tags: [network, nat64, tayga]
 
 - name: "⏭️  Omitiendo Squid Proxy - No necesario para configuración básica"

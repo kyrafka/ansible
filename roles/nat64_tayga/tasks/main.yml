@@ -1,0 +1,171 @@
+---
+# Configuración de NAT64 con Tayga para traducción IPv6 → IPv4
+
+- name: "📦 Instalar Tayga (NAT64)"
+  ansible.builtin.apt:
+    name: tayga
+    state: present
+    update_cache: yes
+  become: true
+
+- name: "✓ Tayga instalado"
+  ansible.builtin.debug:
+    msg: "→ NAT64 disponible para traducción IPv6 → IPv4"
+
+- name: "📝 Configurar Tayga"
+  ansible.builtin.template:
+    src: tayga.conf.j2
+    dest: /etc/tayga.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: restart tayga
+
+- name: "📁 Crear directorio de datos de Tayga"
+  ansible.builtin.file:
+    path: /var/db/tayga
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
+- name: "🔧 Crear interfaz virtual nat64"
+  ansible.builtin.shell: |
+    if ! ip link show nat64 &>/dev/null; then
+      ip tuntap add dev nat64 mode tun
+      ip link set nat64 up
+      ip addr add 192.168.255.1/24 dev nat64
+      ip addr add 64:ff9b::1/96 dev nat64
+    fi
+  become: true
+  changed_when: false
+
+- name: "✓ Interfaz nat64 creada"
+  ansible.builtin.debug:
+    msg:
+      - "→ Interfaz: nat64"
+      - "→ IPv4: 192.168.255.1/24"
+      - "→ IPv6: 64:ff9b::1/96"
+
+- name: "🔀 Configurar rutas para NAT64"
+  ansible.builtin.shell: |
+    # Ruta para el pool IPv6 de NAT64
+    ip -6 route add 64:ff9b::/96 dev nat64 2>/dev/null || true
+    # Ruta para el pool IPv4 de Tayga
+    ip -4 route add 192.168.255.0/24 dev nat64 2>/dev/null || true
+  become: true
+  changed_when: false
+
+- name: "✓ Rutas configuradas"
+  ansible.builtin.debug:
+    msg: "→ Tráfico IPv6 → 64:ff9b::/96 → Tayga → IPv4"
+
+- name: "🛡️ Configurar NAT para Tayga"
+  ansible.builtin.shell: |
+    # NAT para el tráfico que sale de Tayga hacia internet
+    iptables -t nat -C POSTROUTING -s 192.168.255.0/24 -o {{ wan_interface }} -j MASQUERADE 2>/dev/null || \
+    iptables -t nat -A POSTROUTING -s 192.168.255.0/24 -o {{ wan_interface }} -j MASQUERADE
+  become: true
+  changed_when: false
+
+- name: "✓ NAT configurado para Tayga"
+  ansible.builtin.debug:
+    msg: "→ Pool 192.168.255.0/24 → MASQUERADE → {{ wan_interface }}"
+
+- name: "💾 Guardar reglas de iptables"
+  ansible.builtin.shell: |
+    iptables-save > /etc/iptables/rules.v4
+  become: true
+  changed_when: true
+
+- name: "🔄 Habilitar y iniciar Tayga"
+  ansible.builtin.systemd:
+    name: tayga
+    enabled: yes
+    state: started
+  become: true
+
+- name: "✓ Tayga activo"
+  ansible.builtin.debug:
+    msg: "→ NAT64 funcionando"
+
+- name: "📝 Crear script de persistencia de interfaz nat64"
+  ansible.builtin.copy:
+    content: |
+      #!/bin/bash
+      # Script para recrear interfaz nat64 al iniciar
+      
+      if ! ip link show nat64 &>/dev/null; then
+        ip tuntap add dev nat64 mode tun
+        ip link set nat64 up
+        ip addr add 192.168.255.1/24 dev nat64
+        ip addr add 64:ff9b::1/96 dev nat64
+        ip -6 route add 64:ff9b::/96 dev nat64
+        ip -4 route add 192.168.255.0/24 dev nat64
+      fi
+    dest: /usr/local/bin/setup-nat64.sh
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
+- name: "📝 Crear servicio systemd para nat64"
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=Setup NAT64 interface
+      After=network.target
+      Before=tayga.service
+      
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/setup-nat64.sh
+      RemainAfterExit=yes
+      
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/nat64-setup.service
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: "🔄 Recargar systemd"
+  ansible.builtin.systemd:
+    daemon_reload: yes
+  become: true
+
+- name: "🔄 Habilitar servicio nat64-setup"
+  ansible.builtin.systemd:
+    name: nat64-setup
+    enabled: yes
+    state: started
+  become: true
+
+- name: "✓ Persistencia configurada"
+  ansible.builtin.debug:
+    msg: "→ Interfaz nat64 se recreará automáticamente al reiniciar"
+
+- name: "🔍 Verificar estado de Tayga"
+  ansible.builtin.command: systemctl status tayga
+  register: tayga_status
+  become: true
+  changed_when: false
+  failed_when: false
+
+- name: "✅ NAT64 configurado"
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════"
+      - "✅ NAT64 (Tayga) configurado"
+      - "════════════════════════════════════════"
+      - "→ Prefijo NAT64: 64:ff9b::/96"
+      - "→ Pool IPv4: 192.168.255.0/24"
+      - "→ Interfaz: nat64"
+      - "→ Estado: {{ 'Activo' if 'active (running)' in tayga_status.stdout else 'Verificar' }}"
+      - "════════════════════════════════════════"
+      - "Las VMs IPv6 ahora pueden acceder a internet IPv4"
+      - "Ejemplo: ping6 64:ff9b::8.8.8.8 (Google DNS)"
+      - "════════════════════════════════════════"

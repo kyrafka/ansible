@@ -1,0 +1,131 @@
+---
+# Playbook para habilitar NAT64 (Tayga) en el servidor
+# Esto permite que las VMs IPv6 accedan a internet IPv4
+
+- name: Habilitar NAT64 para acceso a internet
+  hosts: localhost
+  connection: local
+  become: true
+  
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/all.vault.yml
+  
+  vars:
+    wan_interface: "ens33"
+    lan_interface: "ens34"
+  
+  tasks:
+    - name: "📋 Información del sistema"
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════"
+          - "🌐 Habilitando NAT64 (Tayga)"
+          - "════════════════════════════════════════"
+          - "→ WAN: {{ wan_interface }} (internet IPv4)"
+          - "→ LAN: {{ lan_interface }} (red interna IPv6)"
+          - "→ Prefijo NAT64: 64:ff9b::/96"
+          - "════════════════════════════════════════"
+    
+    - name: "🔧 Aplicar configuración NAT64"
+      ansible.builtin.include_role:
+        name: nat64_tayga
+      tags: nat64
+    
+    - name: "🔄 Reiniciar BIND9 para aplicar DNS64"
+      ansible.builtin.systemd:
+        name: named
+        state: restarted
+      become: true
+    
+    - name: "⏳ Esperar a que BIND9 esté listo"
+      ansible.builtin.pause:
+        seconds: 3
+    
+    - name: "🔍 Verificar DNS64"
+      ansible.builtin.shell: |
+        dig @localhost google.com AAAA +short
+      register: dns64_test
+      changed_when: false
+      failed_when: false
+    
+    - name: "📋 Resultado DNS64"
+      ansible.builtin.debug:
+        msg:
+          - "→ Consulta: google.com AAAA"
+          - "→ Respuesta: {{ dns64_test.stdout_lines }}"
+          - "→ {{ 'DNS64 funcionando ✓' if '64:ff9b::' in dns64_test.stdout else 'DNS64 no activo (normal si google tiene IPv6 nativo)' }}"
+    
+    - name: "🔍 Verificar DNS64 con sitio solo IPv4"
+      ansible.builtin.shell: |
+        dig @localhost ipv4.google.com AAAA +short
+      register: dns64_ipv4_test
+      changed_when: false
+      failed_when: false
+    
+    - name: "📋 Resultado DNS64 (sitio IPv4)"
+      ansible.builtin.debug:
+        msg:
+          - "→ Consulta: ipv4.google.com AAAA"
+          - "→ Respuesta: {{ dns64_ipv4_test.stdout_lines }}"
+          - "→ {{ 'DNS64 funcionando ✓' if '64:ff9b::' in dns64_ipv4_test.stdout else 'Verificar configuración' }}"
+    
+    - name: "🔍 Verificar estado de Tayga"
+      ansible.builtin.command: systemctl status tayga
+      register: tayga_status
+      changed_when: false
+      failed_when: false
+    
+    - name: "📋 Estado de Tayga"
+      ansible.builtin.debug:
+        msg: "{{ tayga_status.stdout_lines }}"
+    
+    - name: "🔍 Verificar interfaz nat64"
+      ansible.builtin.command: ip addr show nat64
+      register: nat64_interface
+      changed_when: false
+      failed_when: false
+    
+    - name: "📋 Interfaz nat64"
+      ansible.builtin.debug:
+        msg: "{{ nat64_interface.stdout_lines }}"
+    
+    - name: "🔍 Verificar rutas NAT64"
+      ansible.builtin.shell: |
+        echo "=== Rutas IPv6 ==="
+        ip -6 route | grep 64:ff9b
+        echo ""
+        echo "=== Rutas IPv4 ==="
+        ip -4 route | grep 192.168.255
+      register: nat64_routes
+      changed_when: false
+      failed_when: false
+    
+    - name: "📋 Rutas NAT64"
+      ansible.builtin.debug:
+        msg: "{{ nat64_routes.stdout_lines }}"
+    
+    - name: "✅ Configuración completada"
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════"
+          - "✅ NAT64 + DNS64 configurado"
+          - "════════════════════════════════════════"
+          - ""
+          - "🧪 Pruebas desde tu VM Ubuntu Desktop:"
+          - ""
+          - "1. Verificar DNS64:"
+          - "   dig google.com AAAA"
+          - "   (Debe mostrar direcciones 64:ff9b::...)"
+          - ""
+          - "2. Hacer ping a través de NAT64:"
+          - "   ping6 64:ff9b::8.8.8.8"
+          - "   (Esto es 8.8.8.8 traducido a IPv6)"
+          - ""
+          - "3. Probar navegación:"
+          - "   ping6 google.com"
+          - "   curl -6 http://google.com"
+          - ""
+          - "════════════════════════════════════════"
+          - "Si todo funciona, tus VMs tendrán internet"
+          - "════════════════════════════════════════"

@@ -1,0 +1,6 @@
+---
+- name: restart tayga
+  ansible.builtin.systemd:
+    name: tayga
+    state: restarted
+  become: true
