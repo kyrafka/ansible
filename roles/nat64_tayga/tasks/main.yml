@@ -12,6 +12,28 @@
   ansible.builtin.debug:
     msg: "→ NAT64 disponible para traducción IPv6 → IPv4"
 
+- name: "🔧 Habilitar IP forwarding IPv4"
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_set: yes
+    state: present
+    reload: yes
+  become: true
+
+- name: "🔧 Habilitar IP forwarding IPv6"
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.forwarding
+    value: '1'
+    sysctl_set: yes
+    state: present
+    reload: yes
+  become: true
+
+- name: "✓ IP forwarding habilitado"
+  ansible.builtin.debug:
+    msg: "→ Forwarding IPv4 e IPv6 activo"
+
 - name: "🧹 Detener Tayga si está corriendo"
   ansible.builtin.systemd:
     name: tayga
