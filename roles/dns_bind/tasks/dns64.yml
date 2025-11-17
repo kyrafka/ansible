@@ -30,7 +30,6 @@
           };
     backup: yes
   become: true
-  notify: restart bind9
 
 - name: "🚫 Deshabilitar zona reversa automática para DNS64"
   ansible.builtin.blockinfile:

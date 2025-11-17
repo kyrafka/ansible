@@ -102,7 +102,6 @@
     group: bind
     mode: '0644'
     backup: yes
-  notify: restart bind9
 
 - name: "Eliminar named.conf.local antiguo para forzar regeneración"
   file:
@@ -118,7 +117,6 @@
     group: bind
     mode: '0644'
     backup: no
-  notify: restart bind9
 
 - name: "Crear zona directa para el dominio (template inicial)"
   template:
@@ -173,7 +171,6 @@
     mode: '0664'
     remote_src: yes
   when: not dynamic_reverse_exists.stat.exists
-  notify: restart bind9
 
 - name: "Eliminar journal inverso antiguo si existe"
   file:
