@@ -118,6 +118,28 @@ echo "✓ Hostname: $HOSTNAME"
 echo "✓ IPv6: $IPV6"
 
 echo ""
+echo "Paso 9: Configurando proxy del sistema para Firefox..."
+echo "────────────────────────────────────────────────────────"
+
+# Configurar proxy del sistema (Firefox lo usará automáticamente)
+sudo -u administrador DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u administrador)/bus" \
+    gsettings set org.gnome.system.proxy mode 'manual' 2>/dev/null || true
+sudo -u administrador DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u administrador)/bus" \
+    gsettings set org.gnome.system.proxy.http host '2025:db8:10::2' 2>/dev/null || true
+sudo -u administrador DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u administrador)/bus" \
+    gsettings set org.gnome.system.proxy.http port 3128 2>/dev/null || true
+sudo -u administrador DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u administrador)/bus" \
+    gsettings set org.gnome.system.proxy.https host '2025:db8:10::2' 2>/dev/null || true
+sudo -u administrador DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u administrador)/bus" \
+    gsettings set org.gnome.system.proxy.https port 3128 2>/dev/null || true
+
+echo "✓ Proxy del sistema configurado"
+echo ""
+echo "⚠️  Si Firefox no funciona, configurar manualmente:"
+echo "   Firefox → Configuración → Proxy → Manual"
+echo "   HTTP: 2025:db8:10::2 Puerto: 3128"
+
+echo ""
 echo "════════════════════════════════════════════════════════"
 echo "✅ Configuración completada exitosamente"
 echo "════════════════════════════════════════════════════════"
