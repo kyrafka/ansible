@@ -1,6 +1,33 @@
 ---
 # Instalación y configuración de BIND9 para DNS
 
+- name: "🧹 Limpiar configuración DNS anterior"
+  block:
+    - name: "Detener BIND9 si está corriendo"
+      systemd:
+        name: bind9
+        state: stopped
+      failed_when: false
+    
+    - name: "Eliminar archivos de configuración antiguos"
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/bind/named.conf.local
+        - /var/lib/bind/db.gamecenter.local
+        - /var/lib/bind/db.gamecenter.local.jnl
+        - /var/lib/bind/db.gamecenter.lan
+        - /var/lib/bind/db.gamecenter.lan.jnl
+        - /var/lib/bind/db.0.1.0.8.b.d.5.2.0.2.ip6.arpa
+        - /var/lib/bind/db.0.1.0.8.b.d.5.2.0.2.ip6.arpa.jnl
+      failed_when: false
+    
+    - name: "Limpiar zonas estáticas antiguas"
+      shell: rm -f /etc/bind/zones/db.* 2>/dev/null || true
+      changed_when: false
+  become: true
+
 - name: "🔧 Configurar systemd-resolved para coexistir con BIND9"
   include_tasks: configure-systemd-resolved.yml
 
