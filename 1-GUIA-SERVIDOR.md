@@ -102,35 +102,38 @@ dig @localhost servidor.gamecenter.lan AAAA
 
 ### PASO 5: DNS64
 
-```bash
-sudo bash scripts/configure-dns64-simple.sh
-```
+DNS64 ya está configurado automáticamente por Ansible en el playbook `run-dns.yml`.
 
-**Verifica:**
+**Verifica que funciona:**
 ```bash
+# Probar DNS64 (debe devolver IPv6 con prefijo 64:ff9b::)
 dig @localhost google.com AAAA
+
+# Ver configuración
+cat /etc/bind/named.conf.options | grep -A 5 dns64
 ```
 
 ---
 
 ### PASO 6: NAT64 ⭐ CRÍTICO
 
+Ejecuta el playbook de Ansible:
+
 ```bash
-sudo bash scripts/nat64/install-nat64-tayga.sh
+ansible-playbook -i inventory.ini playbooks/enable-nat64.yml
 ```
 
 **Verifica:**
 ```bash
 sudo systemctl status tayga
 ip addr show nat64
-#ping6 64:ff9b::808:808
+ping6 -c 2 64:ff9b::8.8.8.8
 ```
 
-**Si falla:**
+**Si falla, reinicia Tayga:**
 ```bash
-sudo systemctl stop tayga
-sudo ip link delete nat64 2>/dev/null || true
-sudo bash scripts/nat64/install-nat64-tayga.sh
+sudo systemctl restart tayga
+sudo systemctl status tayga
 ```
 
 ---

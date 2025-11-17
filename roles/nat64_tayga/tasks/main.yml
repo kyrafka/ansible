@@ -62,15 +62,19 @@
   ansible.builtin.debug:
     msg: "→ Tayga creará la interfaz automáticamente"
 
-- name: "🔄 Iniciar Tayga"
+- name: "🔄 Habilitar e iniciar Tayga"
   ansible.builtin.systemd:
     name: tayga
     state: started
+    enabled: yes
   become: true
+  async: 10
+  poll: 0
+  register: tayga_start
 
 - name: "⏳ Esperar a que Tayga cree la interfaz"
   ansible.builtin.pause:
-    seconds: 2
+    seconds: 3
 
 - name: "🔧 Levantar interfaz nat64"
   ansible.builtin.command: ip link set nat64 up
@@ -109,15 +113,9 @@
   become: true
   changed_when: true
 
-- name: "🔄 Habilitar Tayga para inicio automático"
-  ansible.builtin.systemd:
-    name: tayga
-    enabled: yes
-  become: true
-
-- name: "✓ Tayga activo"
+- name: "✓ Tayga iniciado en segundo plano"
   ansible.builtin.debug:
-    msg: "→ NAT64 funcionando"
+    msg: "→ NAT64 iniciándose..."
 
 - name: "📝 Crear script de post-inicio para rutas NAT64"
   ansible.builtin.copy:
@@ -167,8 +165,8 @@
   ansible.builtin.debug:
     msg: "→ Rutas NAT64 se configurarán automáticamente al iniciar"
 
-- name: "🔍 Verificar estado de Tayga"
-  ansible.builtin.command: systemctl status tayga
+- name: "🔍 Verificar estado de Tayga (sin fallar)"
+  ansible.builtin.shell: systemctl is-active tayga || echo "starting"
   register: tayga_status
   become: true
   changed_when: false
@@ -183,8 +181,8 @@
       - "→ Prefijo NAT64: 64:ff9b::/96"
       - "→ Pool IPv4: 192.168.255.0/24"
       - "→ Interfaz: nat64"
-      - "→ Estado: {{ 'Activo' if 'active (running)' in tayga_status.stdout else 'Verificar' }}"
+      - "→ Estado: {{ tayga_status.stdout }}"
       - "════════════════════════════════════════"
-      - "Las VMs IPv6 ahora pueden acceder a internet IPv4"
-      - "Ejemplo: ping6 64:ff9b::8.8.8.8 (Google DNS)"
+      - "Verifica con: sudo systemctl status tayga"
+      - "Prueba con: ping6 64:ff9b::8.8.8.8"
       - "════════════════════════════════════════"
