@@ -649,10 +649,14 @@ install_all() {
     install_system_packages
     check_python || exit 1
     
-    install_venv
-    install_ansible
+    # Saltar venv si ya existe Ansible en el sistema
+    if ! command -v ansible &> /dev/null; then
+        install_ansible
+    else
+        echo -e "${GREEN}✓ Ansible ya está instalado en el sistema${NC}"
+    fi
+    
     install_collections
-    configure_ansible_cfg
     
     echo ""
     echo -e "${GREEN}╔════════════════════════════════════════════════════════════════╗${NC}"
@@ -661,7 +665,7 @@ install_all() {
     echo ""
     echo "Ansible está listo para usar. Puedes ejecutar directamente:"
     echo "  ansible --version"
-    echo "  ansible-playbook playbooks/create-ubuntu-desktop.yml"
+    echo "  ansible-playbook playbooks/create-server-vm.yml"
     echo ""
 }
 
