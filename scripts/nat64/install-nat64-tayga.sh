@@ -31,7 +31,7 @@ dynamic-pool 192.168.255.0/24
 ipv4-addr 192.168.255.1
 
 # Dirección IPv6 del túnel (requerida para IPs privadas)
-ipv6-addr 2025:db8:10::ffff
+ipv6-addr fd00:cafe:cafe::ffff
 
 # Interfaz de túnel
 tun-device nat64
@@ -52,7 +52,7 @@ if [ "$IFACE" = "ens34" ]; then
     tayga --mktun
     ip link set nat64 up
     ip addr add 192.168.255.1 dev nat64
-    ip addr add 2025:db8:10::ffff dev nat64
+    ip addr add fd00:cafe:cafe::ffff dev nat64
     ip route add 192.168.255.0/24 dev nat64
     ip route add 64:ff9b::/96 dev nat64
     tayga
@@ -65,7 +65,7 @@ echo "5️⃣  Iniciando Tayga..."
 tayga --mktun
 ip link set nat64 up
 ip addr add 192.168.255.1 dev nat64
-ip addr add 2025:db8:10::ffff dev nat64
+ip addr add fd00:cafe:cafe::ffff dev nat64
 ip route add 192.168.255.0/24 dev nat64
 ip route add 64:ff9b::/96 dev nat64
 tayga
