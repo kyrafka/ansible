@@ -2,7 +2,7 @@
 # Variables por defecto para DNS/BIND
 
 # Configuración del dominio
-dns_domain_name: "gamecenter.local"
+dns_domain_name: "gamecenter.lan"
 
 # Servidores DNS externos (forwarders)
 dns_forwarders:
