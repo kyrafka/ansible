@@ -260,15 +260,51 @@
   ansible.builtin.include_tasks: configure-ddns.yml
   tags: [dns, ddns]
 
+- name: "🔍 Verificar configuración antes de reiniciar"
+  command: named-checkconf
+  register: final_check
+  changed_when: false
+  failed_when: final_check.rc != 0
+  become: true
+
+- name: "✅ Configuración válida, reiniciando BIND9"
+  debug:
+    msg: "→ named-checkconf: OK, procediendo a reiniciar"
+
 - name: "🔄 Reiniciar BIND9 después de configurar DDNS"
   systemd:
     name: bind9
     state: restarted
   become: true
+  register: bind_restart
+  failed_when: false
 
 - name: "⏸️  Esperar a que BIND9 se estabilice"
   pause:
     seconds: 5
+
+- name: "🔍 Verificar que BIND9 está corriendo"
+  systemd:
+    name: bind9
+    state: started
+  become: true
+  register: bind_status
+
+- name: "❌ BIND9 falló al iniciar"
+  block:
+    - name: "Ver logs de error"
+      command: journalctl -xeu bind9 --no-pager -n 50
+      register: bind_logs
+      changed_when: false
+    
+    - name: "Mostrar error"
+      debug:
+        msg: "{{ bind_logs.stdout_lines }}"
+    
+    - name: "Fallar con mensaje claro"
+      fail:
+        msg: "BIND9 no pudo iniciar. Ver logs arriba."
+  when: bind_status.failed is defined and bind_status.failed
 
 # Scripts de sincronización DHCP-DNS (comentados - no son necesarios con DDNS)
 # - name: "📋 Copiar script de sincronización DHCP-DNS"
