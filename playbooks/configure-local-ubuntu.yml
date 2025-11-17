@@ -109,6 +109,16 @@
       pause:
         seconds: 3
     
+    - name: "🔍 Detectar gateway IPv6"
+      shell: ip -6 route | grep default | awk '{print $3}'
+      register: ipv6_gateway
+      changed_when: false
+    
+    - name: "🌐 Agregar ruta para NAT64 (64:ff9b::/96)"
+      command: ip -6 route add 64:ff9b::/96 via {{ ipv6_gateway.stdout }} dev {{ network_interface.stdout }}
+      changed_when: true
+      failed_when: false
+    
     - name: "🧪 Verificar conectividad al servidor"
       command: ping6 -c 3 2025:db8:10::2
       register: ping_result
