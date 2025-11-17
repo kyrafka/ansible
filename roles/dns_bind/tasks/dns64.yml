@@ -26,8 +26,24 @@
               mapped { any; };
               exclude { any; };
               recursive-only yes;
+              break-dnssec yes;
           };
     backup: yes
+  become: true
+  notify: restart bind9
+
+- name: "🚫 Deshabilitar zona reversa automática para DNS64"
+  ansible.builtin.blockinfile:
+    path: /etc/bind/named.conf.local
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - DISABLE DNS64 REVERSE"
+    block: |
+      
+      // Deshabilitar zona reversa automática para prefijo DNS64
+      zone "b.9.f.f.4.6.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa" {
+          type master;
+          file "/dev/null";
+      };
+    insertafter: EOF
   become: true
   notify: restart bind9
 
