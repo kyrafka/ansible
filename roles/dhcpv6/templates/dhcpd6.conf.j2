@@ -29,13 +29,14 @@ zone {{ dns_ipv6_reverse_zone }}. {
 
 # Configuración de hostname para DDNS
 on commit {
-    set ClientIP = binary-to-ascii(16, 16, ":", substring(hardware, 1, 16));
-    set ClientDUID = binary-to-ascii(16, 8, ":", option dhcp6.client-id);
+    set ClientIP = binary-to-ascii(16, 16, ":", suffix(option dhcp6.ia-addr, 16));
     set ClientName = pick-first-value(option host-name, option fqdn.hostname, "unknown");
     
-    log(concat("Commit: IP=", ClientIP, " DUID=", ClientDUID, " Name=", ClientName));
+    log(concat("DDNS: Hostname=", ClientName, " IP=", ClientIP));
     
-    execute("/usr/local/bin/dhcp-ddns-update.sh", "add", ClientName, ClientIP);
+    if (ClientName != "unknown") {
+        execute("/usr/local/bin/dhcp-ddns-update.sh", "add", ClientName, ClientIP);
+    }
 }
 
 # Configuración de la red principal
