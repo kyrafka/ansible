@@ -48,6 +48,8 @@
             device_type: vmxnet3
           - name: "{{ network_name }}"
             device_type: vmxnet3
+          - name: "M_s's"
+            device_type: vmxnet3
         
         cdrom:
           - controller_number: 0
@@ -65,11 +67,13 @@
           - "CPU: {{ vm_cpu }} cores"
           - "RAM: {{ vm_ram }} MB"
           - "Disco: {{ vm_disk }} GB"
-          - "Adaptador 1: VM Network (ens33 - Internet)"
-          - "Adaptador 2: {{ network_name }} (ens34 - Clientes)"
+          - "Adaptador 1: VM Network (ens33 - Internet/Gestión)"
+          - "Adaptador 2: {{ network_name }} (ens34 - VMs Internas IPv6)"
+          - "Adaptador 3: M_s's (ens35 - Red Física/Switch)"
           - ""
           - "Siguiente paso:"
           - "1. Instalar Ubuntu Server desde la ISO"
           - "2. Configurar ens33 con DHCP (internet)"
-          - "3. Configurar ens34 con IP fija: 2025:db8:10::2/64"
-          - "4. Ejecutar: bash scripts/server/setup-server.sh"
+          - "3. Configurar ens34 con IP fija: fd00:cafe:cafe::1/64"
+          - "4. Configurar ens35 con DHCP o IP estática de tu red"
+          - "5. Ejecutar: bash scripts/server/setup-server.sh"
