@@ -41,6 +41,13 @@ on commit {
 # Configuración de la red principal
 subnet6 {{ network_config.ipv6_network }} {
     range6 {{ network_config.dhcp_range_start }} {{ network_config.dhcp_range_end }};
+    
+    # Asignar direcciones con prefijo /64 en lugar de /128
+    option dhcp6.ia-na-options code 3 = { integer 32, integer 32, integer 16, ip6-address };
+    
     option dhcp6.name-servers 2025:db8:10::2;
     option dhcp6.domain-search "{{ network_config.domain_name }}";
+    
+    # Información del prefijo de red
+    prefix6 2025:db8:10:: 2025:db8:10::ffff:ffff:ffff:ffff /64;
 }
