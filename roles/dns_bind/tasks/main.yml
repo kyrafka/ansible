@@ -93,7 +93,6 @@
     group: bind
     mode: '0644'
     backup: yes
-  notify: restart bind9
 
 - name: "Configurar named.conf.options"
   template:
