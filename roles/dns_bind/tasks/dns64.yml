@@ -44,7 +44,6 @@
       };
     insertafter: EOF
   become: true
-  notify: restart bind9
 
 - name: "✓ DNS64 configurado"
   ansible.builtin.debug:

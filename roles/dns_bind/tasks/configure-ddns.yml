@@ -21,7 +21,6 @@
     insertafter: EOF
     state: present
   become: true
-  notify: restart bind9
 
 - name: "✅ Clave DDNS configurada desde vault"
   debug:
