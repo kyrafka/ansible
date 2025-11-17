@@ -12,13 +12,23 @@ echo "════════════════════════�
 echo ""
 
 # Verificar que VBoxManage está disponible
-if ! command -v VBoxManage &> /dev/null; then
-    echo "❌ VirtualBox no está instalado o no está en PATH"
+VBOXMANAGE=""
+if command -v VBoxManage &> /dev/null; then
+    VBOXMANAGE="VBoxManage"
+elif [ -f "/c/Program Files/Oracle/VirtualBox/VBoxManage.exe" ]; then
+    VBOXMANAGE="/c/Program Files/Oracle/VirtualBox/VBoxManage.exe"
+elif [ -f "C:/Program Files/Oracle/VirtualBox/VBoxManage.exe" ]; then
+    VBOXMANAGE="C:/Program Files/Oracle/VirtualBox/VBoxManage.exe"
+else
+    echo "❌ VirtualBox no está instalado"
     echo ""
     echo "Descarga VirtualBox desde:"
     echo "https://www.virtualbox.org/wiki/Downloads"
     exit 1
 fi
+
+echo "✅ VirtualBox encontrado: $VBOXMANAGE"
+echo ""
 
 # Configuración por defecto
 VM_NAME="ubuntu-desktop-01"
@@ -110,7 +120,7 @@ echo ""
 echo "1️⃣  Creando VM..."
 
 # Crear VM
-VBoxManage createvm --name "$VM_NAME" --ostype Ubuntu_64 --register
+"$VBOXMANAGE" createvm --name "$VM_NAME" --ostype Ubuntu_64 --register
 
 echo "  ✓ VM creada y registrada"
 
@@ -118,7 +128,7 @@ echo ""
 echo "2️⃣  Configurando hardware..."
 
 # Configurar RAM y CPUs
-VBoxManage modifyvm "$VM_NAME" \
+"$VBOXMANAGE" modifyvm "$VM_NAME" \
     --memory "$VM_RAM" \
     --cpus "$VM_CPUS" \
     --vram 128 \
@@ -133,17 +143,17 @@ echo ""
 echo "3️⃣  Creando disco virtual..."
 
 # Obtener carpeta de VMs
-VM_FOLDER=$(VBoxManage showvminfo "$VM_NAME" --machinereadable | grep "CfgFile" | cut -d'"' -f2 | xargs dirname)
+VM_FOLDER=$("$VBOXMANAGE" showvminfo "$VM_NAME" --machinereadable | grep "CfgFile" | cut -d'"' -f2 | xargs dirname)
 DISK_PATH="$VM_FOLDER/${VM_NAME}.vdi"
 
 # Crear disco
-VBoxManage createhd --filename "$DISK_PATH" --size "$VM_DISK_SIZE" --format VDI
+"$VBOXMANAGE" createhd --filename "$DISK_PATH" --size "$VM_DISK_SIZE" --format VDI
 
 # Crear controlador SATA
-VBoxManage storagectl "$VM_NAME" --name "SATA" --add sata --controller IntelAhci --portcount 2
+"$VBOXMANAGE" storagectl "$VM_NAME" --name "SATA" --add sata --controller IntelAhci --portcount 2
 
 # Adjuntar disco
-VBoxManage storageattach "$VM_NAME" --storagectl "SATA" --port 0 --device 0 --type hdd --medium "$DISK_PATH"
+"$VBOXMANAGE" storageattach "$VM_NAME" --storagectl "SATA" --port 0 --device 0 --type hdd --medium "$DISK_PATH"
 
 echo "  ✓ Disco creado: $((VM_DISK_SIZE / 1024)) GB"
 
@@ -151,7 +161,7 @@ echo ""
 echo "4️⃣  Configurando red..."
 
 # Red interna (como en KVM)
-VBoxManage modifyvm "$VM_NAME" \
+"$VBOXMANAGE" modifyvm "$VM_NAME" \
     --nic1 intnet \
     --intnet1 "gamecenter" \
     --nictype1 82540EM \
@@ -164,10 +174,10 @@ echo ""
 echo "5️⃣  Adjuntando ISO..."
 
 # Crear controlador IDE para CD
-VBoxManage storagectl "$VM_NAME" --name "IDE" --add ide
+"$VBOXMANAGE" storagectl "$VM_NAME" --name "IDE" --add ide
 
 # Adjuntar ISO
-VBoxManage storageattach "$VM_NAME" --storagectl "IDE" --port 0 --device 0 --type dvddrive --medium "$ISO_PATH"
+"$VBOXMANAGE" storageattach "$VM_NAME" --storagectl "IDE" --port 0 --device 0 --type dvddrive --medium "$ISO_PATH"
 
 echo "  ✓ ISO adjuntada"
 
@@ -175,7 +185,7 @@ echo ""
 echo "6️⃣  Configuraciones adicionales..."
 
 # Habilitar EFI, USB, etc.
-VBoxManage modifyvm "$VM_NAME" \
+"$VBOXMANAGE" modifyvm "$VM_NAME" \
     --firmware efi \
     --boot1 dvd \
     --boot2 disk \
@@ -225,7 +235,7 @@ echo "Necesitas:"
 echo "  - Otra VM como servidor/router con NAT64"
 echo "  - O cambiar a NAT para tener internet directo:"
 echo ""
-echo "    VBoxManage modifyvm \"$VM_NAME\" --nic1 nat"
+echo "    \"$VBOXMANAGE\" modifyvm \"$VM_NAME\" --nic1 nat"
 echo ""
 echo "════════════════════════════════════════════════════════"
 
