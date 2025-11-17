@@ -6,9 +6,30 @@ echo "🖥️  Configurando Ubuntu Desktop Cliente"
 echo "════════════════════════════════════════"
 echo ""
 
-# Detectar interfaz de red
-IFACE=$(ip -o link show | grep -v "lo:" | head -1 | awk '{print $2}' | sed 's/://')
-echo "📡 Interfaz detectada: $IFACE"
+# Detectar o especificar interfaz de red
+if [ -n "$1" ]; then
+    IFACE=$1
+    echo "📡 Interfaz especificada: $IFACE"
+else
+    echo "📡 Interfaces disponibles:"
+    ip -o link show | grep -v "lo:" | awk '{print "   ", $2, $9}'
+    echo ""
+    
+    # Detectar interfaz con IPv6 de la red 2025:db8:10
+    IFACE=$(ip -6 addr show | grep "2025:db8:10" | head -1 | awk '{print $NF}')
+    
+    if [ -z "$IFACE" ]; then
+        # Si no hay IPv6 asignada, tomar la primera interfaz UP
+        IFACE=$(ip -o link show | grep -v "lo:" | grep "state UP" | head -1 | awk '{print $2}' | sed 's/://')
+    fi
+    
+    if [ -z "$IFACE" ]; then
+        echo "❌ No se detectó ninguna interfaz de red"
+        exit 1
+    fi
+    
+    echo "📡 Interfaz detectada: $IFACE"
+fi
 echo ""
 
 echo "1️⃣  Deshabilitando systemd-resolved..."
