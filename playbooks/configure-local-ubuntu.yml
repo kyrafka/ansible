@@ -1,0 +1,227 @@
+---
+# Playbook para configurar Ubuntu Desktop localmente (ejecutar dentro de la VM)
+- name: Configurar Ubuntu Desktop localmente
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: yes
+  
+  vars:
+    users:
+      - name: auditor
+        password: "123456"
+        groups: ["adm"]
+        shell: /bin/bash
+        comment: "Auditor - Solo lectura"
+      
+      - name: gamer01
+        password: "123456"
+        groups: ["users"]
+        shell: /bin/bash
+        comment: "Usuario gamer"
+  
+  tasks:
+    # ════════════════════════════════════════════════════════════
+    # 1. Actualizar sistema
+    # ════════════════════════════════════════════════════════════
+    
+    - name: Actualizar cache de apt
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+    
+    # ════════════════════════════════════════════════════════════
+    # 2. Instalar paquetes básicos
+    # ════════════════════════════════════════════════════════════
+    
+    - name: Instalar paquetes básicos
+      apt:
+        name:
+          - vim
+          - git
+          - curl
+          - wget
+          - htop
+          - net-tools
+          - openssh-server
+          - ufw
+        state: present
+    
+    # ════════════════════════════════════════════════════════════
+    # 3. Crear usuarios
+    # ════════════════════════════════════════════════════════════
+    
+    - name: Crear usuarios
+      user:
+        name: "{{ item.name }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        groups: "{{ item.groups }}"
+        shell: "{{ item.shell }}"
+        comment: "{{ item.comment }}"
+        create_home: yes
+        state: present
+      loop: "{{ users }}"
+    
+    - name: Configurar sudo para administrador
+      lineinfile:
+        path: /etc/sudoers.d/administrador
+        line: "administrador ALL=(ALL) NOPASSWD:ALL"
+        create: yes
+        mode: '0440'
+        validate: 'visudo -cf %s'
+    
+    # ════════════════════════════════════════════════════════════
+    # 4. Configurar SSH
+    # ════════════════════════════════════════════════════════════
+    
+    - name: Configurar SSH para permitir solo administrador
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?AllowUsers'
+        line: 'AllowUsers administrador'
+        state: present
+      notify: Reiniciar SSH
+    
+    - name: Habilitar autenticación por contraseña
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication yes'
+        state: present
+      notify: Reiniciar SSH
+    
+    # ════════════════════════════════════════════════════════════
+    # 5. Configurar firewall
+    # ════════════════════════════════════════════════════════════
+    
+    - name: Habilitar UFW
+      ufw:
+        state: enabled
+        policy: deny
+    
+    - name: Permitir SSH
+      ufw:
+        rule: allow
+        port: '22'
+        proto: tcp
+    
+    # ════════════════════════════════════════════════════════════
+    # 6. Crear directorios de trabajo
+    # ════════════════════════════════════════════════════════════
+    
+    - name: Crear directorios compartidos
+      file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "/srv/admin", owner: "administrador", group: "administrador", mode: "0755" }
+        - { path: "/srv/audits", owner: "auditor", group: "auditor", mode: "0755" }
+        - { path: "/srv/games", owner: "gamer01", group: "users", mode: "0775" }
+    
+    # ════════════════════════════════════════════════════════════
+    # 7. Crear archivos README
+    # ════════════════════════════════════════════════════════════
+    
+    - name: Crear README para administrador
+      copy:
+        dest: /home/administrador/README.txt
+        owner: administrador
+        group: administrador
+        mode: '0644'
+        content: |
+          ════════════════════════════════════════════════════════════════
+          Bienvenido a Ubuntu Desktop
+          ════════════════════════════════════════════════════════════════
+          
+          Usuario: administrador
+          Rol: Administrador
+          
+          PERMISOS:
+          ✅ Sudo completo (sin contraseña)
+          ✅ Acceso SSH
+          ✅ Gestión del sistema
+          
+          DIRECTORIOS:
+          /srv/admin   - Tu carpeta personal
+          /srv/audits  - Auditorías
+          /srv/games   - Juegos compartidos
+          
+          ════════════════════════════════════════════════════════════════
+    
+    - name: Crear README para auditor
+      copy:
+        dest: /home/auditor/README.txt
+        owner: auditor
+        group: auditor
+        mode: '0644'
+        content: |
+          ════════════════════════════════════════════════════════════════
+          Bienvenido a Ubuntu Desktop
+          ════════════════════════════════════════════════════════════════
+          
+          Usuario: auditor
+          Rol: Auditor
+          
+          PERMISOS:
+          ✅ Ver logs del sistema
+          ❌ NO tiene sudo
+          ❌ NO tiene acceso SSH
+          
+          COMANDOS ÚTILES:
+          journalctl -n 50
+          journalctl --since "1 hour ago"
+          
+          DIRECTORIO:
+          /srv/audits
+          
+          ════════════════════════════════════════════════════════════════
+    
+    - name: Crear README para gamer01
+      copy:
+        dest: /home/gamer01/README.txt
+        owner: gamer01
+        group: users
+        mode: '0644'
+        content: |
+          ════════════════════════════════════════════════════════════════
+          Bienvenido a Ubuntu Desktop
+          ════════════════════════════════════════════════════════════════
+          
+          Usuario: gamer01
+          Rol: Gamer
+          
+          PERMISOS:
+          ✅ Usar aplicaciones
+          ✅ Jugar juegos
+          ❌ NO puede instalar software
+          ❌ NO tiene acceso SSH
+          
+          DIRECTORIO:
+          /srv/games
+          
+          ════════════════════════════════════════════════════════════════
+  
+  handlers:
+    - name: Reiniciar SSH
+      service:
+        name: ssh
+        state: restarted
+  
+  post_tasks:
+    - name: Mostrar resumen
+      debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "✅ Configuración completada"
+          - "════════════════════════════════════════════════════════════════"
+          - ""
+          - "USUARIOS:"
+          - "  - administrador (sudo completo)"
+          - "  - auditor (solo lectura)"
+          - "  - gamer01 (usuario estándar)"
+          - ""
+          - "════════════════════════════════════════════════════════════════"
+
