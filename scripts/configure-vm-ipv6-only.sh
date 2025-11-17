@@ -108,10 +108,35 @@ echo "🧪 Ping NAT64:"
 ping6 -c 3 64:ff9b::8.8.8.8
 echo ""
 
+echo "7️⃣  Configurando proxy del servidor..."
+# Variables de entorno para terminal
+sudo bash -c 'cat >> /etc/environment << EOF
+http_proxy="http://[2025:db8:10::2]:3128"
+https_proxy="http://[2025:db8:10::2]:3128"
+HTTP_PROXY="http://[2025:db8:10::2]:3128"
+HTTPS_PROXY="http://[2025:db8:10::2]:3128"
+no_proxy="localhost,127.0.0.1,2025:db8:10::/64"
+NO_PROXY="localhost,127.0.0.1,2025:db8:10::/64"
+EOF'
+
+# Configuración de APT para usar proxy
+sudo bash -c 'cat > /etc/apt/apt.conf.d/95proxies << EOF
+Acquire::http::Proxy "http://[2025:db8:10::2]:3128";
+Acquire::https::Proxy "http://[2025:db8:10::2]:3128";
+EOF'
+
+echo "   ✅ Proxy configurado"
+echo ""
+
 echo "════════════════════════════════════════"
 if ping6 -c 1 64:ff9b::8.8.8.8 &>/dev/null; then
     echo "✅ NAT64 funciona - Tienes internet IPv6"
 else
     echo "⚠️  NAT64 no funciona - Verifica el servidor"
 fi
+echo ""
+echo "📋 Para usar el proxy en el navegador:"
+echo "   Settings > Network > Manual Proxy"
+echo "   HTTP Proxy: 2025:db8:10::2"
+echo "   Port: 3128"
 echo "════════════════════════════════════════"
