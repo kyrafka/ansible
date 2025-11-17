@@ -4,7 +4,8 @@ collections:
   - name: ansible.posix
   - name: community.vmware
 
-roles:
-  - name: bertvv.dhcp
-  - name: debops.radvd
-  - name: bertvv.radvd
+# Roles comentados - no son necesarios, usamos roles propios
+# roles:
+#   - name: bertvv.dhcp
+#   - name: debops.radvd
+#   - name: bertvv.radvd

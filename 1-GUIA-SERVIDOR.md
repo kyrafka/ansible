@@ -26,7 +26,7 @@ pip3 install passlib
 
 ```bash
 cd ~
-git clone <URL_REPO> ansible
+git clone <kyrafka/ansible.git> ansible
 cd ansible
 ```
 

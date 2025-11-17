@@ -1,11 +1,11 @@
 vault_vcenter_hostname: "168.121.48.254"
 vault_vcenter_port: "10111"
 vault_vcenter_username: "root"
-vault_vcenter_password: "qwe123$"
+vault_vcenter_password: "cvb123$"
 
 vault_govc_url: "https://168.121.48.254:10111"
 vault_govc_username: "root"
-vault_govc_password: "qwe123$"
+vault_govc_password: "cvb123$"
 vault_govc_insecure: "1"
 
 vault_ubuntu_password: "ubuntu123"
