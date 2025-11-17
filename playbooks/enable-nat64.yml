@@ -32,15 +32,9 @@
         name: nat64_tayga
       tags: nat64
     
-    - name: "🔄 Reiniciar BIND9 para aplicar DNS64"
-      ansible.builtin.systemd:
-        name: named
-        state: restarted
-      become: true
-    
-    - name: "⏳ Esperar a que BIND9 esté listo"
+    - name: "⏳ Esperar a que Tayga esté listo"
       ansible.builtin.pause:
-        seconds: 3
+        seconds: 5
     
     - name: "🔍 Verificar DNS64"
       ansible.builtin.shell: |
