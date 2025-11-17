@@ -78,8 +78,8 @@ network_config:
   # Red principal del proyecto
   ipv6_network: "2025:db8:10::/64"
   ipv6_gateway: "2025:db8:10::1"
-  dhcp_range_start: "2025:db8:10::10"     # Desde aquí asigna DHCP
-  dhcp_range_end: "2025:db8:10::FFFF"     # Hasta aquí
+  dhcp_range_start: "2025:db8:10::100"    # Desde aquí asigna DHCP
+  dhcp_range_end: "2025:db8:10::200"      # Hasta aquí
   dns_servers: 
     - "2001:4860:4860::8888"              # Google DNS IPv6
     - "2001:4860:4860::8844"
