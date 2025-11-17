@@ -1,0 +1,170 @@
+---
+# Playbook para configurar cliente IPv6 (para VMs que se conectan al servidor)
+- name: Configurar cliente IPv6
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: yes
+  
+  vars:
+    # Configuración del servidor
+    dns_server: "fd00:cafe:cafe::1"
+    proxy_server: "fd00:cafe:cafe::1"
+    proxy_port: "3128"
+  
+  tasks:
+    # ════════════════════════════════════════════════════════════
+    # 1. Configurar netplan para IPv6 DHCP
+    # ════════════════════════════════════════════════════════════
+    
+    - name: Detectar interfaz de red principal
+      shell: ip -o link show | awk -F': ' '{print $2}' | grep -v lo | head -1
+      register: network_interface
+      changed_when: false
+    
+    - name: Mostrar interfaz detectada
+      debug:
+        msg: "Interfaz de red: {{ network_interface.stdout }}"
+    
+    - name: Configurar netplan para IPv6 DHCP
+      copy:
+        dest: /etc/netplan/01-netcfg.yaml
+        content: |
+          network:
+            version: 2
+            ethernets:
+              {{ network_interface.stdout }}:
+                dhcp4: no
+                dhcp6: yes
+                accept-ra: yes
+        mode: '0600'
+      notify: Aplicar netplan
+    
+    # ════════════════════════════════════════════════════════════
+    # 2. Configurar DNS
+    # ════════════════════════════════════════════════════════════
+    
+    - name: Configurar DNS manualmente
+      copy:
+        dest: /etc/systemd/resolved.conf
+        content: |
+          [Resolve]
+          DNS={{ dns_server }}
+          FallbackDNS=
+          Domains=gamecenter.local
+          DNSSEC=no
+          DNSOverTLS=no
+        mode: '0644'
+      notify: Reiniciar systemd-resolved
+    
+    # ════════════════════════════════════════════════════════════
+    # 3. Configurar proxy
+    # ════════════════════════════════════════════════════════════
+    
+    - name: Configurar proxy del sistema
+      copy:
+        dest: /etc/environment
+        content: |
+          http_proxy="http://[{{ proxy_server }}]:{{ proxy_port }}/"
+          https_proxy="http://[{{ proxy_server }}]:{{ proxy_port }}/"
+          ftp_proxy="http://[{{ proxy_server }}]:{{ proxy_port }}/"
+          no_proxy="localhost,127.0.0.1,::1,fd00::/8"
+          HTTP_PROXY="http://[{{ proxy_server }}]:{{ proxy_port }}/"
+          HTTPS_PROXY="http://[{{ proxy_server }}]:{{ proxy_port }}/"
+          FTP_PROXY="http://[{{ proxy_server }}]:{{ proxy_port }}/"
+          NO_PROXY="localhost,127.0.0.1,::1,fd00::/8"
+        mode: '0644'
+    
+    - name: Configurar proxy para APT
+      copy:
+        dest: /etc/apt/apt.conf.d/95proxies
+        content: |
+          Acquire::http::Proxy "http://[{{ proxy_server }}]:{{ proxy_port }}/";
+          Acquire::https::Proxy "http://[{{ proxy_server }}]:{{ proxy_port }}/";
+        mode: '0644'
+    
+    # ════════════════════════════════════════════════════════════
+    # 4. Deshabilitar IPv4
+    # ════════════════════════════════════════════════════════════
+    
+    - name: Deshabilitar IPv4 en sysctl
+      sysctl:
+        name: "{{ item }}"
+        value: '1'
+        state: present
+        reload: yes
+      loop:
+        - net.ipv6.conf.all.disable_ipv4
+        - net.ipv6.conf.default.disable_ipv4
+      ignore_errors: yes
+    
+    # ════════════════════════════════════════════════════════════
+    # 5. Crear script de verificación
+    # ════════════════════════════════════════════════════════════
+    
+    - name: Crear script de verificación de red
+      copy:
+        dest: /usr/local/bin/check-network
+        content: |
+          #!/bin/bash
+          echo "════════════════════════════════════════════════════════"
+          echo "🔍 Verificación de Red IPv6"
+          echo "════════════════════════════════════════════════════════"
+          echo ""
+          
+          echo "1️⃣  Dirección IPv6:"
+          ip -6 addr show | grep "inet6" | grep -v "::1" | grep -v "fe80"
+          echo ""
+          
+          echo "2️⃣  Ruta por defecto:"
+          ip -6 route show default
+          echo ""
+          
+          echo "3️⃣  DNS configurado:"
+          resolvectl status | grep "DNS Servers" | head -1
+          echo ""
+          
+          echo "4️⃣  Ping al servidor:"
+          ping6 -c 2 {{ dns_server }}
+          echo ""
+          
+          echo "5️⃣  Resolución DNS:"
+          nslookup google.com {{ dns_server }}
+          echo ""
+          
+          echo "6️⃣  Ping a Google (vía NAT64):"
+          ping6 -c 2 google.com
+          echo ""
+          
+          echo "════════════════════════════════════════════════════════"
+        mode: '0755'
+  
+  handlers:
+    - name: Aplicar netplan
+      command: netplan apply
+    
+    - name: Reiniciar systemd-resolved
+      service:
+        name: systemd-resolved
+        state: restarted
+  
+  post_tasks:
+    - name: Mostrar resumen
+      debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "✅ Configuración IPv6 completada"
+          - "════════════════════════════════════════════════════════════════"
+          - ""
+          - "CONFIGURACIÓN:"
+          - "  - DHCP IPv6: Habilitado"
+          - "  - DNS: {{ dns_server }}"
+          - "  - Proxy: http://[{{ proxy_server }}]:{{ proxy_port }}/"
+          - ""
+          - "VERIFICAR RED:"
+          - "  sudo /usr/local/bin/check-network"
+          - ""
+          - "REINICIA LA VM para aplicar todos los cambios"
+          - ""
+          - "════════════════════════════════════════════════════════════════"
+
