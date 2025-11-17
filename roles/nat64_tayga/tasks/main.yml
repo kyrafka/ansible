@@ -21,10 +21,16 @@
 
 - name: "🧹 Limpiar interfaz nat64 existente"
   ansible.builtin.shell: |
+    # Detener cualquier proceso tayga corriendo
+    pkill -9 tayga 2>/dev/null || true
+    sleep 1
+    # Eliminar interfaz nat64 si existe
     if ip link show nat64 &>/dev/null; then
       ip link set nat64 down 2>/dev/null || true
       ip link delete nat64 2>/dev/null || true
     fi
+    # Limpiar directorio de datos
+    rm -rf /var/db/tayga/*
   become: true
   changed_when: false
 
