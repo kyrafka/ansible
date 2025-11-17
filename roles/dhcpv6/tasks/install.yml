@@ -15,10 +15,19 @@
     group: root
     mode: '0644'
 
-- name: Configurar interfaces para DHCP
+- name: Configurar interfaces para DHCP (IPv4)
   template:
     src: isc-dhcp-server.j2
     dest: /etc/default/isc-dhcp-server
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+
+- name: Configurar interfaces para DHCPv6
+  template:
+    src: isc-dhcp-server.j2
+    dest: /etc/default/isc-dhcp-server6
     owner: root
     group: root
     mode: '0644'
