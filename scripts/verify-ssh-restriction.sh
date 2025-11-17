@@ -51,14 +51,14 @@ fi
 
 echo ""
 echo "4️⃣  Reiniciando SSH..."
-systemctl restart sshd
+systemctl restart ssh
 sleep 2
 
-if systemctl is-active --quiet sshd; then
+if systemctl is-active --quiet ssh; then
     echo "  ✓ SSH reiniciado correctamente"
 else
     echo "  ❌ Error al reiniciar SSH"
-    systemctl status sshd
+    systemctl status ssh
     exit 1
 fi
 
