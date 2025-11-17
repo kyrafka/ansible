@@ -123,7 +123,7 @@ sudo bash scripts/nat64/install-nat64-tayga.sh
 ```bash
 sudo systemctl status tayga
 ip addr show nat64
-ping6 64:ff9b::808:808
+#ping6 64:ff9b::808:808
 ```
 
 **Si falla:**
