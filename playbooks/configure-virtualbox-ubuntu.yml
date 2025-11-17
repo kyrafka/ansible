@@ -7,7 +7,7 @@
   
   vars:
     users:
-      - name: admin
+      - name: administrador
         password: "123"
         groups: ["sudo", "adm"]
         shell: /bin/bash
@@ -84,11 +84,11 @@
         create_home: yes
         state: present
       loop: "{{ users }}"
-      when: item.name != 'admin'  # admin ya existe
+      when: item.name != 'administrador'  # administrador ya existe
     
-    - name: Actualizar contraseña de admin
+    - name: Actualizar contraseña de administrador
       user:
-        name: admin
+        name: administrador
         password: "{{ '123' | password_hash('sha512') }}"
         groups: ["sudo", "adm"]
     
@@ -96,10 +96,10 @@
     # 5. Configurar sudo
     # ════════════════════════════════════════════════════════════
     
-    - name: Configurar sudo sin contraseña para admin
+    - name: Configurar sudo sin contraseña para administrador
       lineinfile:
-        path: /etc/sudoers.d/admin
-        line: "admin ALL=(ALL) NOPASSWD:ALL"
+        path: /etc/sudoers.d/administrador
+        line: "administrador ALL=(ALL) NOPASSWD:ALL"
         create: yes
         mode: '0440'
         validate: 'visudo -cf %s'
@@ -108,11 +108,11 @@
     # 6. Configurar SSH
     # ════════════════════════════════════════════════════════════
     
-    - name: Configurar SSH para permitir solo admin
+    - name: Configurar SSH para permitir solo administrador
       lineinfile:
         path: /etc/ssh/sshd_config
         regexp: '^#?AllowUsers'
-        line: 'AllowUsers admin'
+        line: 'AllowUsers administrador'
         state: present
       notify: Reiniciar SSH
     
@@ -151,7 +151,7 @@
         group: "{{ item.group }}"
         mode: "{{ item.mode }}"
       loop:
-        - { path: "/srv/admin", owner: "admin", group: "admin", mode: "0755" }
+        - { path: "/srv/admin", owner: "administrador", group: "administrador", mode: "0755" }
         - { path: "/srv/audits", owner: "auditor", group: "auditor", mode: "0755" }
         - { path: "/srv/games", owner: "gamer01", group: "users", mode: "0775" }
     
@@ -159,18 +159,18 @@
     # 9. Crear archivos README
     # ════════════════════════════════════════════════════════════
     
-    - name: Crear README para admin
+    - name: Crear README para administrador
       copy:
-        dest: /home/admin/README.txt
-        owner: admin
-        group: admin
+        dest: /home/administrador/README.txt
+        owner: administrador
+        group: administrador
         mode: '0644'
         content: |
           ════════════════════════════════════════════════════════════════
           Bienvenido a Ubuntu Desktop - VirtualBox
           ════════════════════════════════════════════════════════════════
           
-          Usuario: admin
+          Usuario: administrador
           Rol: Administrador
           
           PERMISOS:
@@ -179,7 +179,7 @@
           ✅ Gestión del sistema
           
           CONECTAR POR SSH:
-          Desde tu PC: ssh -p 2222 admin@localhost
+          Desde tu PC: ssh -p 2222 administrador@localhost
           
           DIRECTORIOS:
           /srv/admin   - Tu carpeta personal
