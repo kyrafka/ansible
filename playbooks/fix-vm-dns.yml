@@ -1,0 +1,31 @@
+---
+# Playbook para configurar DNS en VMs Ubuntu Desktop
+- name: Configurar DNS en VM cliente
+  hosts: localhost
+  become: true
+  
+  tasks:
+    - name: "🔧 Deshabilitar systemd-resolved"
+      systemd:
+        name: systemd-resolved
+        state: stopped
+        enabled: no
+    
+    - name: "📝 Configurar resolv.conf"
+      copy:
+        content: |
+          nameserver 2025:db8:10::2
+          search gamecenter.lan
+        dest: /etc/resolv.conf
+        owner: root
+        group: root
+        mode: '0644'
+    
+    - name: "🔒 Proteger resolv.conf de cambios"
+      file:
+        path: /etc/resolv.conf
+        attributes: +i
+    
+    - name: "✅ DNS configurado"
+      debug:
+        msg: "DNS apunta a 2025:db8:10::2"
