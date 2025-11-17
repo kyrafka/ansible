@@ -16,15 +16,11 @@ options {
     listen-on { any; };
     
     // DNS64: Traduce respuestas IPv4 a IPv6 usando prefijo NAT64
-    // NOTA: No crear zonas reversas automáticas
-    empty-zones-enable no;
-    
     dns64 64:ff9b::/96 {
         clients { any; };
         mapped { !{{ dns_network_ipv6 }}; any; };
         exclude { 64:ff9b::/96; ::ffff:0:0/96; };
         recursive-only yes;
-        break-dnssec yes;
     };
     
     // Permitir consultas desde redes locales
