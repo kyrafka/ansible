@@ -82,12 +82,23 @@ echo -e "${BLUE}═══ 3. Generando claves del cliente ═══${NC}"
 echo ""
 
 # Generar clave privada del cliente
-wg genkey | tee client_private.key | wg pubkey > client_public.key
+echo "Generando clave privada del cliente..."
+wg genkey | tee client_private.key | wg pubkey | tee client_public.key > /dev/null
+
+# Permisos seguros
+chmod 600 client_private.key client_public.key
+
+# Verificar que se crearon
+if [ ! -f "client_private.key" ] || [ ! -f "client_public.key" ]; then
+    echo -e "${RED}❌ Error al generar claves del cliente${NC}"
+    exit 1
+fi
 
 CLIENT_PRIVATE_KEY=$(cat client_private.key)
 CLIENT_PUBLIC_KEY=$(cat client_public.key)
 
 echo -e "${GREEN}✅ Claves del cliente generadas${NC}"
+echo "   Clave pública: $CLIENT_PUBLIC_KEY"
 echo ""
 
 # ============================================================================
