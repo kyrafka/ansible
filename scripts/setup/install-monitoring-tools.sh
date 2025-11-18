@@ -60,7 +60,13 @@ echo -e "${GREEN}✅ Sistema actualizado${NC}"
 echo ""
 echo -e "${BLUE}═══ 2. Instalando Cockpit (Interfaz Web) ═══${NC}"
 
-apt install -y cockpit cockpit-pcp cockpit-networkmanager cockpit-storaged cockpit-packagekit
+# Instalar solo el paquete base de Cockpit
+apt install -y cockpit
+
+# Intentar instalar paquetes adicionales (sin fallar si no están disponibles)
+apt install -y cockpit-networkmanager 2>/dev/null || echo -e "${YELLOW}⚠️  cockpit-networkmanager no disponible${NC}"
+apt install -y cockpit-storaged 2>/dev/null || echo -e "${YELLOW}⚠️  cockpit-storaged no disponible${NC}"
+apt install -y cockpit-packagekit 2>/dev/null || echo -e "${YELLOW}⚠️  cockpit-packagekit no disponible${NC}"
 
 echo -e "${GREEN}✅ Cockpit instalado${NC}"
 
