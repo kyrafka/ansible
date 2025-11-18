@@ -40,18 +40,39 @@ echo ""
 echo -e "${BLUE}═══ 2. Generando claves del servidor ═══${NC}"
 echo ""
 
+# Verificar que el directorio existe
+if [ ! -d "/etc/wireguard" ]; then
+    echo -e "${YELLOW}Creando directorio /etc/wireguard...${NC}"
+    mkdir -p /etc/wireguard
+    chmod 700 /etc/wireguard
+fi
+
 cd /etc/wireguard
 
+# Verificar que tenemos permisos
+if [ ! -w "/etc/wireguard" ]; then
+    echo -e "${RED}❌ No hay permisos de escritura en /etc/wireguard${NC}"
+    exit 1
+fi
+
 # Generar clave privada del servidor
-wg genkey | tee server_private.key | wg pubkey > server_public.key
+echo "Generando clave privada del servidor..."
+wg genkey | tee server_private.key | wg pubkey | tee server_public.key > /dev/null
 
 # Permisos seguros
-chmod 600 server_private.key
+chmod 600 server_private.key server_public.key
+
+# Verificar que se crearon
+if [ ! -f "server_private.key" ] || [ ! -f "server_public.key" ]; then
+    echo -e "${RED}❌ Error al generar claves del servidor${NC}"
+    exit 1
+fi
 
 SERVER_PRIVATE_KEY=$(cat server_private.key)
 SERVER_PUBLIC_KEY=$(cat server_public.key)
 
 echo -e "${GREEN}✅ Claves del servidor generadas${NC}"
+echo "   Clave pública: $SERVER_PUBLIC_KEY"
 echo ""
 
 # ============================================================================
