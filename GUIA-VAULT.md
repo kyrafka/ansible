@@ -2,11 +2,18 @@
 
 ## ✅ Configuración Actual
 
-Tu proyecto ya está configurado para usar Ansible Vault automáticamente:
+Tu proyecto está configurado para usar Ansible Vault de dos formas:
 
-- **Archivo de contraseña**: `.vault_pass` (contiene: `ubuntu123`)
+- **Archivo de contraseña**: `.vault_pass` (opcional, no se sube a GitHub)
 - **Archivo encriptado**: `group_vars/all.vault.yml`
-- **Configuración**: `ansible.cfg` ya tiene `vault_password_file = .vault_pass`
+- **Scripts inteligentes**: Usan `.vault_pass` si existe, sino piden contraseña
+
+### 🚀 Primera vez en un servidor nuevo:
+
+```bash
+# Crear el archivo .vault_pass (contraseña: ubuntu123)
+bash scripts/setup-vault-pass.sh
+```
 
 ---
 
