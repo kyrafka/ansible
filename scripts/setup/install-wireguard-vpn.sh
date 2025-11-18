@@ -187,6 +187,9 @@ echo ""
 echo -e "${BLUE}═══ 9. Creando configuración del cliente ═══${NC}"
 echo ""
 
+# Verificar que estamos en el directorio correcto
+cd /etc/wireguard
+
 cat > /etc/wireguard/client.conf << EOF
 [Interface]
 PrivateKey = $CLIENT_PRIVATE_KEY
