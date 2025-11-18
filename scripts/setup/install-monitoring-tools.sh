@@ -63,10 +63,39 @@ echo -e "${BLUE}═══ 2. Instalando Cockpit (Interfaz Web) ═══${NC}"
 # Instalar solo el paquete base de Cockpit
 apt install -y cockpit
 
-# Intentar instalar paquetes adicionales (sin fallar si no están disponibles)
-apt install -y cockpit-networkmanager 2>/dev/null || echo -e "${YELLOW}⚠️  cockpit-networkmanager no disponible${NC}"
-apt install -y cockpit-storaged 2>/dev/null || echo -e "${YELLOW}⚠️  cockpit-storaged no disponible${NC}"
-apt install -y cockpit-packagekit 2>/dev/null || echo -e "${YELLOW}⚠️  cockpit-packagekit no disponible${NC}"
+# Intentar instalar paquetes adicionales opcionales
+echo "Instalando módulos adicionales de Cockpit..."
+
+# cockpit-networkmanager
+if apt-cache show cockpit-networkmanager &>/dev/null; then
+    apt install -y cockpit-networkmanager && echo -e "${GREEN}✅ cockpit-networkmanager instalado${NC}"
+else
+    echo -e "${YELLOW}⚠️  cockpit-networkmanager no disponible${NC}"
+fi
+
+# cockpit-storaged
+if apt-cache show cockpit-storaged &>/dev/null; then
+    apt install -y cockpit-storaged && echo -e "${GREEN}✅ cockpit-storaged instalado${NC}"
+else
+    echo -e "${YELLOW}⚠️  cockpit-storaged no disponible${NC}"
+fi
+
+# cockpit-packagekit
+if apt-cache show cockpit-packagekit &>/dev/null; then
+    apt install -y cockpit-packagekit && echo -e "${GREEN}✅ cockpit-packagekit instalado${NC}"
+else
+    echo -e "${YELLOW}⚠️  cockpit-packagekit no disponible${NC}"
+fi
+
+# cockpit-pcp (requiere pcp primero)
+if apt-cache show pcp &>/dev/null; then
+    apt install -y pcp && echo -e "${GREEN}✅ pcp instalado${NC}"
+    if apt-cache show cockpit-pcp &>/dev/null; then
+        apt install -y cockpit-pcp && echo -e "${GREEN}✅ cockpit-pcp instalado${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  pcp/cockpit-pcp no disponible (opcional)${NC}"
+fi
 
 echo -e "${GREEN}✅ Cockpit instalado${NC}"
 
