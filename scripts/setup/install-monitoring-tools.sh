@@ -87,15 +87,9 @@ else
     echo -e "${YELLOW}⚠️  cockpit-packagekit no disponible${NC}"
 fi
 
-# cockpit-pcp (requiere pcp primero)
-if apt-cache show pcp &>/dev/null; then
-    apt install -y pcp && echo -e "${GREEN}✅ pcp instalado${NC}"
-    if apt-cache show cockpit-pcp &>/dev/null; then
-        apt install -y cockpit-pcp && echo -e "${GREEN}✅ cockpit-pcp instalado${NC}"
-    fi
-else
-    echo -e "${YELLOW}⚠️  pcp/cockpit-pcp no disponible (opcional)${NC}"
-fi
+# Nota: pcp y cockpit-pcp no están disponibles en Ubuntu 24.04
+# Son opcionales y no afectan la funcionalidad básica de Cockpit
+echo -e "${YELLOW}ℹ️  Nota: cockpit-pcp no está disponible en esta versión de Ubuntu (no es necesario)${NC}"
 
 echo -e "${GREEN}✅ Cockpit instalado${NC}"
 
