@@ -245,51 +245,150 @@ echo -e "${BLUE}                    📊 RESUMEN Y RECOMENDACIONES              
 echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
+# Arrays para almacenar problemas
+declare -a CRITICAL_ISSUES
+declare -a WARNINGS
+declare -a SOLUTIONS
+
 # Verificar problemas comunes
 ISSUES=0
+WARNS=0
 
+# 1. Servicio no corriendo
 if ! systemctl is-active --quiet bind9; then
-    echo -e "${RED}❌ PROBLEMA: bind9 no está corriendo${NC}"
-    echo "   Solución: sudo systemctl start bind9"
+    CRITICAL_ISSUES+=("bind9 no está corriendo")
+    SOLUTIONS+=("sudo systemctl start bind9")
     ((ISSUES++))
 fi
 
+# 2. Puerto 53 no escuchando
 if ! sudo ss -tulpn | grep -q ":53.*named"; then
-    echo -e "${RED}❌ PROBLEMA: bind9 no escucha en puerto 53${NC}"
-    echo "   Posibles causas:"
-    echo "   1. Otro servicio usando el puerto"
-    echo "   2. Error en la configuración"
-    echo "   3. AppArmor bloqueando"
+    CRITICAL_ISSUES+=("bind9 no escucha en puerto 53")
+    SOLUTIONS+=("Verificar: sudo journalctl -u bind9 -n 50")
     ((ISSUES++))
 fi
 
+# 3. Archivo dhcp-key.key
 if [ ! -f "/etc/bind/dhcp-key.key" ]; then
-    echo -e "${RED}❌ PROBLEMA: Falta archivo dhcp-key.key${NC}"
-    echo "   Solución: bash scripts/run/run-dns.sh"
+    CRITICAL_ISSUES+=("Falta archivo /etc/bind/dhcp-key.key")
+    SOLUTIONS+=("bash scripts/run/run-dns.sh")
     ((ISSUES++))
+else
+    # Verificar permisos
+    OWNER=$(stat -c "%U:%G" /etc/bind/dhcp-key.key)
+    if [ "$OWNER" != "bind:bind" ]; then
+        WARNINGS+=("dhcp-key.key tiene propietario incorrecto: $OWNER")
+        SOLUTIONS+=("sudo chown bind:bind /etc/bind/dhcp-key.key")
+        ((WARNS++))
+    fi
 fi
 
+# 4. Resolución del dominio principal
 RESULT=$(dig @localhost "$DOMAIN" AAAA +short 2>/dev/null)
 if [ -z "$RESULT" ]; then
-    echo -e "${RED}❌ PROBLEMA: DNS no resuelve $DOMAIN${NC}"
-    echo "   Solución: Verificar archivo de zona"
+    CRITICAL_ISSUES+=("DNS no resuelve $DOMAIN")
+    SOLUTIONS+=("Verificar zona: sudo named-checkzone $DOMAIN /var/lib/bind/db.$DOMAIN")
     ((ISSUES++))
 fi
 
-RESULT=$(dig @localhost "web.$DOMAIN" AAAA +short 2>/dev/null)
+# 5. Subdominios importantes
+for subdomain in www web servidor; do
+    RESULT=$(dig @localhost "$subdomain.$DOMAIN" AAAA +short 2>/dev/null)
+    if [ -z "$RESULT" ]; then
+        WARNINGS+=("$subdomain.$DOMAIN no está configurado")
+        SOLUTIONS+=("Agregar registro en /var/lib/bind/db.$DOMAIN")
+        ((WARNS++))
+    fi
+done
+
+# 6. DNS64
+RESULT=$(dig @localhost google.com AAAA +short 2>/dev/null | grep "64:ff9b")
 if [ -z "$RESULT" ]; then
-    echo -e "${YELLOW}⚠️  ADVERTENCIA: web.$DOMAIN no está configurado${NC}"
-    echo "   Solución: Agregar registro en la zona DNS"
+    WARNINGS+=("DNS64 no funciona correctamente")
+    SOLUTIONS+=("Verificar /etc/bind/named.conf.options")
+    ((WARNS++))
 fi
 
+# 7. Archivo de zona
+if [ ! -f "/var/lib/bind/db.$DOMAIN" ] && [ ! -f "/etc/bind/zones/db.$DOMAIN" ]; then
+    CRITICAL_ISSUES+=("Falta archivo de zona para $DOMAIN")
+    SOLUTIONS+=("bash scripts/run/run-dns.sh")
+    ((ISSUES++))
+fi
+
+# 8. Servicio habilitado
+if ! systemctl is-enabled --quiet bind9; then
+    WARNINGS+=("bind9 no está habilitado al inicio")
+    SOLUTIONS+=("sudo systemctl enable bind9")
+    ((WARNS++))
+fi
+
+# ============================================================================
+# MOSTRAR LISTA DE PROBLEMAS
+# ============================================================================
 echo ""
-if [ $ISSUES -eq 0 ]; then
-    echo -e "${GREEN}✅ No se detectaron problemas críticos${NC}"
+if [ $ISSUES -eq 0 ] && [ $WARNS -eq 0 ]; then
+    echo -e "${GREEN}╔════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║                  ✅ TODO FUNCIONA CORRECTAMENTE                ║${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════════════════════════════════╝${NC}"
 else
-    echo -e "${RED}Se detectaron $ISSUES problema(s) crítico(s)${NC}"
+    # Mostrar problemas críticos
+    if [ $ISSUES -gt 0 ]; then
+        echo -e "${RED}╔════════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${RED}║           ❌ PROBLEMAS CRÍTICOS DETECTADOS: $ISSUES                  ║${NC}"
+        echo -e "${RED}╚════════════════════════════════════════════════════════════════╝${NC}"
+        echo ""
+        
+        for i in "${!CRITICAL_ISSUES[@]}"; do
+            echo -e "${RED}  $((i+1)). ❌ ${CRITICAL_ISSUES[$i]}${NC}"
+        done
+        echo ""
+    fi
+    
+    # Mostrar advertencias
+    if [ $WARNS -gt 0 ]; then
+        echo -e "${YELLOW}╔════════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${YELLOW}║              ⚠️  ADVERTENCIAS DETECTADAS: $WARNS                    ║${NC}"
+        echo -e "${YELLOW}╚════════════════════════════════════════════════════════════════╝${NC}"
+        echo ""
+        
+        for i in "${!WARNINGS[@]}"; do
+            echo -e "${YELLOW}  $((i+1)). ⚠️  ${WARNINGS[$i]}${NC}"
+        done
+        echo ""
+    fi
+    
+    # Mostrar soluciones
+    echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║                    💡 SOLUCIONES SUGERIDAS                     ║${NC}"
+    echo -e "${BLUE}╚════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    # Eliminar duplicados de soluciones
+    UNIQUE_SOLUTIONS=($(printf '%s\n' "${SOLUTIONS[@]}" | sort -u))
+    
+    for i in "${!UNIQUE_SOLUTIONS[@]}"; do
+        echo -e "${BLUE}  $((i+1)). ${UNIQUE_SOLUTIONS[$i]}${NC}"
+    done
+    echo ""
 fi
 
+# ============================================================================
+# RESUMEN FINAL
+# ============================================================================
+echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
+echo -e "  📊 Resumen:"
+echo -e "     • Problemas críticos: ${RED}$ISSUES${NC}"
+echo -e "     • Advertencias: ${YELLOW}$WARNS${NC}"
+echo -e "     • Total de issues: $((ISSUES + WARNS))"
+echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 echo ""
-echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 echo "Diagnóstico completado: $(date)"
-echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
+echo ""
+
+# Exit code basado en problemas críticos
+if [ $ISSUES -gt 0 ]; then
+    exit 1
+else
+    exit 0
+fi
