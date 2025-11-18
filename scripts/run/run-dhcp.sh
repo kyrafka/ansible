@@ -14,4 +14,12 @@ if ! command -v ansible-playbook &> /dev/null; then
     exit 1
 fi
 
-ansible-playbook -i inventory/hosts.ini site.yml --connection=local --become --ask-become-pass --vault-password-file .vault_pass --tags dhcp
+# Verificar si existe .vault_pass, si no, pedir contraseña
+if [ -f ".vault_pass" ]; then
+    VAULT_OPTION="--vault-password-file .vault_pass"
+else
+    VAULT_OPTION="--ask-vault-pass"
+    echo "⚠️  Archivo .vault_pass no encontrado, se pedirá contraseña del vault"
+fi
+
+ansible-playbook -i inventory/hosts.ini site.yml --connection=local --become --ask-become-pass $VAULT_OPTION --tags dhcp

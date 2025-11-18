@@ -42,11 +42,19 @@ echo ""
 echo "→ Ejecutando playbook con tag 'network'..."
 echo ""
 
+# Verificar si existe .vault_pass, si no, pedir contraseña
+if [ -f ".vault_pass" ]; then
+    VAULT_OPTION="--vault-password-file .vault_pass"
+else
+    VAULT_OPTION="--ask-vault-pass"
+    echo "⚠️  Archivo .vault_pass no encontrado, se pedirá contraseña del vault"
+fi
+
 ansible-playbook -i inventory/hosts.ini site.yml \
     --connection=local \
     --become \
     --ask-become-pass \
-    --vault-password-file .vault_pass \
+    $VAULT_OPTION \
     --tags network \
     -v
 

@@ -40,8 +40,16 @@ echo ""
 echo -e "${BLUE}🚀 Ejecutando playbook de Nginx...${NC}"
 echo ""
 
+# Verificar si existe .vault_pass, si no, pedir contraseña
+if [ -f ".vault_pass" ]; then
+    VAULT_OPTION="--vault-password-file .vault_pass"
+else
+    VAULT_OPTION="--ask-vault-pass"
+    echo "⚠️  Archivo .vault_pass no encontrado, se pedirá contraseña del vault"
+fi
+
 # Ejecutar playbook con tag web
-if ansible-playbook site.yml --vault-password-file .vault_pass --tags web; then
+if ansible-playbook site.yml $VAULT_OPTION --tags web; then
     echo ""
     echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
     echo -e "${GREEN}   ✅ NGINX INSTALADO CORRECTAMENTE${NC}"
