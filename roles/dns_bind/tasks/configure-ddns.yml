@@ -14,6 +14,21 @@
     mode: '0640'
   become: true
 
+- name: "🛡️ Configurar AppArmor para permitir acceso a dhcp-key.key"
+  lineinfile:
+    path: /etc/apparmor.d/local/usr.sbin.named
+    line: '  /etc/bind/dhcp-key.key r,'
+    create: yes
+    state: present
+  become: true
+  notify: reload apparmor
+
+- name: "🛡️ Recargar AppArmor inmediatamente"
+  command: apparmor_parser -r /etc/apparmor.d/usr.sbin.named
+  become: true
+  failed_when: false
+  changed_when: false
+
 - name: "🔗 Incluir clave TSIG en named.conf"
   lineinfile:
     path: /etc/bind/named.conf

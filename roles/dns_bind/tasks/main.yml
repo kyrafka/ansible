@@ -209,6 +209,18 @@
   changed_when: false
   failed_when: false
 
+- name: "🔐 Asegurar permisos correctos en archivos de configuración"
+  file:
+    path: "{{ item }}"
+    owner: bind
+    group: bind
+    mode: '0640'
+    state: file
+  loop:
+    - /etc/bind/dhcp-key.key
+  become: true
+  failed_when: false
+
 - name: "Habilitar y iniciar servicio BIND9"
   systemd:
     name: bind9
