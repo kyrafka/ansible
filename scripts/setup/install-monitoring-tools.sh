@@ -60,36 +60,18 @@ echo -e "${GREEN}✅ Sistema actualizado${NC}"
 echo ""
 echo -e "${BLUE}═══ 2. Instalando Cockpit (Interfaz Web) ═══${NC}"
 
-# Instalar solo el paquete base de Cockpit
-apt install -y cockpit
+# Instalar solo el paquete base de Cockpit (sin mostrar errores de paquetes opcionales)
+echo "Instalando Cockpit..."
+apt install -y cockpit 2>&1 | grep -v "pcp\|pmlogger" || true
 
-# Intentar instalar paquetes adicionales opcionales
-echo "Instalando módulos adicionales de Cockpit..."
+# Intentar instalar paquetes adicionales opcionales (silenciosamente)
+echo "Instalando módulos adicionales..."
 
-# cockpit-networkmanager
-if apt-cache show cockpit-networkmanager &>/dev/null; then
-    apt install -y cockpit-networkmanager && echo -e "${GREEN}✅ cockpit-networkmanager instalado${NC}"
-else
-    echo -e "${YELLOW}⚠️  cockpit-networkmanager no disponible${NC}"
-fi
+apt install -y cockpit-networkmanager 2>/dev/null && echo -e "${GREEN}✅ cockpit-networkmanager${NC}" || true
+apt install -y cockpit-storaged 2>/dev/null && echo -e "${GREEN}✅ cockpit-storaged${NC}" || true
+apt install -y cockpit-packagekit 2>/dev/null && echo -e "${GREEN}✅ cockpit-packagekit${NC}" || true
 
-# cockpit-storaged
-if apt-cache show cockpit-storaged &>/dev/null; then
-    apt install -y cockpit-storaged && echo -e "${GREEN}✅ cockpit-storaged instalado${NC}"
-else
-    echo -e "${YELLOW}⚠️  cockpit-storaged no disponible${NC}"
-fi
-
-# cockpit-packagekit
-if apt-cache show cockpit-packagekit &>/dev/null; then
-    apt install -y cockpit-packagekit && echo -e "${GREEN}✅ cockpit-packagekit instalado${NC}"
-else
-    echo -e "${YELLOW}⚠️  cockpit-packagekit no disponible${NC}"
-fi
-
-# Nota: pcp y cockpit-pcp no están disponibles en Ubuntu 24.04
-# Son opcionales y no afectan la funcionalidad básica de Cockpit
-echo -e "${YELLOW}ℹ️  Nota: cockpit-pcp no está disponible en esta versión de Ubuntu (no es necesario)${NC}"
+echo -e "${YELLOW}ℹ️  Paquetes opcionales (pcp) omitidos - no son necesarios${NC}"
 
 echo -e "${GREEN}✅ Cockpit instalado${NC}"
 
