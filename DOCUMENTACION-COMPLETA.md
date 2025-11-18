@@ -420,58 +420,6 @@ curl -x http://[2025:db8:10::2]:3128 http://google.com
 ```
 
 ---
-
-## 📊 Monitoreo (Futuro)
-
-### **Prometheus**
-
-- Recolecta métricas del servidor
-- CPU, RAM, disco, red
-- Alertas automáticas
-
-### **Grafana**
-
-- Dashboards visuales
-- Gráficas en tiempo real
-- Histórico de métricas
-
----
-
-## 💾 Backup (Futuro)
-
-### **Automático**
-
-- Backup diario de configuraciones
-- Backup semanal de datos
-- Retención de 30 días
-
-### **Manual**
-
-```bash
-# Backup de configuraciones
-tar -czf backup-config.tar.gz /etc/bind /etc/dhcp /etc/squid
-
-# Backup de datos
-rsync -av /srv/games /backup/
-```
-
----
-
-## 🎮 Samba (Futuro)
-
-### **Carpetas Compartidas**
-
-- `/srv/games` - Juegos compartidos
-- `/srv/documentos` - Documentos
-- `/srv/backups` - Backups de VMs
-
-### **Acceso**
-
-- Windows: `\\2025:db8:10::2\games`
-- Linux: `smb://[2025:db8:10::2]/games`
-
----
-
 ## 🐛 Troubleshooting
 
 ### **VM no recibe IP**
