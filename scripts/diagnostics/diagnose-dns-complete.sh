@@ -245,83 +245,267 @@ echo -e "${BLUE}                    📊 RESUMEN Y RECOMENDACIONES              
 echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# Arrays para almacenar problemas
+# Arrays para almacenar problemas con detalles
 declare -a CRITICAL_ISSUES
+declare -a CRITICAL_DETAILS
 declare -a WARNINGS
+declare -a WARNING_DETAILS
 declare -a SOLUTIONS
 
 # Verificar problemas comunes
 ISSUES=0
 WARNS=0
 
-# 1. Servicio no corriendo
+echo "→ Analizando problemas..."
+echo ""
+
+# ============================================================================
+# VERIFICACIÓN 1: SERVICIO BIND9
+# ============================================================================
+echo -n "  [1/15] Verificando servicio bind9... "
 if ! systemctl is-active --quiet bind9; then
-    CRITICAL_ISSUES+=("bind9 no está corriendo")
+    echo -e "${RED}FALLO${NC}"
+    CRITICAL_ISSUES+=("Servicio bind9 NO está corriendo")
+    CRITICAL_DETAILS+=("Estado: $(systemctl is-active bind9)")
     SOLUTIONS+=("sudo systemctl start bind9")
     ((ISSUES++))
+else
+    echo -e "${GREEN}OK${NC}"
 fi
 
-# 2. Puerto 53 no escuchando
-if ! sudo ss -tulpn | grep -q ":53.*named"; then
-    CRITICAL_ISSUES+=("bind9 no escucha en puerto 53")
-    SOLUTIONS+=("Verificar: sudo journalctl -u bind9 -n 50")
+# ============================================================================
+# VERIFICACIÓN 2: SERVICIO HABILITADO
+# ============================================================================
+echo -n "  [2/15] Verificando si bind9 está habilitado... "
+if ! systemctl is-enabled --quiet bind9; then
+    echo -e "${YELLOW}ADVERTENCIA${NC}"
+    WARNINGS+=("bind9 no está habilitado al inicio del sistema")
+    WARNING_DETAILS+=("Se debe habilitar para que inicie automáticamente")
+    SOLUTIONS+=("sudo systemctl enable bind9")
+    ((WARNS++))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# ============================================================================
+# VERIFICACIÓN 3: PUERTO 53 TCP
+# ============================================================================
+echo -n "  [3/15] Verificando puerto 53/TCP... "
+if ! sudo ss -tulpn | grep -q ":53.*named.*tcp"; then
+    echo -e "${RED}FALLO${NC}"
+    CRITICAL_ISSUES+=("bind9 NO escucha en puerto 53/TCP")
+    PORT_USER=$(sudo ss -tulpn | grep ":53.*tcp" | awk '{print $NF}' | head -1)
+    if [ -n "$PORT_USER" ]; then
+        CRITICAL_DETAILS+=("Puerto 53/TCP ocupado por: $PORT_USER")
+    else
+        CRITICAL_DETAILS+=("Puerto 53/TCP no está siendo usado por nadie")
+    fi
+    SOLUTIONS+=("sudo systemctl restart bind9")
     ((ISSUES++))
+else
+    echo -e "${GREEN}OK${NC}"
 fi
 
-# 3. Archivo dhcp-key.key
+# ============================================================================
+# VERIFICACIÓN 4: PUERTO 53 UDP
+# ============================================================================
+echo -n "  [4/15] Verificando puerto 53/UDP... "
+if ! sudo ss -tulpn | grep -q ":53.*named.*udp"; then
+    echo -e "${RED}FALLO${NC}"
+    CRITICAL_ISSUES+=("bind9 NO escucha en puerto 53/UDP")
+    PORT_USER=$(sudo ss -tulpn | grep ":53.*udp" | awk '{print $NF}' | head -1)
+    if [ -n "$PORT_USER" ]; then
+        CRITICAL_DETAILS+=("Puerto 53/UDP ocupado por: $PORT_USER")
+    else
+        CRITICAL_DETAILS+=("Puerto 53/UDP no está siendo usado por nadie")
+    fi
+    SOLUTIONS+=("sudo systemctl restart bind9")
+    ((ISSUES++))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# ============================================================================
+# VERIFICACIÓN 5: ARCHIVO named.conf
+# ============================================================================
+echo -n "  [5/15] Verificando named.conf... "
+if ! sudo named-checkconf 2>/dev/null; then
+    echo -e "${RED}FALLO${NC}"
+    CRITICAL_ISSUES+=("Errores de sintaxis en named.conf")
+    ERROR_MSG=$(sudo named-checkconf 2>&1)
+    CRITICAL_DETAILS+=("Error: $ERROR_MSG")
+    SOLUTIONS+=("Revisar: sudo named-checkconf")
+    ((ISSUES++))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# ============================================================================
+# VERIFICACIÓN 6: ARCHIVO dhcp-key.key
+# ============================================================================
+echo -n "  [6/15] Verificando dhcp-key.key... "
 if [ ! -f "/etc/bind/dhcp-key.key" ]; then
-    CRITICAL_ISSUES+=("Falta archivo /etc/bind/dhcp-key.key")
+    echo -e "${RED}FALLO${NC}"
+    CRITICAL_ISSUES+=("Archivo /etc/bind/dhcp-key.key NO existe")
+    CRITICAL_DETAILS+=("Este archivo es necesario para DDNS")
     SOLUTIONS+=("bash scripts/run/run-dns.sh")
     ((ISSUES++))
 else
-    # Verificar permisos
     OWNER=$(stat -c "%U:%G" /etc/bind/dhcp-key.key)
-    if [ "$OWNER" != "bind:bind" ]; then
-        WARNINGS+=("dhcp-key.key tiene propietario incorrecto: $OWNER")
-        SOLUTIONS+=("sudo chown bind:bind /etc/bind/dhcp-key.key")
+    PERMS=$(stat -c "%a" /etc/bind/dhcp-key.key)
+    
+    if [ "$OWNER" != "bind:bind" ] || [ "$PERMS" != "640" ]; then
+        echo -e "${YELLOW}ADVERTENCIA${NC}"
+        WARNINGS+=("dhcp-key.key tiene permisos incorrectos")
+        WARNING_DETAILS+=("Propietario: $OWNER (debe ser bind:bind), Permisos: $PERMS (debe ser 640)")
+        SOLUTIONS+=("sudo chown bind:bind /etc/bind/dhcp-key.key && sudo chmod 640 /etc/bind/dhcp-key.key")
         ((WARNS++))
+    else
+        echo -e "${GREEN}OK${NC}"
     fi
 fi
 
-# 4. Resolución del dominio principal
-RESULT=$(dig @localhost "$DOMAIN" AAAA +short 2>/dev/null)
-if [ -z "$RESULT" ]; then
-    CRITICAL_ISSUES+=("DNS no resuelve $DOMAIN")
-    SOLUTIONS+=("Verificar zona: sudo named-checkzone $DOMAIN /var/lib/bind/db.$DOMAIN")
-    ((ISSUES++))
+# ============================================================================
+# VERIFICACIÓN 7: ARCHIVO DE ZONA
+# ============================================================================
+echo -n "  [7/15] Verificando archivo de zona... "
+ZONE_FILE=""
+if [ -f "/var/lib/bind/db.$DOMAIN" ]; then
+    ZONE_FILE="/var/lib/bind/db.$DOMAIN"
+elif [ -f "/etc/bind/zones/db.$DOMAIN" ]; then
+    ZONE_FILE="/etc/bind/zones/db.$DOMAIN"
 fi
 
-# 5. Subdominios importantes
-for subdomain in www web servidor; do
-    RESULT=$(dig @localhost "$subdomain.$DOMAIN" AAAA +short 2>/dev/null)
+if [ -z "$ZONE_FILE" ]; then
+    echo -e "${RED}FALLO${NC}"
+    CRITICAL_ISSUES+=("Archivo de zona para $DOMAIN NO existe")
+    CRITICAL_DETAILS+=("Buscado en: /var/lib/bind/db.$DOMAIN y /etc/bind/zones/db.$DOMAIN")
+    SOLUTIONS+=("bash scripts/run/run-dns.sh")
+    ((ISSUES++))
+else
+    # Verificar sintaxis de la zona
+    if ! sudo named-checkzone "$DOMAIN" "$ZONE_FILE" &>/dev/null; then
+        echo -e "${RED}FALLO${NC}"
+        CRITICAL_ISSUES+=("Zona $DOMAIN tiene errores de sintaxis")
+        ERROR_MSG=$(sudo named-checkzone "$DOMAIN" "$ZONE_FILE" 2>&1 | head -3)
+        CRITICAL_DETAILS+=("$ERROR_MSG")
+        SOLUTIONS+=("Revisar: sudo named-checkzone $DOMAIN $ZONE_FILE")
+        ((ISSUES++))
+    else
+        echo -e "${GREEN}OK${NC}"
+    fi
+fi
+
+# ============================================================================
+# VERIFICACIÓN 8: RESOLUCIÓN DEL DOMINIO PRINCIPAL
+# ============================================================================
+echo -n "  [8/15] Probando resolución de $DOMAIN... "
+RESULT=$(dig @localhost "$DOMAIN" AAAA +short 2>/dev/null | head -1)
+if [ -z "$RESULT" ]; then
+    echo -e "${RED}FALLO${NC}"
+    CRITICAL_ISSUES+=("DNS NO resuelve $DOMAIN")
+    CRITICAL_DETAILS+=("dig @localhost $DOMAIN AAAA no devuelve resultado")
+    SOLUTIONS+=("Verificar zona: sudo cat $ZONE_FILE | grep '@'")
+    ((ISSUES++))
+else
+    echo -e "${GREEN}OK${NC} ($RESULT)"
+fi
+
+# ============================================================================
+# VERIFICACIÓN 9-11: SUBDOMINIOS
+# ============================================================================
+SUBDOMAINS=("www" "web" "servidor")
+for i in "${!SUBDOMAINS[@]}"; do
+    subdomain="${SUBDOMAINS[$i]}"
+    num=$((9 + i))
+    echo -n "  [$num/15] Probando $subdomain.$DOMAIN... "
+    RESULT=$(dig @localhost "$subdomain.$DOMAIN" AAAA +short 2>/dev/null | head -1)
     if [ -z "$RESULT" ]; then
+        echo -e "${YELLOW}NO CONFIGURADO${NC}"
         WARNINGS+=("$subdomain.$DOMAIN no está configurado")
-        SOLUTIONS+=("Agregar registro en /var/lib/bind/db.$DOMAIN")
+        WARNING_DETAILS+=("No hay registro AAAA para $subdomain en la zona")
+        SOLUTIONS+=("Agregar en $ZONE_FILE: $subdomain IN AAAA <dirección_ipv6>")
         ((WARNS++))
+    else
+        echo -e "${GREEN}OK${NC} ($RESULT)"
     fi
 done
 
-# 6. DNS64
-RESULT=$(dig @localhost google.com AAAA +short 2>/dev/null | grep "64:ff9b")
+# ============================================================================
+# VERIFICACIÓN 12: DNS64
+# ============================================================================
+echo -n "  [12/15] Probando DNS64 (google.com)... "
+RESULT=$(dig @localhost google.com AAAA +short 2>/dev/null | grep "64:ff9b" | head -1)
 if [ -z "$RESULT" ]; then
+    echo -e "${YELLOW}ADVERTENCIA${NC}"
     WARNINGS+=("DNS64 no funciona correctamente")
-    SOLUTIONS+=("Verificar /etc/bind/named.conf.options")
+    WARNING_DETAILS+=("No devuelve direcciones con prefijo 64:ff9b::")
+    SOLUTIONS+=("Verificar /etc/bind/named.conf.options - debe tener 'dns64 64:ff9b::/96'")
     ((WARNS++))
+else
+    echo -e "${GREEN}OK${NC} ($RESULT)"
 fi
 
-# 7. Archivo de zona
-if [ ! -f "/var/lib/bind/db.$DOMAIN" ] && [ ! -f "/etc/bind/zones/db.$DOMAIN" ]; then
-    CRITICAL_ISSUES+=("Falta archivo de zona para $DOMAIN")
-    SOLUTIONS+=("bash scripts/run/run-dns.sh")
+# ============================================================================
+# VERIFICACIÓN 13: ERRORES EN LOGS
+# ============================================================================
+echo -n "  [13/15] Verificando errores en logs... "
+ERROR_COUNT=$(sudo journalctl -u bind9 --since "5 minutes ago" --no-pager 2>/dev/null | grep -i "error\|failed\|denied" | wc -l)
+if [ "$ERROR_COUNT" -gt 0 ]; then
+    echo -e "${YELLOW}$ERROR_COUNT errores${NC}"
+    WARNINGS+=("$ERROR_COUNT errores en logs de los últimos 5 minutos")
+    LAST_ERROR=$(sudo journalctl -u bind9 --since "5 minutes ago" --no-pager 2>/dev/null | grep -i "error\|failed\|denied" | tail -1)
+    WARNING_DETAILS+=("Último error: $LAST_ERROR")
+    SOLUTIONS+=("Ver logs: sudo journalctl -u bind9 -n 50")
+    ((WARNS++))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# ============================================================================
+# VERIFICACIÓN 14: APPARMOR
+# ============================================================================
+echo -n "  [14/15] Verificando AppArmor... "
+if command -v aa-status &> /dev/null; then
+    if sudo aa-status 2>/dev/null | grep -q "named.*enforce"; then
+        echo -e "${YELLOW}ENFORCE${NC}"
+        WARNINGS+=("AppArmor está en modo enforce para named")
+        WARNING_DETAILS+=("Puede causar problemas de permisos")
+        SOLUTIONS+=("sudo aa-complain /usr/sbin/named")
+        ((WARNS++))
+    else
+        echo -e "${GREEN}OK${NC}"
+    fi
+else
+    echo -e "${GREEN}N/A${NC}"
+fi
+
+# ============================================================================
+# VERIFICACIÓN 15: PERMISOS DE /var/lib/bind
+# ============================================================================
+echo -n "  [15/15] Verificando permisos de /var/lib/bind... "
+if [ -d "/var/lib/bind" ]; then
+    OWNER=$(stat -c "%U:%G" /var/lib/bind)
+    PERMS=$(stat -c "%a" /var/lib/bind)
+    
+    if [ "$OWNER" != "bind:bind" ] || [ "$PERMS" != "775" ]; then
+        echo -e "${YELLOW}ADVERTENCIA${NC}"
+        WARNINGS+=("/var/lib/bind tiene permisos incorrectos")
+        WARNING_DETAILS+=("Propietario: $OWNER (debe ser bind:bind), Permisos: $PERMS (debe ser 775)")
+        SOLUTIONS+=("sudo chown -R bind:bind /var/lib/bind && sudo chmod 775 /var/lib/bind")
+        ((WARNS++))
+    else
+        echo -e "${GREEN}OK${NC}"
+    fi
+else
+    echo -e "${RED}FALLO${NC}"
+    CRITICAL_ISSUES+=("Directorio /var/lib/bind NO existe")
+    CRITICAL_DETAILS+=("Este directorio es necesario para zonas dinámicas")
+    SOLUTIONS+=("sudo mkdir -p /var/lib/bind && sudo chown bind:bind /var/lib/bind")
     ((ISSUES++))
 fi
 
-# 8. Servicio habilitado
-if ! systemctl is-enabled --quiet bind9; then
-    WARNINGS+=("bind9 no está habilitado al inicio")
-    SOLUTIONS+=("sudo systemctl enable bind9")
-    ((WARNS++))
-fi
+echo ""
 
 # ============================================================================
 # MOSTRAR LISTA DE PROBLEMAS
@@ -341,6 +525,9 @@ else
         
         for i in "${!CRITICAL_ISSUES[@]}"; do
             echo -e "${RED}  $((i+1)). ❌ ${CRITICAL_ISSUES[$i]}${NC}"
+            if [ -n "${CRITICAL_DETAILS[$i]}" ]; then
+                echo -e "      ${RED}└─ ${CRITICAL_DETAILS[$i]}${NC}"
+            fi
         done
         echo ""
     fi
@@ -354,6 +541,9 @@ else
         
         for i in "${!WARNINGS[@]}"; do
             echo -e "${YELLOW}  $((i+1)). ⚠️  ${WARNINGS[$i]}${NC}"
+            if [ -n "${WARNING_DETAILS[$i]}" ]; then
+                echo -e "      ${YELLOW}└─ ${WARNING_DETAILS[$i]}${NC}"
+            fi
         done
         echo ""
     fi
