@@ -5,12 +5,11 @@
   connection: local
   become: yes
   gather_facts: yes
-  
+
   tasks:
-    # ════════════════════════════════════════════════════════════
+    # ===========================================================
     # 1. Instalar herramientas de personalización
-    # ════════════════════════════════════════════════════════════
-    
+    # ===========================================================
     - name: Instalar GNOME Tweaks y extensiones
       apt:
         name:
@@ -18,11 +17,11 @@
           - gnome-shell-extensions
           - chrome-gnome-shell
         state: present
-    
-    # ════════════════════════════════════════════════════════════
+        update_cache: yes
+
+    # ===========================================================
     # 2. Instalar temas
-    # ════════════════════════════════════════════════════════════
-    
+    # ===========================================================
     - name: Instalar temas populares
       apt:
         name:
@@ -31,29 +30,27 @@
           - numix-gtk-theme
           - numix-icon-theme
         state: present
-    
-    # ════════════════════════════════════════════════════════════
-    # 3. Configurar tema para todos los usuarios
-    # ════════════════════════════════════════════════════════════
-    
-    - name: Configurar tema GTK para administrador
+
+    # ===========================================================
+    # 3. Configurar tema para el usuario "administrador"
+    # ===========================================================
+    - name: Configurar tema GTK
       become_user: administrador
       dconf:
         key: "/org/gnome/desktop/interface/gtk-theme"
         value: "'Arc-Dark'"
       ignore_errors: yes
-    
-    - name: Configurar iconos para administrador
+
+    - name: Configurar iconos
       become_user: administrador
       dconf:
         key: "/org/gnome/desktop/interface/icon-theme"
         value: "'Papirus-Dark'"
       ignore_errors: yes
-    
-    # ════════════════════════════════════════════════════════════
+
+    # ===========================================================
     # 4. Instalar fuentes
-    # ════════════════════════════════════════════════════════════
-    
+    # ===========================================================
     - name: Instalar fuentes adicionales
       apt:
         name:
@@ -61,60 +58,56 @@
           - fonts-noto
           - fonts-roboto
         state: present
-    
-    # ════════════════════════════════════════════════════════════
+
+    # ===========================================================
     # 5. Configurar wallpaper
-    # ════════════════════════════════════════════════════════════
-    
+    # ===========================================================
     - name: Descargar wallpaper gaming
       get_url:
         url: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1920"
         dest: /usr/share/backgrounds/gaming-wallpaper.jpg
         mode: '0644'
       ignore_errors: yes
-    
+
     - name: Configurar wallpaper para administrador
       become_user: administrador
       dconf:
         key: "/org/gnome/desktop/background/picture-uri"
         value: "'file:///usr/share/backgrounds/gaming-wallpaper.jpg'"
       ignore_errors: yes
-    
-    # ════════════════════════════════════════════════════════════
+
+    # ===========================================================
     # 6. Configurar dock
-    # ════════════════════════════════════════════════════════════
-    
+    # ===========================================================
     - name: Configurar tamaño del dock
       become_user: administrador
       dconf:
         key: "/org/gnome/shell/extensions/dash-to-dock/dash-max-icon-size"
         value: "48"
       ignore_errors: yes
-    
+
     - name: Configurar posición del dock
       become_user: administrador
       dconf:
         key: "/org/gnome/shell/extensions/dash-to-dock/dock-position"
         value: "'BOTTOM'"
       ignore_errors: yes
-  
+
   post_tasks:
     - name: Mostrar resumen
       debug:
         msg:
-          - "════════════════════════════════════════════════════════════════"
+          - "═══════════════════════════════════════════════════════"
           - "✅ Embellecimiento completado"
-          - "════════════════════════════════════════════════════════════════"
+          - "═══════════════════════════════════════════════════════"
           - ""
-          - "TEMAS INSTALADOS:"
+          - "TEMAS APLICADOS:"
           - "  - Arc-Dark (GTK)"
           - "  - Papirus-Dark (Iconos)"
-          - "  - Numix (alternativo)"
           - ""
           - "HERRAMIENTAS:"
-          - "  - GNOME Tweaks (para personalizar más)"
+          - "  - GNOME Tweaks"
           - ""
-          - "REINICIA LA SESIÓN para ver los cambios"
+          - "⚠ REINICIA LA SESIÓN para ver los cambios"
           - ""
-          - "════════════════════════════════════════════════════════════════"
-
+          - "═══════════════════════════════════════════════════════"

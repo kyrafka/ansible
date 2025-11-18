@@ -73,13 +73,13 @@ windows11_users:
     username: "Gamer01"
     password: "{{ vault_windows11_cliente_password }}"
 
-# Configuración de red IPv6 (CORREGIDA)
+# Configuración de red IPv6
 network_config:
-  # Red principal del proyecto
+  # Red principal
   ipv6_network: "2025:db8:10::/64"
   ipv6_gateway: "2025:db8:10::1"
-  dhcp_range_start: "2025:db8:10::100"    # Desde aquí asigna DHCP
-  dhcp_range_end: "2025:db8:10::200"      # Hasta aquí
+  dhcp_range_start: "2025:db8:10::100"    
+  dhcp_range_end: "2025:db8:10::200"      
   dns_servers: 
     - "2001:4860:4860::8888"              # Google DNS IPv6
     - "2001:4860:4860::8844"
@@ -90,7 +90,7 @@ dhcp6_config:
   default_lease_time: 600
   max_lease_time: 7200
 
-# Configuración para bertvv.radvd role
+# Configuración bertvv.radvd (RA administrado + DHCPv6 stateful)
 radvd_interfaces:
   - device: ens34
     AdvSendAdvert: 'on'
@@ -164,7 +164,7 @@ storage:
   dns_log_retention_days: 14
   security_log_retention_days: 30
 
-# Configuración de logging avanzado
+# Configuración de logging
 logging:
   # Logs personalizados de aplicaciones
   custom_app_logs:
