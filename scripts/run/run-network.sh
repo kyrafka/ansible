@@ -46,6 +46,7 @@ ansible-playbook -i inventory/hosts.ini site.yml \
     --connection=local \
     --become \
     --ask-become-pass \
+    --vault-password-file .vault_pass \
     --tags network \
     -v
 

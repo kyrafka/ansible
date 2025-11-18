@@ -41,7 +41,7 @@ echo -e "${BLUE}🚀 Ejecutando playbook de Nginx...${NC}"
 echo ""
 
 # Ejecutar playbook con tag web
-if ansible-playbook site.yml --tags web; then
+if ansible-playbook site.yml --vault-password-file .vault_pass --tags web; then
     echo ""
     echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
     echo -e "${GREEN}   ✅ NGINX INSTALADO CORRECTAMENTE${NC}"
