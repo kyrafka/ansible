@@ -11,6 +11,9 @@ echo "════════════════════════�
 echo ""
 
 echo ""
+echo "⚠️  IMPORTANTE: Este script es SOLO para el SERVIDOR"
+echo "    NO ejecutar en máquinas cliente/desktop"
+echo ""
 echo "Este script configurará:"
 echo "  1. Paquetes base del sistema"
 echo "  2. Red IPv6 (ens33, ens34) y NAT66"
@@ -18,6 +21,8 @@ echo "  3. Servidor DNS (BIND9)"
 echo "  4. Servidor DHCPv6"
 echo "  5. Firewall (UFW + fail2ban)"
 echo "  6. Almacenamiento NFS"
+echo ""
+echo "NO creará usuarios adicionales (solo servicios de red)"
 echo ""
 read -p "¿Continuar? (s/n): " -n 1 -r
 echo ""
@@ -42,7 +47,10 @@ if ! command -v ansible-playbook &> /dev/null; then
     exit 1
 fi
 
-# Ejecutar playbook completo (localmente)
+# Ejecutar playbook del SERVIDOR (NO el de ubuntu_desktop)
+echo "📝 Ejecutando: site.yml (playbook del servidor)"
+echo "   Este playbook NO incluye roles de usuario (ubuntu_desktop/seguridad)"
+echo ""
 ansible-playbook -i inventory/hosts.ini site.yml --connection=local --become --ask-become-pass
 # Verificar resultado
 if [ $? -eq 0 ]; then
