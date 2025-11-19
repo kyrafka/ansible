@@ -235,7 +235,8 @@ else
         ((PROBLEM_NUM++))
     fi
     
-    if ! ss -tulpn 2>/dev/null | grep -q ":53.*named"; then
+    PORT_CHECK_FINAL=$(sudo ss -tulpn 2>/dev/null | grep ":53.*named" || ss -tulpn 2>/dev/null | grep ":53.*named")
+    if [ -z "$PORT_CHECK_FINAL" ]; then
         echo "   $PROBLEM_NUM. ❌ BIND9 no está escuchando en puerto 53"
         ((PROBLEM_NUM++))
     fi
@@ -298,7 +299,8 @@ else
     fi
     
     # Verificar conflicto de puertos
-    if ss -tulpn 2>/dev/null | grep -q ":53.*systemd-resolved"; then
+    RESOLVED_CHECK=$(sudo ss -tulpn 2>/dev/null | grep ":53.*systemd-resolved" || ss -tulpn 2>/dev/null | grep ":53.*systemd-resolved")
+    if [ -n "$RESOLVED_CHECK" ]; then
         echo "   🔴 systemd-resolved está usando el puerto 53"
         echo "      → bash scripts/run/run-dns.sh (esto lo corrige automáticamente)"
         echo ""

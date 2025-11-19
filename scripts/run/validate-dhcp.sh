@@ -27,10 +27,33 @@ fi
 
 echo ""
 echo "🌐 Puerto DHCP:"
-if ss -ulpn | grep -q ":547.*dhcpd"; then
+
+# Intentar con y sin sudo para detectar el puerto
+PORT_CHECK=$(sudo ss -ulpn 2>/dev/null | grep ":547.*dhcpd" || ss -ulpn 2>/dev/null | grep ":547.*dhcpd")
+
+if [ -n "$PORT_CHECK" ]; then
     echo "✅ DHCPv6 escuchando en puerto 547"
+    
+    # Mostrar interfaz donde escucha
+    INTERFACE=$(echo "$PORT_CHECK" | awk '{print $5}' | head -1)
+    if [ -n "$INTERFACE" ]; then
+        echo "   📡 Escuchando en: $INTERFACE"
+    fi
+    
+    # Mostrar detalles del socket
+    SOCKET_COUNT=$(echo "$PORT_CHECK" | wc -l)
+    echo "   🔌 Sockets activos: $SOCKET_COUNT"
 else
     echo "❌ DHCPv6 NO escuchando en puerto 547"
+    
+    # Verificar si el servicio está corriendo pero no escucha
+    if systemctl is-active --quiet isc-dhcp-server6; then
+        echo "   ⚠️  Servicio activo pero no escucha en puerto 547"
+        echo "   💡 Ver logs: sudo journalctl -u isc-dhcp-server6 -n 20"
+    else
+        echo "   ⚠️  Servicio no está activo"
+        echo "   💡 Ejecuta: sudo systemctl start isc-dhcp-server6"
+    fi
     ((ERRORS++))
 fi
 
