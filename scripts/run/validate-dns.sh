@@ -42,18 +42,32 @@ fi
 
 echo ""
 echo "🌐 Puerto DNS:"
-if ss -tulpn 2>/dev/null | grep -q ":53.*named"; then
+
+# Intentar con y sin sudo para detectar el puerto
+PORT_CHECK=$(sudo ss -tulpn 2>/dev/null | grep ":53.*named" || ss -tulpn 2>/dev/null | grep ":53.*named")
+
+if [ -n "$PORT_CHECK" ]; then
     echo "✅ BIND9 escuchando en puerto 53"
-    PORT_COUNT=$(ss -tulpn 2>/dev/null | grep ":53" | grep "named" | wc -l)
+    PORT_COUNT=$(echo "$PORT_CHECK" | wc -l)
     echo "   📡 Sockets activos: $PORT_COUNT"
+    
+    # Mostrar algunas IPs donde escucha
+    LISTEN_IPS=$(echo "$PORT_CHECK" | awk '{print $5}' | cut -d: -f1 | sort -u | head -3 | tr '\n' ', ' | sed 's/,$//')
+    if [ -n "$LISTEN_IPS" ]; then
+        echo "   🌐 Escuchando en: $LISTEN_IPS"
+    fi
 else
     echo "❌ BIND9 NO escuchando en puerto 53"
     
     # Verificar si otro servicio está usando el puerto
-    if ss -tulpn 2>/dev/null | grep -q ":53"; then
-        CONFLICT=$(ss -tulpn 2>/dev/null | grep ":53" | awk '{print $NF}' | sort -u | head -n1)
+    OTHER_PORT=$(sudo ss -tulpn 2>/dev/null | grep ":53 " || ss -tulpn 2>/dev/null | grep ":53 ")
+    if [ -n "$OTHER_PORT" ]; then
+        CONFLICT=$(echo "$OTHER_PORT" | awk '{print $NF}' | sort -u | head -n1)
         echo "   ⚠️  Puerto 53 ocupado por: $CONFLICT"
         echo "   💡 Ejecuta: bash scripts/run/run-dns.sh (corrige conflictos automáticamente)"
+    else
+        echo "   ⚠️  Puerto 53 no está siendo usado por nadie"
+        echo "   💡 Ejecuta: sudo systemctl restart bind9"
     fi
     ((ERRORS++))
 fi
