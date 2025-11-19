@@ -19,23 +19,24 @@ else
 fi
 echo ""
 
-# Verificar servicio
+# Verificar servicio (puede ser bind9 o named)
 echo "🔧 Servicio BIND9:"
-if systemctl is-active --quiet named; then
-    echo "✅ named está activo"
-    UPTIME=$(systemctl show named --property=ActiveEnterTimestamp --value)
+if systemctl is-active --quiet bind9 || systemctl is-active --quiet named; then
+    SERVICE_NAME=$(systemctl is-active --quiet bind9 && echo "bind9" || echo "named")
+    echo "✅ $SERVICE_NAME está activo"
+    UPTIME=$(systemctl show $SERVICE_NAME --property=ActiveEnterTimestamp --value)
     echo "   ⏱️  Iniciado: $UPTIME"
 else
-    echo "❌ named NO está activo"
-    echo "   💡 Inicia el servicio: sudo systemctl start named"
+    echo "❌ BIND9/named NO está activo"
+    echo "   💡 Inicia el servicio: sudo systemctl start bind9"
     ((ERRORS++))
 fi
 
-if systemctl is-enabled --quiet named; then
-    echo "✅ named habilitado al inicio"
+if systemctl is-enabled --quiet bind9 || systemctl is-enabled --quiet named; then
+    echo "✅ BIND9 habilitado al inicio"
 else
-    echo "❌ named NO habilitado al inicio"
-    echo "   💡 Habilita el servicio: sudo systemctl enable named"
+    echo "❌ BIND9 NO habilitado al inicio"
+    echo "   💡 Habilita el servicio: sudo systemctl enable bind9"
     ((ERRORS++))
 fi
 
