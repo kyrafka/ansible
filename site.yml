@@ -37,5 +37,7 @@
       tags: dhcp
     - role: firewall
       tags: firewall
+    - role: nfs_server
+      tags: nfs
     - role: storage
       tags: storage

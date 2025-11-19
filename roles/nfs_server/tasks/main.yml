@@ -1,0 +1,132 @@
+---
+# Rol para configurar NFS Server
+# Comparte carpetas de juegos y archivos para los clientes
+
+- name: Instalar paquetes NFS
+  ansible.builtin.apt:
+    name:
+      - nfs-kernel-server
+      - nfs-common
+    state: present
+    update_cache: yes
+  become: true
+
+- name: Crear grupo pcgamers con GID fijo
+  ansible.builtin.group:
+    name: pcgamers
+    gid: 3000
+    state: present
+  become: true
+
+- name: Crear directorios NFS
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: '/srv/nfs', owner: 'root', group: 'root', mode: '0755' }
+    - { path: '/srv/nfs/games', owner: 'root', group: 'pcgamers', mode: '0775' }
+    - { path: '/srv/nfs/shared', owner: 'root', group: 'pcgamers', mode: '0775' }
+  become: true
+
+- name: Crear archivo de ejemplo en games
+  ansible.builtin.copy:
+    dest: /srv/nfs/games/README.txt
+    content: |
+      ════════════════════════════════════════════════════════
+      📁 Carpeta de Juegos Compartidos
+      ════════════════════════════════════════════════════════
+      
+      Esta carpeta está compartida por NFS desde el servidor.
+      
+      Uso:
+      - Coloca aquí los instaladores de juegos
+      - Los clientes pueden acceder desde /mnt/games
+      - Grupo: pcgamers (GID 3000)
+      
+      Permisos:
+      - Lectura/Escritura para grupo pcgamers
+      - Solo lectura para otros
+      
+      ════════════════════════════════════════════════════════
+    owner: root
+    group: pcgamers
+    mode: '0664'
+  become: true
+
+- name: Crear archivo de ejemplo en shared
+  ansible.builtin.copy:
+    dest: /srv/nfs/shared/README.txt
+    content: |
+      ════════════════════════════════════════════════════════
+      📁 Carpeta Compartida
+      ════════════════════════════════════════════════════════
+      
+      Esta carpeta está compartida por NFS desde el servidor.
+      
+      Uso:
+      - Archivos compartidos entre todos los clientes
+      - Documentos, configuraciones, etc.
+      - Los clientes pueden acceder desde /mnt/shared
+      
+      ════════════════════════════════════════════════════════
+    owner: root
+    group: pcgamers
+    mode: '0664'
+  become: true
+
+- name: Configurar exports de NFS
+  ansible.builtin.copy:
+    dest: /etc/exports
+    content: |
+      # Exports NFS para GameCenter
+      # Red IPv6: {{ network_config.ipv6_network }}
+      
+      # Carpeta de juegos - Lectura/Escritura para la red local
+      /srv/nfs/games    {{ network_config.ipv6_network }}(rw,sync,no_subtree_check,no_root_squash)
+      
+      # Carpeta compartida - Lectura/Escritura para la red local
+      /srv/nfs/shared   {{ network_config.ipv6_network }}(rw,sync,no_subtree_check,no_root_squash)
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  become: true
+  notify: reload nfs exports
+
+- name: Habilitar e iniciar servicio NFS
+  ansible.builtin.systemd:
+    name: nfs-kernel-server
+    enabled: yes
+    state: started
+  become: true
+
+- name: Verificar exports activos
+  ansible.builtin.command: exportfs -v
+  register: nfs_exports
+  changed_when: false
+  become: true
+
+- name: Mostrar configuración NFS
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════════════════════"
+      - "✅ NFS Server configurado"
+      - "════════════════════════════════════════════════════════"
+      - ""
+      - "📁 Carpetas compartidas:"
+      - "  • /srv/nfs/games  → Juegos (rw)"
+      - "  • /srv/nfs/shared → Archivos compartidos (rw)"
+      - ""
+      - "🌐 Red permitida: {{ network_config.ipv6_network }}"
+      - ""
+      - "🔧 Verificar exports:"
+      - "  showmount -e localhost"
+      - "  exportfs -v"
+      - ""
+      - "📊 Exports activos:"
+      - "{{ nfs_exports.stdout_lines }}"
+      - ""
+      - "════════════════════════════════════════════════════════"

@@ -9,19 +9,23 @@ echo ""
 
 ERRORS=0
 
-# Verificar servicio NFS
+# Verificar servicio NFS (puede ser nfs-server o nfs-kernel-server)
 echo "🔧 Servicio NFS:"
-if systemctl is-active --quiet nfs-server; then
-    echo "✅ nfs-server está activo"
+if systemctl is-active --quiet nfs-kernel-server || systemctl is-active --quiet nfs-server; then
+    echo "✅ NFS server está activo"
+    SERVICE_NAME=$(systemctl is-active --quiet nfs-kernel-server && echo "nfs-kernel-server" || echo "nfs-server")
+    echo "   📦 Servicio: $SERVICE_NAME"
 else
-    echo "❌ nfs-server NO está activo"
+    echo "❌ NFS server NO está activo"
+    echo "   💡 Ejecuta: sudo systemctl start nfs-kernel-server"
     ((ERRORS++))
 fi
 
-if systemctl is-enabled --quiet nfs-server; then
-    echo "✅ nfs-server habilitado al inicio"
+if systemctl is-enabled --quiet nfs-kernel-server || systemctl is-enabled --quiet nfs-server; then
+    echo "✅ NFS server habilitado al inicio"
 else
-    echo "❌ nfs-server NO habilitado al inicio"
+    echo "❌ NFS server NO habilitado al inicio"
+    echo "   💡 Ejecuta: sudo systemctl enable nfs-kernel-server"
     ((ERRORS++))
 fi
 

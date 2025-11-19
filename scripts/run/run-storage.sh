@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script para ejecutar solo el rol storage
+# Script para ejecutar el rol de NFS Server
 # Ejecutar desde la raíz del proyecto: bash scripts/run/run-storage.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,4 +14,9 @@ if ! command -v ansible-playbook &> /dev/null; then
     exit 1
 fi
 
-ansible-playbook -i inventory/hosts.ini site.yml --connection=local --become --ask-become-pass --tags storage
+echo "════════════════════════════════════════════════════════"
+echo "📁 Configurando NFS Server"
+echo "════════════════════════════════════════════════════════"
+echo ""
+
+ansible-playbook -i inventory/hosts.ini site.yml --connection=local --become --ask-become-pass --tags nfs
