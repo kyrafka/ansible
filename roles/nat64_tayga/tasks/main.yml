@@ -90,27 +90,71 @@
     state: started
     enabled: yes
   become: true
-  async: 10
-  poll: 0
   register: tayga_start
 
-- name: "⏳ Esperar a que Tayga cree la interfaz"
-  ansible.builtin.pause:
-    seconds: 3
+- name: "⏳ Esperar a que interfaz nat64 exista (máximo 30 segundos)"
+  ansible.builtin.shell: |
+    for i in {1..30}; do
+      if ip link show nat64 &>/dev/null; then
+        echo "Interfaz nat64 encontrada después de $i segundos"
+        exit 0
+      fi
+      sleep 1
+    done
+    echo "ERROR: Interfaz nat64 no se creó después de 30 segundos"
+    exit 1
+  become: true
+  register: nat64_wait
+  changed_when: false
 
 - name: "🔧 Levantar interfaz nat64"
   ansible.builtin.command: ip link set nat64 up
   become: true
   changed_when: false
-  failed_when: false
+
+- name: "⏳ Verificar que interfaz nat64 está UP"
+  ansible.builtin.shell: |
+    for i in {1..10}; do
+      STATE=$(ip link show nat64 | grep -o "state [A-Z]*" | awk '{print $2}')
+      if [ "$STATE" == "UP" ] || [ "$STATE" == "UNKNOWN" ]; then
+        echo "Interfaz nat64 está $STATE"
+        exit 0
+      fi
+      sleep 1
+    done
+    echo "ERROR: Interfaz nat64 no está UP"
+    exit 1
+  become: true
+  register: nat64_up
+  changed_when: false
 
 - name: "🔀 Configurar rutas para NAT64"
   ansible.builtin.shell: |
-    # Ruta para el pool IPv6 de NAT64
-    ip -6 route add 64:ff9b::/96 dev nat64 2>/dev/null || true
-    # Ruta para el pool IPv4 de Tayga
-    ip -4 route add 192.168.255.0/24 dev nat64 2>/dev/null || true
+    # Eliminar rutas viejas si existen
+    ip -6 route del 64:ff9b::/96 dev nat64 2>/dev/null || true
+    ip -4 route del 192.168.255.0/24 dev nat64 2>/dev/null || true
+    
+    # Agregar rutas nuevas
+    ip -6 route add 64:ff9b::/96 dev nat64
+    ip -4 route add 192.168.255.0/24 dev nat64
   become: true
+  changed_when: true
+
+- name: "✓ Verificar que rutas se crearon correctamente"
+  ansible.builtin.shell: |
+    if ! ip -6 route | grep -q "64:ff9b::/96 dev nat64"; then
+      echo "ERROR: Ruta IPv6 NAT64 no existe"
+      exit 1
+    fi
+    
+    if ! ip -4 route | grep -q "192.168.255.0/24 dev nat64"; then
+      echo "ERROR: Ruta IPv4 NAT64 no existe"
+      exit 1
+    fi
+    
+    echo "✅ Ambas rutas NAT64 configuradas correctamente"
+  become: true
+  register: nat64_routes_check
   changed_when: false
 
 - name: "✓ Rutas configuradas"
@@ -166,10 +210,13 @@
       Type=forking
       ExecStartPre=/usr/sbin/tayga --mktun
       ExecStart=/usr/sbin/tayga
+      ExecStartPost=/bin/sleep 2
       ExecStartPost=/usr/local/bin/setup-nat64-routes.sh
       ExecStopPost=/usr/sbin/tayga --rmtun
       PIDFile=/run/tayga.pid
       TimeoutStartSec=30s
+      Restart=on-failure
+      RestartSec=5s
       
       [Install]
       WantedBy=multi-user.target
