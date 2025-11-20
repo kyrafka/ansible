@@ -1,0 +1,76 @@
+---
+# Instalación y configuración de Squid Proxy transparente
+
+- name: "📦 Instalar Squid"
+  ansible.builtin.apt:
+    name: squid
+    state: present
+    update_cache: no
+  become: true
+
+- name: "✓ Squid instalado"
+  ansible.builtin.debug:
+    msg: "→ Proxy HTTP/HTTPS disponible"
+
+- name: "📝 Configurar Squid como proxy transparente"
+  ansible.builtin.template:
+    src: squid.conf.j2
+    dest: /etc/squid/squid.conf
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  become: true
+
+- name: "📁 Crear directorio de cache"
+  ansible.builtin.file:
+    path: /var/spool/squid
+    state: directory
+    owner: proxy
+    group: proxy
+    mode: '0750'
+  become: true
+
+- name: "🔧 Inicializar cache de Squid"
+  ansible.builtin.command: squid -z
+  become: true
+  changed_when: false
+  failed_when: false
+
+- name: "🔄 Reiniciar Squid"
+  ansible.builtin.systemd:
+    name: squid
+    state: restarted
+    enabled: yes
+  become: true
+
+- name: "🛡️ Configurar iptables para proxy transparente"
+  ansible.builtin.shell: |
+    # Redirigir tráfico HTTP (puerto 80) a Squid (puerto 3129)
+    iptables -t nat -C PREROUTING -i {{ lan_interface }} -p tcp --dport 80 -j REDIRECT --to-port 3129 2>/dev/null || \
+    iptables -t nat -A PREROUTING -i {{ lan_interface }} -p tcp --dport 80 -j REDIRECT --to-port 3129
+    
+    # Redirigir tráfico HTTPS (puerto 443) a Squid (puerto 3130)
+    iptables -t nat -C PREROUTING -i {{ lan_interface }} -p tcp --dport 443 -j REDIRECT --to-port 3130 2>/dev/null || \
+    iptables -t nat -A PREROUTING -i {{ lan_interface }} -p tcp --dport 443 -j REDIRECT --to-port 3130
+  become: true
+  changed_when: false
+
+- name: "💾 Guardar reglas de iptables"
+  ansible.builtin.shell: |
+    iptables-save > /etc/iptables/rules.v4
+  become: true
+  changed_when: true
+
+- name: "✅ Squid proxy transparente configurado"
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════"
+      - "✅ Squid Proxy Transparente"
+      - "════════════════════════════════════════"
+      - "→ Puerto HTTP: 3129 (transparente)"
+      - "→ Puerto HTTPS: 3130 (transparente)"
+      - "→ Cache: /var/spool/squid"
+      - "→ Los clientes NO necesitan configurar nada"
+      - "→ Juegos LAN funcionan directo"
+      - "════════════════════════════════════════"

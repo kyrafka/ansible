@@ -1,0 +1,13 @@
+---
+- name: Configurar Squid Proxy Transparente
+  hosts: servidores
+  become: true
+  
+  vars_files:
+    - ../group_vars/all.yml
+  
+  vars:
+    lan_interface: "ens34"
+  
+  roles:
+    - squid_proxy

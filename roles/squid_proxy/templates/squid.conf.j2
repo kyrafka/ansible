@@ -1,0 +1,48 @@
+# Squid Proxy - Configuración transparente para GameCenter
+# Puerto para HTTP transparente
+http_port 3129 intercept
+
+# Puerto para HTTPS transparente (sin SSL bump)
+https_port 3130 intercept
+
+# ACLs básicas
+acl localnet src {{ dns_network_ipv6 }}
+acl localnet src 0.0.0.1-0.255.255.255
+acl SSL_ports port 443
+acl Safe_ports port 80
+acl Safe_ports port 443
+acl Safe_ports port 21
+acl Safe_ports port 1025-65535
+acl CONNECT method CONNECT
+
+# Reglas de acceso
+http_access deny !Safe_ports
+http_access deny CONNECT !SSL_ports
+http_access allow localhost manager
+http_access deny manager
+http_access allow localnet
+http_access allow localhost
+http_access deny all
+
+# Cache
+cache_dir ufs /var/spool/squid 1000 16 256
+maximum_object_size 50 MB
+cache_mem 256 MB
+
+# Logs
+access_log /var/log/squid/access.log squid
+cache_log /var/log/squid/cache.log
+cache_store_log none
+
+# DNS
+dns_nameservers 127.0.0.1
+
+# Optimizaciones
+refresh_pattern ^ftp: 1440 20% 10080
+refresh_pattern ^gopher: 1440 0% 1440
+refresh_pattern -i (/cgi-bin/|\?) 0 0% 0
+refresh_pattern . 0 20% 4320
+
+# Transparente
+forwarded_for delete
+via off
