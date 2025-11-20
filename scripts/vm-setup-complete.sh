@@ -14,37 +14,26 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-PROXY_SERVER="http://[2025:db8:10::2]:3128"
-
-echo "Paso 1: Configurando proxy"
+echo "Paso 1: Configurando DNS"
 echo "────────────────────────────────────────────────────────"
 
-# Configurar proxy para APT
-cat > /etc/apt/apt.conf.d/proxy.conf << EOF
-Acquire::http::Proxy "${PROXY_SERVER}";
-Acquire::https::Proxy "${PROXY_SERVER}";
+# Deshabilitar systemd-resolved para usar DNS del servidor
+systemctl stop systemd-resolved
+systemctl disable systemd-resolved
+
+# Eliminar enlace simbólico y crear archivo real
+rm -f /etc/resolv.conf
+cat > /etc/resolv.conf << EOF
+nameserver 2025:db8:10::2
+search gamecenter.lan
 EOF
-echo "✓ Proxy APT configurado"
 
-# Configurar proxy del sistema
-cat >> /etc/environment << EOF
-
-# Proxy configuration
-http_proxy="${PROXY_SERVER}"
-https_proxy="${PROXY_SERVER}"
-HTTP_PROXY="${PROXY_SERVER}"
-HTTPS_PROXY="${PROXY_SERVER}"
-no_proxy="localhost,127.0.0.1,::1,2025:db8:10::/64"
-NO_PROXY="localhost,127.0.0.1,::1,2025:db8:10::/64"
-EOF
-echo "✓ Variables de entorno configuradas"
-
-# Aplicar proxy ahora
-export http_proxy="${PROXY_SERVER}"
-export https_proxy="${PROXY_SERVER}"
+# Proteger el archivo de cambios
+chattr +i /etc/resolv.conf
+echo "✓ DNS configurado (2025:db8:10::2)"
 
 echo ""
-echo "Paso 2: Actualizando sistema"
+echo "Paso 2: Actualizando sistema (usando NAT64)"
 echo "────────────────────────────────────────────────────────"
 apt update
 echo "✓ Cache actualizado"
@@ -118,26 +107,17 @@ echo "✓ Hostname: $HOSTNAME"
 echo "✓ IPv6: $IPV6"
 
 echo ""
-echo "Paso 9: Configurando proxy del sistema para Firefox..."
+echo "Paso 9: Desactivando proxy del sistema..."
 echo "────────────────────────────────────────────────────────"
 
-# Configurar proxy del sistema (Firefox lo usará automáticamente)
+# Desactivar proxy del sistema (usar NAT64 directamente)
 sudo -u administrador DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u administrador)/bus" \
-    gsettings set org.gnome.system.proxy mode 'manual' 2>/dev/null || true
-sudo -u administrador DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u administrador)/bus" \
-    gsettings set org.gnome.system.proxy.http host '2025:db8:10::2' 2>/dev/null || true
-sudo -u administrador DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u administrador)/bus" \
-    gsettings set org.gnome.system.proxy.http port 3128 2>/dev/null || true
-sudo -u administrador DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u administrador)/bus" \
-    gsettings set org.gnome.system.proxy.https host '2025:db8:10::2' 2>/dev/null || true
-sudo -u administrador DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u administrador)/bus" \
-    gsettings set org.gnome.system.proxy.https port 3128 2>/dev/null || true
+    gsettings set org.gnome.system.proxy mode 'none' 2>/dev/null || true
 
-echo "✓ Proxy del sistema configurado"
+echo "✓ Proxy desactivado (usando NAT64 directamente)"
 echo ""
-echo "⚠️  Si Firefox no funciona, configurar manualmente:"
-echo "   Firefox → Configuración → Proxy → Manual"
-echo "   HTTP: 2025:db8:10::2 Puerto: 3128"
+echo "ℹ️  Firefox usará NAT64 automáticamente"
+echo "   No necesitas configurar proxy manualmente"
 
 echo ""
 echo "════════════════════════════════════════════════════════"
@@ -145,7 +125,8 @@ echo "✅ Configuración completada exitosamente"
 echo "════════════════════════════════════════════════════════"
 echo ""
 echo "📋 Resumen:"
-echo "  ✓ Proxy configurado y funcionando"
+echo "  ✓ DNS configurado (2025:db8:10::2)"
+echo "  ✓ NAT64 funcionando (sin proxy)"
 echo "  ✓ APT puede descargar paquetes"
 echo "  ✓ SSH activo y accesible"
 echo "  ✓ Ansible instalado"
