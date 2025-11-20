@@ -252,6 +252,10 @@ dns_records:
     value: "2025:db8:10::2"
   
   # Servidor web
+  - name: "web"
+    type: "AAAA"
+    value: "2025:db8:10::2"
+  
   - name: "www"
     type: "CNAME"
     value: "servidor"
