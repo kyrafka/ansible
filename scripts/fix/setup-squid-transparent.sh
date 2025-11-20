@@ -25,11 +25,13 @@ echo "📝 Creando configuración transparente..."
 cat > /etc/squid/squid.conf << 'EOF'
 # Squid Proxy - Configuración transparente para GameCenter
 
-# Puerto transparente solo para HTTP
+# Puerto normal (para diagnóstico)
+http_port 3128
+
+# Puerto transparente para HTTP
 http_port 3129 intercept
 
-# Puerto normal para HTTPS (sin interceptar)
-# HTTPS requiere SSL-Bump que es complejo, lo dejamos pasar directo por NAT64
+# HTTPS pasa directo por NAT64 (sin Squid)
 
 # ACLs básicas
 acl localnet src 2025:db8:10::/64
