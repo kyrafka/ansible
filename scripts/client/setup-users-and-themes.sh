@@ -23,23 +23,26 @@ else
     echo "✓ Grupo pcgamers ya existe"
 fi
 
-# Crear usuario gamer
-if ! id gamer &>/dev/null; then
-    useradd -m -s /bin/bash -G pcgamers,audio,video gamer
-    echo "gamer:Game123!" | chpasswd
-    echo "✓ Usuario gamer creado (contraseña: Game123!)"
+# Crear/actualizar usuario auditor
+if ! id auditor &>/dev/null; then
+    useradd -m -s /bin/bash auditor
+    echo "✓ Usuario auditor creado"
 else
-    echo "✓ Usuario gamer ya existe"
+    echo "✓ Usuario auditor ya existe"
 fi
+echo "auditor:Audit123!" | chpasswd
+echo "✓ Contraseña de auditor configurada: Audit123!"
 
-# Crear usuario invitado
-if ! id invitado &>/dev/null; then
-    useradd -m -s /bin/bash invitado
-    echo "invitado:Guest123!" | chpasswd
-    echo "✓ Usuario invitado creado (contraseña: Guest123!)"
+# Crear/actualizar usuario gamer01
+if ! id gamer01 &>/dev/null; then
+    useradd -m -s /bin/bash -G pcgamers,audio,video gamer01
+    echo "✓ Usuario gamer01 creado"
 else
-    echo "✓ Usuario invitado ya existe"
+    echo "✓ Usuario gamer01 ya existe"
+    usermod -aG pcgamers,audio,video gamer01
 fi
+echo "gamer01:Game123!" | chpasswd
+echo "✓ Contraseña de gamer01 configurada: Game123!"
 
 # Agregar administrador al grupo pcgamers
 usermod -aG pcgamers administrador
@@ -69,13 +72,13 @@ chmod 2775 /mnt/games
 echo "✓ /mnt/games creado"
 
 # Crear carpetas personales
-mkdir -p /home/gamer/{Descargas,Documentos,Juegos}
-chown -R gamer:gamer /home/gamer
-echo "✓ Carpetas de gamer creadas"
+mkdir -p /home/gamer01/{Descargas,Documentos,Juegos}
+chown -R gamer01:gamer01 /home/gamer01
+echo "✓ Carpetas de gamer01 verificadas"
 
-mkdir -p /home/invitado/{Descargas,Documentos}
-chown -R invitado:invitado /home/invitado
-echo "✓ Carpetas de invitado creadas"
+mkdir -p /home/auditor/{Descargas,Documentos,Reportes}
+chown -R auditor:auditor /home/auditor
+echo "✓ Carpetas de auditor verificadas"
 
 echo ""
 echo "Paso 4: Instalando temas"
@@ -91,33 +94,33 @@ apt install -y \
 echo "✓ Temas instalados"
 
 echo ""
-echo "Paso 5: Configurando tema para GAMER (oscuro gaming)"
+echo "Paso 5: Configurando tema para GAMER01 (oscuro gaming)"
 echo "────────────────────────────────────────────────────────"
 
-# Configurar tema oscuro para gamer
-sudo -u gamer dbus-launch gsettings set org.gnome.desktop.interface gtk-theme 'Arc-Dark' 2>/dev/null || true
-sudo -u gamer dbus-launch gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark' 2>/dev/null || true
-sudo -u gamer dbus-launch gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
-sudo -u gamer dbus-launch gsettings set org.gnome.desktop.wm.preferences button-layout ':minimize,maximize,close' 2>/dev/null || true
+# Configurar tema oscuro para gamer01
+sudo -u gamer01 dbus-launch gsettings set org.gnome.desktop.interface gtk-theme 'Arc-Dark' 2>/dev/null || true
+sudo -u gamer01 dbus-launch gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark' 2>/dev/null || true
+sudo -u gamer01 dbus-launch gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
+sudo -u gamer01 dbus-launch gsettings set org.gnome.desktop.wm.preferences button-layout ':minimize,maximize,close' 2>/dev/null || true
 
 # Wallpaper oscuro
-sudo -u gamer dbus-launch gsettings set org.gnome.desktop.background picture-uri 'file:///usr/share/backgrounds/warty-final-ubuntu.png' 2>/dev/null || true
+sudo -u gamer01 dbus-launch gsettings set org.gnome.desktop.background picture-uri 'file:///usr/share/backgrounds/warty-final-ubuntu.png' 2>/dev/null || true
 
-echo "✓ Tema gaming aplicado a gamer"
+echo "✓ Tema gaming aplicado a gamer01"
 
 echo ""
-echo "Paso 5: Configurando tema para INVITADO (claro simple)"
+echo "Paso 6: Configurando tema para AUDITOR (claro profesional)"
 echo "────────────────────────────────────────────────────────"
 
-# Configurar tema claro para invitado
-sudo -u invitado dbus-launch gsettings set org.gnome.desktop.interface gtk-theme 'Yaru' 2>/dev/null || true
-sudo -u invitado dbus-launch gsettings set org.gnome.desktop.interface icon-theme 'Papirus' 2>/dev/null || true
-sudo -u invitado dbus-launch gsettings set org.gnome.desktop.interface color-scheme 'prefer-light' 2>/dev/null || true
+# Configurar tema claro para auditor
+sudo -u auditor dbus-launch gsettings set org.gnome.desktop.interface gtk-theme 'Yaru' 2>/dev/null || true
+sudo -u auditor dbus-launch gsettings set org.gnome.desktop.interface icon-theme 'Papirus' 2>/dev/null || true
+sudo -u auditor dbus-launch gsettings set org.gnome.desktop.interface color-scheme 'prefer-light' 2>/dev/null || true
 
-echo "✓ Tema claro aplicado a invitado"
+echo "✓ Tema claro aplicado a auditor"
 
 echo ""
-echo "Paso 6: Configurando tema para ADMINISTRADOR (oscuro profesional)"
+echo "Paso 7: Configurando tema para ADMINISTRADOR (oscuro profesional)"
 echo "────────────────────────────────────────────────────────"
 
 # Configurar tema oscuro para administrador
@@ -132,23 +135,23 @@ echo "════════════════════════�
 echo "✅ CONFIGURACIÓN COMPLETADA"
 echo "════════════════════════════════════════════════════════════════"
 echo ""
-echo "👥 Usuarios creados:"
-echo "  1. administrador (ya existía) - Tema oscuro profesional"
-echo "  2. gamer (nuevo) - Tema oscuro gaming"
-echo "  3. invitado (nuevo) - Tema claro simple"
+echo "👥 Usuarios configurados:"
+echo "  1. administrador - Tema oscuro profesional"
+echo "  2. gamer01 - Tema oscuro gaming"
+echo "  3. auditor - Tema claro profesional"
 echo ""
 echo "🔑 Contraseñas:"
-echo "  - gamer: Game123!"
-echo "  - invitado: Guest123!"
+echo "  - gamer01: Game123!"
+echo "  - auditor: Audit123!"
 echo ""
 echo "📁 Carpetas:"
 echo "  - /mnt/games (compartida para pcgamers)"
-echo "  - /home/gamer/Juegos"
+echo "  - /home/gamer01/Juegos"
 echo ""
 echo "🎨 Temas aplicados:"
 echo "  - administrador: Yaru-dark + Papirus-Dark"
-echo "  - gamer: Arc-Dark + Papirus-Dark"
-echo "  - invitado: Yaru + Papirus"
+echo "  - gamer01: Arc-Dark + Papirus-Dark"
+echo "  - auditor: Yaru + Papirus"
 echo ""
 echo "🔄 Cierra sesión y entra con otro usuario para ver los cambios"
 echo "════════════════════════════════════════════════════════════════"
