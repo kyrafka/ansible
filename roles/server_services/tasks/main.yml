@@ -145,12 +145,21 @@
 # NETDATA - Monitoreo en tiempo real
 # ═══════════════════════════════════════════════════════════
 
+- name: "📦 Descargar script de instalación de Netdata"
+  ansible.builtin.get_url:
+    url: https://my-netdata.io/kickstart.sh
+    dest: /tmp/netdata-kickstart.sh
+    mode: '0755'
+  become: true
+
 - name: "📦 Instalar Netdata"
-  ansible.builtin.shell: |
-    curl -Ss https://my-netdata.io/kickstart.sh | bash -s -- --dont-wait --disable-telemetry
+  ansible.builtin.command: bash /tmp/netdata-kickstart.sh --dont-wait --disable-telemetry
   args:
     creates: /usr/sbin/netdata
   become: true
+  async: 300
+  poll: 0
+  register: netdata_install
 
 - name: "🔧 Configurar Netdata para acceso remoto"
   ansible.builtin.lineinfile:
