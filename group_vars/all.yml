@@ -6,12 +6,9 @@ unix_groups:
     state: present
 
 users:
-  - name: gamer01
-    state: present
-    primary_group: pcgamers
-    groups: [pcgamers]
-    shell: /bin/bash
-    
+  # Usuario gamer01 eliminado - no es necesario en el servidor
+  # Los usuarios del servidor se crean en el rol server_users
+  
   - name: steam_epic_svc
     state: present
     shell: /usr/sbin/nologin
@@ -49,7 +46,7 @@ win_admin_user: "gamepc1"
 win_admin_password: "{{ vault_win_admin_password }}"
 enable_rdp: true
 
-# Usuarios Ubuntu Desktop por rol
+# Usuarios Ubuntu Desktop por rol (SOLO para VMs cliente, NO para el servidor)
 ubuntu_desktop_users:
   admin:
     username: "administrador"
@@ -61,7 +58,7 @@ ubuntu_desktop_users:
     username: "gamer01"
     password: "{{ vault_ubuntu_desktop_cliente_password }}"
 
-# Usuarios Windows 11 por rol
+# Usuarios Windows 11 por rol (SOLO para VMs cliente, NO para el servidor)
 windows11_users:
   admin:
     username: "Administrador"
