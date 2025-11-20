@@ -192,32 +192,11 @@
   become: true
 
 # ═══════════════════════════════════════════════════════════
-# GUI - Interfaz gráfica ligera (XFCE)
+# GUI - Interfaz gráfica (DESHABILITADA)
 # ═══════════════════════════════════════════════════════════
-
-- name: "📦 Instalar XFCE Desktop (ligero)"
-  ansible.builtin.apt:
-    name:
-      - xfce4
-      - xfce4-goodies
-      - lightdm
-      - firefox
-      - xrdp
-    state: present
-  become: true
-
-- name: "🔧 Configurar XRDP para acceso remoto"
-  ansible.builtin.systemd:
-    name: xrdp
-    state: started
-    enabled: yes
-  become: true
-
-- name: "🔧 Configurar LightDM para inicio automático"
-  ansible.builtin.systemd:
-    name: lightdm
-    enabled: yes
-  become: true
+# Si necesitas GUI, ejecuta manualmente:
+# sudo apt install xfce4 lightdm
+# ═══════════════════════════════════════════════════════════
 
 # ═══════════════════════════════════════════════════════════
 # FIREWALL - Abrir puertos necesarios
@@ -235,7 +214,6 @@
     - '40000:50000'  # FTP pasivo
     - '19999'    # Netdata
     - '9090'     # Cockpit
-    - '3389'     # RDP (XRDP)
   become: true
 
 - name: "✅ Servicios configurados"
@@ -257,9 +235,5 @@
       - "   Netdata: http://servidor.gamecenter.lan:19999"
       - "   Cockpit: https://servidor.gamecenter.lan:9090"
       - ""
-      - "🖥️  INTERFAZ GRÁFICA:"
-      - "   RDP: servidor.gamecenter.lan:3389"
-      - "   Usuario: ubuntu, auditor o dev"
-      - "   O inicia sesión directamente en el servidor"
-      - ""
+
       - "════════════════════════════════════════════════════════"
