@@ -10,6 +10,10 @@ interface {{ lan_interface }}
     MinRtrAdvInterval 3;
     MaxRtrAdvInterval 10;
     
+    # Anunciar este router como gateway por defecto
+    AdvDefaultLifetime 1800;
+    AdvDefaultPreference high;
+    
     # Prefijo de red IPv6
     prefix 2025:db8:10::/64
     {
