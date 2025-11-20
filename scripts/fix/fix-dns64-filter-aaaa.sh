@@ -49,8 +49,10 @@ options {
         break-dnssec yes;
     };
     
-    // CLAVE: Filtrar respuestas AAAA de internet
-    filter-aaaa-on-v4 break-dnssec;
+    // RPZ para filtrar AAAA
+    response-policy {
+        zone "rpz.drop-aaaa" policy given;
+    };
     
     // Permitir consultas
     allow-query { 
@@ -84,6 +86,41 @@ options {
 EOF
 
 echo "✓ Configuración creada"
+echo ""
+
+# Crear zona RPZ para filtrar AAAA
+echo "📝 Creando zona RPZ para filtrar AAAA..."
+sudo tee /etc/bind/db.rpz.drop-aaaa > /dev/null << 'RPZEOF'
+$TTL 60
+@   IN  SOA localhost. root.localhost. (
+            1       ; Serial
+            3600    ; Refresh
+            1800    ; Retry
+            604800  ; Expire
+            60 )    ; Minimum TTL
+
+    IN  NS  localhost.
+
+; Política: Devolver NODATA para todas las consultas AAAA
+*.  IN  CNAME   rpz-passthru.
+*.  IN  AAAA    .
+RPZEOF
+
+# Agregar zona RPZ a named.conf.local
+echo "📝 Agregando zona RPZ a named.conf.local..."
+if ! grep -q "rpz.drop-aaaa" /etc/bind/named.conf.local; then
+    sudo tee -a /etc/bind/named.conf.local > /dev/null << 'LOCALEOF'
+
+// Zona RPZ para filtrar respuestas AAAA
+zone "rpz.drop-aaaa" {
+    type master;
+    file "/etc/bind/db.rpz.drop-aaaa";
+    allow-query { none; };
+};
+LOCALEOF
+fi
+
+echo "✓ Zona RPZ creada"
 echo ""
 
 # Verificar configuración
