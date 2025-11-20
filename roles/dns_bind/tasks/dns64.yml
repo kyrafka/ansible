@@ -24,7 +24,7 @@
           dns64 64:ff9b::/96 {
               clients { any; };
               mapped { any; };
-              exclude { any; };
+              exclude { 2025:db8:10::/64; ::ffff:0:0/96; };
               recursive-only yes;
               break-dnssec yes;
           };
