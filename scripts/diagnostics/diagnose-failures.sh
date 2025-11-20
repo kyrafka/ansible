@@ -135,12 +135,12 @@ echo ""
 
 echo "→ Netplan configuración:"
 if [ -d "/etc/netplan" ]; then
-    ls -la /etc/netplan/
+    sudo ls -la /etc/netplan/
     echo ""
     for file in /etc/netplan/*.yaml; do
         if [ -f "$file" ]; then
             echo "Contenido de $file:"
-            cat "$file"
+            sudo cat "$file"
             echo ""
         fi
     done

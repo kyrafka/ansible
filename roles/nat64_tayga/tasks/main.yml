@@ -168,7 +168,8 @@
       ExecStart=/usr/sbin/tayga
       ExecStartPost=/usr/local/bin/setup-nat64-routes.sh
       ExecStopPost=/usr/sbin/tayga --rmtun
-      PIDFile=/var/run/tayga.pid
+      PIDFile=/run/tayga.pid
+      TimeoutStartSec=30s
       
       [Install]
       WantedBy=multi-user.target
