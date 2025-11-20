@@ -26,8 +26,8 @@ fi
 # Crear usuario gamer
 if ! id gamer &>/dev/null; then
     useradd -m -s /bin/bash -G pcgamers,audio,video gamer
-    echo "gamer:123" | chpasswd
-    echo "✓ Usuario gamer creado (contraseña: 123)"
+    echo "gamer:Game123!" | chpasswd
+    echo "✓ Usuario gamer creado (contraseña: Game123!)"
 else
     echo "✓ Usuario gamer ya existe"
 fi
@@ -35,8 +35,8 @@ fi
 # Crear usuario invitado
 if ! id invitado &>/dev/null; then
     useradd -m -s /bin/bash invitado
-    echo "invitado:123" | chpasswd
-    echo "✓ Usuario invitado creado (contraseña: 123)"
+    echo "invitado:Guest123!" | chpasswd
+    echo "✓ Usuario invitado creado (contraseña: Guest123!)"
 else
     echo "✓ Usuario invitado ya existe"
 fi
@@ -46,7 +46,20 @@ usermod -aG pcgamers administrador
 echo "✓ Administrador agregado a pcgamers"
 
 echo ""
-echo "Paso 2: Configurando carpetas"
+echo "Paso 2: Instalando SSH (si no está)"
+echo "────────────────────────────────────────────────────────"
+
+if ! command -v sshd &>/dev/null; then
+    apt install -y openssh-server
+    systemctl enable ssh
+    systemctl start ssh
+    echo "✓ SSH instalado y habilitado"
+else
+    echo "✓ SSH ya está instalado"
+fi
+
+echo ""
+echo "Paso 3: Configurando carpetas"
 echo "────────────────────────────────────────────────────────"
 
 # Crear punto de montaje NFS
@@ -65,7 +78,7 @@ chown -R invitado:invitado /home/invitado
 echo "✓ Carpetas de invitado creadas"
 
 echo ""
-echo "Paso 3: Instalando temas"
+echo "Paso 4: Instalando temas"
 echo "────────────────────────────────────────────────────────"
 
 apt install -y \
@@ -78,7 +91,7 @@ apt install -y \
 echo "✓ Temas instalados"
 
 echo ""
-echo "Paso 4: Configurando tema para GAMER (oscuro gaming)"
+echo "Paso 5: Configurando tema para GAMER (oscuro gaming)"
 echo "────────────────────────────────────────────────────────"
 
 # Configurar tema oscuro para gamer
@@ -125,8 +138,8 @@ echo "  2. gamer (nuevo) - Tema oscuro gaming"
 echo "  3. invitado (nuevo) - Tema claro simple"
 echo ""
 echo "🔑 Contraseñas:"
-echo "  - gamer: 123"
-echo "  - invitado: 123"
+echo "  - gamer: Game123!"
+echo "  - invitado: Guest123!"
 echo ""
 echo "📁 Carpetas:"
 echo "  - /mnt/games (compartida para pcgamers)"
