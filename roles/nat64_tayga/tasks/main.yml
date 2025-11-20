@@ -74,116 +74,7 @@
     mode: '0755'
   become: true
 
-- name: "🔧 Inicializar base de datos de Tayga"
-  ansible.builtin.command: tayga --mktun
-  become: true
-  changed_when: false
-  failed_when: false
-
-- name: "✓ Interfaz nat64 inicializada"
-  ansible.builtin.debug:
-    msg: "→ Tayga creará la interfaz automáticamente"
-
-- name: "🔄 Habilitar e iniciar Tayga"
-  ansible.builtin.systemd:
-    name: tayga
-    state: started
-    enabled: yes
-  become: true
-  register: tayga_start
-
-- name: "⏳ Esperar a que interfaz nat64 exista (máximo 30 segundos)"
-  ansible.builtin.shell: |
-    for i in {1..30}; do
-      if ip link show nat64 &>/dev/null; then
-        echo "Interfaz nat64 encontrada después de $i segundos"
-        exit 0
-      fi
-      sleep 1
-    done
-    echo "ERROR: Interfaz nat64 no se creó después de 30 segundos"
-    exit 1
-  become: true
-  register: nat64_wait
-  changed_when: false
-
-- name: "🔧 Levantar interfaz nat64"
-  ansible.builtin.command: ip link set nat64 up
-  become: true
-  changed_when: false
-
-- name: "⏳ Verificar que interfaz nat64 está UP"
-  ansible.builtin.shell: |
-    for i in {1..10}; do
-      STATE=$(ip link show nat64 | grep -o "state [A-Z]*" | awk '{print $2}')
-      if [ "$STATE" == "UP" ] || [ "$STATE" == "UNKNOWN" ]; then
-        echo "Interfaz nat64 está $STATE"
-        exit 0
-      fi
-      sleep 1
-    done
-    echo "ERROR: Interfaz nat64 no está UP"
-    exit 1
-  become: true
-  register: nat64_up
-  changed_when: false
-
-- name: "🔀 Configurar rutas para NAT64"
-  ansible.builtin.shell: |
-    # Eliminar rutas viejas si existen
-    ip -6 route del 64:ff9b::/96 dev nat64 2>/dev/null || true
-    ip -4 route del 192.168.255.0/24 dev nat64 2>/dev/null || true
-    
-    # Agregar rutas nuevas
-    ip -6 route add 64:ff9b::/96 dev nat64
-    ip -4 route add 192.168.255.0/24 dev nat64
-  become: true
-  changed_when: true
-
-- name: "✓ Verificar que rutas se crearon correctamente"
-  ansible.builtin.shell: |
-    if ! ip -6 route | grep -q "64:ff9b::/96 dev nat64"; then
-      echo "ERROR: Ruta IPv6 NAT64 no existe"
-      exit 1
-    fi
-    
-    if ! ip -4 route | grep -q "192.168.255.0/24 dev nat64"; then
-      echo "ERROR: Ruta IPv4 NAT64 no existe"
-      exit 1
-    fi
-    
-    echo "✅ Ambas rutas NAT64 configuradas correctamente"
-  become: true
-  register: nat64_routes_check
-  changed_when: false
-
-- name: "✓ Rutas configuradas"
-  ansible.builtin.debug:
-    msg: "→ Tráfico IPv6 → 64:ff9b::/96 → Tayga → IPv4"
-
-- name: "🛡️ Configurar NAT para Tayga"
-  ansible.builtin.shell: |
-    # NAT para el tráfico que sale de Tayga hacia internet
-    iptables -t nat -C POSTROUTING -s 192.168.255.0/24 -o {{ wan_interface }} -j MASQUERADE 2>/dev/null || \
-    iptables -t nat -A POSTROUTING -s 192.168.255.0/24 -o {{ wan_interface }} -j MASQUERADE
-  become: true
-  changed_when: false
-
-- name: "✓ NAT configurado para Tayga"
-  ansible.builtin.debug:
-    msg: "→ Pool 192.168.255.0/24 → MASQUERADE → {{ wan_interface }}"
-
-- name: "💾 Guardar reglas de iptables"
-  ansible.builtin.shell: |
-    iptables-save > /etc/iptables/rules.v4
-  become: true
-  changed_when: true
-
-- name: "✓ Tayga iniciado en segundo plano"
-  ansible.builtin.debug:
-    msg: "→ NAT64 iniciándose..."
-
-- name: "📝 Crear script de post-inicio para rutas NAT64"
+- name: "� ICrear script de post-inicio para rutas NAT64"
   ansible.builtin.copy:
     content: |
       #!/bin/bash
@@ -199,7 +90,7 @@
     mode: '0755'
   become: true
 
-- name: "📝 Modificar servicio Tayga para configurar rutas"
+- name: "📝 Configurar servicio systemd de Tayga"
   ansible.builtin.copy:
     content: |
       [Unit]
@@ -230,9 +121,50 @@
     daemon_reload: yes
   become: true
 
-- name: "✓ Persistencia configurada"
+- name: "🔄 Habilitar e iniciar Tayga"
+  ansible.builtin.systemd:
+    name: tayga
+    state: restarted
+    enabled: yes
+  become: true
+  register: tayga_start
+
+- name: "⏳ Esperar a que interfaz nat64 exista (máximo 30 segundos)"
+  ansible.builtin.shell: |
+    for i in {1..30}; do
+      if ip link show nat64 &>/dev/null; then
+        echo "Interfaz nat64 encontrada después de $i segundos"
+        exit 0
+      fi
+      sleep 1
+    done
+    echo "ERROR: Interfaz nat64 no se creó después de 30 segundos"
+    exit 1
+  become: true
+  register: nat64_wait
+  changed_when: false
+
+- name: "✓ Interfaz nat64 creada"
   ansible.builtin.debug:
-    msg: "→ Rutas NAT64 se configurarán automáticamente al iniciar"
+    msg: "→ {{ nat64_wait.stdout }}"
+
+- name: "🛡️ Configurar NAT para Tayga"
+  ansible.builtin.shell: |
+    # NAT para el tráfico que sale de Tayga hacia internet
+    iptables -t nat -C POSTROUTING -s 192.168.255.0/24 -o {{ wan_interface }} -j MASQUERADE 2>/dev/null || \
+    iptables -t nat -A POSTROUTING -s 192.168.255.0/24 -o {{ wan_interface }} -j MASQUERADE
+  become: true
+  changed_when: false
+
+- name: "✓ NAT configurado para Tayga"
+  ansible.builtin.debug:
+    msg: "→ Pool 192.168.255.0/24 → MASQUERADE → {{ wan_interface }}"
+
+- name: "💾 Guardar reglas de iptables"
+  ansible.builtin.shell: |
+    iptables-save > /etc/iptables/rules.v4
+  become: true
+  changed_when: true
 
 - name: "🔍 Verificar estado de Tayga (sin fallar)"
   ansible.builtin.shell: systemctl is-active tayga || echo "starting"
