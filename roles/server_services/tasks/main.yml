@@ -1,0 +1,256 @@
+---
+# Rol para servicios adicionales del servidor
+# Incluye: Samba, FTP, Monitoreo (Netdata), GUI (XFCE)
+
+# ═══════════════════════════════════════════════════════════
+# SAMBA - Compartir archivos en red
+# ═══════════════════════════════════════════════════════════
+
+- name: "📦 Instalar Samba"
+  ansible.builtin.apt:
+    name:
+      - samba
+      - samba-common-bin
+    state: present
+    update_cache: yes
+  become: true
+
+- name: "📁 Crear directorios compartidos Samba"
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: '/srv/samba/shared', owner: 'root', group: 'users', mode: '0777' }
+    - { path: '/srv/samba/dev', owner: 'dev', group: 'developers', mode: '0775' }
+    - { path: '/srv/samba/auditor', owner: 'auditor', group: 'auditors', mode: '0755' }
+  become: true
+
+- name: "🔧 Configurar Samba"
+  ansible.builtin.copy:
+    dest: /etc/samba/smb.conf
+    content: |
+      [global]
+         workgroup = GAMECENTER
+         server string = Servidor GameCenter
+         security = user
+         map to guest = Bad User
+         dns proxy = no
+         
+      [Compartido]
+         path = /srv/samba/shared
+         browseable = yes
+         writable = yes
+         guest ok = yes
+         read only = no
+         create mask = 0777
+         directory mask = 0777
+         
+      [Dev]
+         path = /srv/samba/dev
+         browseable = yes
+         writable = yes
+         valid users = dev, ubuntu
+         create mask = 0775
+         directory mask = 0775
+         
+      [Auditor]
+         path = /srv/samba/auditor
+         browseable = yes
+         writable = no
+         valid users = auditor, ubuntu
+         read only = yes
+    backup: yes
+  become: true
+  notify: restart samba
+
+- name: "🔐 Configurar contraseñas Samba"
+  ansible.builtin.shell: |
+    (echo "123"; echo "123") | smbpasswd -a -s {{ item }}
+  loop:
+    - dev
+    - auditor
+  become: true
+  changed_when: false
+
+- name: "🔄 Habilitar e iniciar Samba"
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  loop:
+    - smbd
+    - nmbd
+  become: true
+
+# ═══════════════════════════════════════════════════════════
+# FTP - Servidor de archivos
+# ═══════════════════════════════════════════════════════════
+
+- name: "📦 Instalar vsftpd (FTP)"
+  ansible.builtin.apt:
+    name: vsftpd
+    state: present
+  become: true
+
+- name: "📁 Crear directorios FTP"
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: '/srv/ftp', owner: 'root', group: 'root', mode: '0755' }
+    - { path: '/srv/ftp/dev', owner: 'dev', group: 'developers', mode: '0755' }
+    - { path: '/srv/ftp/shared', owner: 'nobody', group: 'nogroup', mode: '0777' }
+  become: true
+
+- name: "🔧 Configurar vsftpd"
+  ansible.builtin.copy:
+    dest: /etc/vsftpd.conf
+    content: |
+      listen=YES
+      anonymous_enable=NO
+      local_enable=YES
+      write_enable=YES
+      local_umask=022
+      dirmessage_enable=YES
+      use_localtime=YES
+      xferlog_enable=YES
+      connect_from_port_20=YES
+      chroot_local_user=YES
+      secure_chroot_dir=/var/run/vsftpd/empty
+      pam_service_name=vsftpd
+      pasv_enable=YES
+      pasv_min_port=40000
+      pasv_max_port=50000
+      user_sub_token=$USER
+      local_root=/srv/ftp/$USER
+      allow_writeable_chroot=YES
+    backup: yes
+  become: true
+  notify: restart vsftpd
+
+- name: "🔄 Habilitar e iniciar FTP"
+  ansible.builtin.systemd:
+    name: vsftpd
+    state: started
+    enabled: yes
+  become: true
+
+# ═══════════════════════════════════════════════════════════
+# NETDATA - Monitoreo en tiempo real
+# ═══════════════════════════════════════════════════════════
+
+- name: "📦 Instalar Netdata"
+  ansible.builtin.shell: |
+    curl -Ss https://my-netdata.io/kickstart.sh | bash -s -- --dont-wait --disable-telemetry
+  args:
+    creates: /usr/sbin/netdata
+  become: true
+
+- name: "🔧 Configurar Netdata para acceso remoto"
+  ansible.builtin.lineinfile:
+    path: /etc/netdata/netdata.conf
+    regexp: '^\s*bind to'
+    line: '    bind to = *'
+    create: yes
+  become: true
+  notify: restart netdata
+
+# ═══════════════════════════════════════════════════════════
+# COCKPIT - Panel de administración web
+# ═══════════════════════════════════════════════════════════
+
+- name: "📦 Instalar Cockpit"
+  ansible.builtin.apt:
+    name:
+      - cockpit
+      - cockpit-networkmanager
+      - cockpit-storaged
+      - cockpit-packagekit
+    state: present
+  become: true
+
+- name: "🔄 Habilitar e iniciar Cockpit"
+  ansible.builtin.systemd:
+    name: cockpit.socket
+    state: started
+    enabled: yes
+  become: true
+
+# ═══════════════════════════════════════════════════════════
+# GUI - Interfaz gráfica ligera (XFCE)
+# ═══════════════════════════════════════════════════════════
+
+- name: "📦 Instalar XFCE Desktop (ligero)"
+  ansible.builtin.apt:
+    name:
+      - xfce4
+      - xfce4-goodies
+      - lightdm
+      - firefox
+      - xrdp
+    state: present
+  become: true
+
+- name: "🔧 Configurar XRDP para acceso remoto"
+  ansible.builtin.systemd:
+    name: xrdp
+    state: started
+    enabled: yes
+  become: true
+
+- name: "🔧 Configurar LightDM para inicio automático"
+  ansible.builtin.systemd:
+    name: lightdm
+    enabled: yes
+  become: true
+
+# ═══════════════════════════════════════════════════════════
+# FIREWALL - Abrir puertos necesarios
+# ═══════════════════════════════════════════════════════════
+
+- name: "🔥 Abrir puertos en firewall"
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - '139'      # Samba
+    - '445'      # Samba
+    - '21'       # FTP
+    - '40000:50000'  # FTP pasivo
+    - '19999'    # Netdata
+    - '9090'     # Cockpit
+    - '3389'     # RDP (XRDP)
+  become: true
+
+- name: "✅ Servicios configurados"
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════════════════════"
+      - "✅ Servicios adicionales configurados"
+      - "════════════════════════════════════════════════════════"
+      - ""
+      - "📁 SAMBA (Compartir archivos):"
+      - "   \\\\servidor.gamecenter.lan\\Compartido"
+      - "   \\\\servidor.gamecenter.lan\\Dev (usuario: dev/123)"
+      - ""
+      - "📂 FTP:"
+      - "   ftp://servidor.gamecenter.lan"
+      - "   Usuario: dev/123"
+      - ""
+      - "📊 MONITOREO:"
+      - "   Netdata: http://servidor.gamecenter.lan:19999"
+      - "   Cockpit: https://servidor.gamecenter.lan:9090"
+      - ""
+      - "🖥️  INTERFAZ GRÁFICA:"
+      - "   RDP: servidor.gamecenter.lan:3389"
+      - "   Usuario: ubuntu, auditor o dev"
+      - "   O inicia sesión directamente en el servidor"
+      - ""
+      - "════════════════════════════════════════════════════════"

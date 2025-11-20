@@ -39,5 +39,9 @@
       tags: firewall
     - role: nfs_server
       tags: nfs
+    - role: server_users
+      tags: users
+    - role: server_services
+      tags: services
     - role: storage
       tags: storage

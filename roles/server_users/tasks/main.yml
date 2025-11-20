@@ -1,0 +1,176 @@
+---
+# Rol para crear usuarios en el servidor Ubuntu
+# Usuarios: ubuntu (admin), auditor (monitoreo), dev (desarrollo)
+
+- name: "👥 Crear grupo de administradores"
+  ansible.builtin.group:
+    name: admins
+    gid: 2000
+    state: present
+  become: true
+
+- name: "👥 Crear grupo de auditores"
+  ansible.builtin.group:
+    name: auditors
+    gid: 2001
+    state: present
+  become: true
+
+- name: "👥 Crear grupo de desarrolladores"
+  ansible.builtin.group:
+    name: developers
+    gid: 2002
+    state: present
+  become: true
+
+- name: "👤 Asegurar que usuario ubuntu existe con permisos completos"
+  ansible.builtin.user:
+    name: ubuntu
+    groups: [sudo, admins, adm, systemd-journal]
+    append: yes
+    shell: /bin/bash
+  become: true
+
+- name: "👤 Crear usuario auditor"
+  ansible.builtin.user:
+    name: auditor
+    password: "{{ '123' | password_hash('sha512') }}"
+    groups: [auditors, adm, systemd-journal]
+    shell: /bin/bash
+    create_home: yes
+    comment: "Usuario Auditor - Monitoreo del sistema"
+  become: true
+
+- name: "👤 Crear usuario dev"
+  ansible.builtin.user:
+    name: dev
+    password: "{{ '123' | password_hash('sha512') }}"
+    groups: [developers]
+    shell: /bin/bash
+    create_home: yes
+    comment: "Usuario Desarrollador"
+  become: true
+
+- name: "🔐 Configurar sudo para auditor (solo lectura)"
+  ansible.builtin.copy:
+    content: |
+      # Auditor puede ver logs y estado del sistema (solo lectura)
+      auditor ALL=(ALL) NOPASSWD: /usr/bin/journalctl, /usr/bin/systemctl status *, /usr/bin/tail /var/log/*
+    dest: /etc/sudoers.d/auditor
+    mode: '0440'
+    validate: 'visudo -cf %s'
+  become: true
+
+- name: "🔐 Configurar sudo para dev (comandos limitados)"
+  ansible.builtin.copy:
+    content: |
+      # Dev puede reiniciar servicios de desarrollo
+      dev ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart nginx, /usr/bin/systemctl restart apache2
+    dest: /etc/sudoers.d/dev
+    mode: '0440'
+    validate: 'visudo -cf %s'
+  become: true
+
+- name: "📁 Crear directorios home personalizados"
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: '/home/auditor/logs', owner: 'auditor', group: 'auditors', mode: '0755' }
+    - { path: '/home/auditor/reports', owner: 'auditor', group: 'auditors', mode: '0755' }
+    - { path: '/home/dev/projects', owner: 'dev', group: 'developers', mode: '0755' }
+    - { path: '/home/dev/scripts', owner: 'dev', group: 'developers', mode: '0755' }
+  become: true
+
+- name: "📝 Crear archivo de bienvenida para auditor"
+  ansible.builtin.copy:
+    dest: /home/auditor/README.txt
+    content: |
+      ════════════════════════════════════════════════════════
+      👁️  USUARIO AUDITOR - Sistema de Monitoreo
+      ════════════════════════════════════════════════════════
+      
+      Usuario: auditor
+      Contraseña: 123
+      Rol: Monitoreo y auditoría del sistema
+      
+      PERMISOS:
+      ✅ Ver logs del sistema
+      ✅ Ver estado de servicios
+      ✅ Acceso a herramientas de monitoreo
+      ❌ NO puede modificar configuraciones
+      ❌ NO puede instalar software
+      
+      COMANDOS ÚTILES:
+      - Ver logs: sudo journalctl -f
+      - Estado de servicios: sudo systemctl status bind9
+      - Monitoreo web: http://localhost:19999 (Netdata)
+      - Panel de control: http://localhost:9090 (Cockpit)
+      
+      DIRECTORIOS:
+      - ~/logs - Logs guardados
+      - ~/reports - Reportes de auditoría
+      
+      ════════════════════════════════════════════════════════
+    owner: auditor
+    group: auditors
+    mode: '0644'
+  become: true
+
+- name: "📝 Crear archivo de bienvenida para dev"
+  ansible.builtin.copy:
+    dest: /home/dev/README.txt
+    content: |
+      ════════════════════════════════════════════════════════
+      💻 USUARIO DEV - Desarrollo
+      ════════════════════════════════════════════════════════
+      
+      Usuario: dev
+      Contraseña: 123
+      Rol: Desarrollo y pruebas
+      
+      PERMISOS:
+      ✅ Desarrollo de aplicaciones
+      ✅ Reiniciar servicios web
+      ✅ Acceso a FTP
+      ❌ NO puede modificar configuraciones del sistema
+      
+      DIRECTORIOS:
+      - ~/projects - Proyectos de desarrollo
+      - ~/scripts - Scripts personalizados
+      - /srv/ftp/dev - Archivos FTP
+      
+      ACCESO FTP:
+      - Servidor: ftp://servidor.gamecenter.lan
+      - Usuario: dev
+      - Contraseña: 123
+      
+      ════════════════════════════════════════════════════════
+    owner: dev
+    group: developers
+    mode: '0644'
+  become: true
+
+- name: "✅ Usuarios creados"
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════════════════════"
+      - "✅ Usuarios del servidor configurados"
+      - "════════════════════════════════════════════════════════"
+      - ""
+      - "👤 ubuntu - Administrador"
+      - "   Contraseña: (la que ya tienes)"
+      - "   Permisos: sudo completo"
+      - ""
+      - "👁️  auditor - Monitoreo"
+      - "   Contraseña: 123"
+      - "   Permisos: Ver logs y estado (solo lectura)"
+      - ""
+      - "💻 dev - Desarrollo"
+      - "   Contraseña: 123"
+      - "   Permisos: Desarrollo y FTP"
+      - ""
+      - "════════════════════════════════════════════════════════"

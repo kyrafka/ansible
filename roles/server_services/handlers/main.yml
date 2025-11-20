@@ -1,0 +1,23 @@
+---
+# Handlers para servicios adicionales
+
+- name: restart samba
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: restarted
+  loop:
+    - smbd
+    - nmbd
+  become: true
+
+- name: restart vsftpd
+  ansible.builtin.systemd:
+    name: vsftpd
+    state: restarted
+  become: true
+
+- name: restart netdata
+  ansible.builtin.systemd:
+    name: netdata
+    state: restarted
+  become: true
