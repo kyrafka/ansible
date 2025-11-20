@@ -25,9 +25,11 @@ echo "📝 Creando configuración transparente..."
 cat > /etc/squid/squid.conf << 'EOF'
 # Squid Proxy - Configuración transparente para GameCenter
 
-# Puertos transparentes
+# Puerto transparente solo para HTTP
 http_port 3129 intercept
-https_port 3130 intercept
+
+# Puerto normal para HTTPS (sin interceptar)
+# HTTPS requiere SSL-Bump que es complejo, lo dejamos pasar directo por NAT64
 
 # ACLs básicas
 acl localnet src 2025:db8:10::/64
@@ -104,12 +106,12 @@ fi
 # 8. Limpiar reglas viejas de iptables
 echo "🧹 Limpiando reglas viejas..."
 iptables -t nat -D PREROUTING -i ens34 -p tcp --dport 80 -j REDIRECT --to-port 3129 2>/dev/null || true
-iptables -t nat -D PREROUTING -i ens34 -p tcp --dport 443 -j REDIRECT --to-port 3130 2>/dev/null || true
 
-# 9. Agregar reglas de iptables para interceptar tráfico
+# 9. Agregar reglas de iptables para interceptar tráfico HTTP
 echo "🛡️ Configurando iptables..."
 iptables -t nat -A PREROUTING -i ens34 -p tcp --dport 80 -j REDIRECT --to-port 3129
-iptables -t nat -A PREROUTING -i ens34 -p tcp --dport 443 -j REDIRECT --to-port 3130
+
+# HTTPS (443) pasa directo por NAT64, no por Squid
 
 echo "✓ Reglas de iptables agregadas"
 
@@ -130,7 +132,7 @@ systemctl status squid --no-pager | head -10
 
 echo ""
 echo "📋 Reglas de iptables:"
-iptables -t nat -L PREROUTING -n -v | grep -E "3129|3130"
+iptables -t nat -L PREROUTING -n -v | grep 3129
 
 echo ""
 echo "════════════════════════════════════════════════════════════════"
