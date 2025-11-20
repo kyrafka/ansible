@@ -15,6 +15,9 @@ options {
     listen-on-v6 { any; };
     listen-on { any; };
     
+    // Filtrar respuestas AAAA para forzar DNS64
+    filter-aaaa-on-v6 yes;
+    
     // DNS64: Traduce respuestas IPv4 a IPv6 usando prefijo NAT64
     dns64 64:ff9b::/96 {
         clients { any; };
