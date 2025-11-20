@@ -17,3 +17,10 @@ zone "{{ dns_ipv6_reverse_zone }}" {
     allow-update { key dhcp-key; localhost; };
     allow-query { any; };
 };
+
+// RPZ: Zona para bloquear respuestas AAAA y forzar DNS64
+zone "rpz-drop-aaaa" {
+    type master;
+    file "/etc/bind/rpz-drop-aaaa.zone";
+    allow-query { none; };
+};

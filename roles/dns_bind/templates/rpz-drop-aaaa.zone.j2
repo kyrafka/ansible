@@ -1,0 +1,13 @@
+$TTL 60
+@   IN  SOA localhost. root.localhost. (
+            1       ; Serial
+            3600    ; Refresh
+            1800    ; Retry
+            604800  ; Expire
+            60 )    ; Minimum TTL
+
+    IN  NS  localhost.
+
+; Bloquear todas las respuestas AAAA de internet
+; Esto fuerza que DNS64 traduzca desde registros A
+*.  IN  AAAA  .

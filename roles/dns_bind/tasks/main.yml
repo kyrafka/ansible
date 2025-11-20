@@ -135,6 +135,15 @@
     mode: '0644'
     backup: no
 
+- name: "Crear zona RPZ para bloquear AAAA y forzar DNS64"
+  template:
+    src: rpz-drop-aaaa.zone.j2
+    dest: /etc/bind/rpz-drop-aaaa.zone
+    owner: root
+    group: bind
+    mode: '0644'
+  become: true
+
 - name: "Crear zona directa para el dominio (template inicial)"
   template:
     src: db.domain.j2

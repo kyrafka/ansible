@@ -11,17 +11,31 @@ options {
     // Configuración de seguridad
     dnssec-validation auto;
     
+    // RPZ: Bloquear respuestas AAAA para forzar DNS64
+    response-policy {
+        zone "rpz-drop-aaaa";
+    } qname-wait-recurse no;
+    
     // Configuración de red
     listen-on-v6 { any; };
     listen-on { any; };
     
     // DNS64: Traduce respuestas IPv4 a IPv6 usando prefijo NAT64
+    // IMPORTANTE: Solo traduce si NO hay respuesta AAAA del forwarder
+    // Como los forwarders devuelven AAAA, DNS64 no funciona
+    // Solución: Usar forwarders que solo respondan A, o configurar zonas stub
     dns64 64:ff9b::/96 {
         clients { any; };
         mapped { any; };
         exclude { {{ dns_network_ipv6 }}; ::ffff:0:0/96; };
         recursive-only yes;
         break-dnssec yes;
+    };
+    
+    // Deshabilitar consultas AAAA a internet (forzar solo A)
+    // Esto hace que DNS64 funcione porque no recibe respuestas AAAA
+    server ::/0 {
+        bogus no;
     };
     
     // Permitir consultas desde redes locales
