@@ -369,9 +369,11 @@
 #     state: present
 #   become: true
 
-- name: "🌐 Configurar DNS64"
-  ansible.builtin.include_tasks: dns64.yml
-  tags: [dns, dns64]
+# DNS64 ya está configurado en el template named.conf.options.j2
+# No necesitamos el blockinfile que sobrescribe la configuración
+# - name: "🌐 Configurar DNS64"
+#   ansible.builtin.include_tasks: dns64.yml
+#   tags: [dns, dns64]
 
 - name: "🔍 Verificar si ufw está instalado"
   ansible.builtin.command: which ufw
