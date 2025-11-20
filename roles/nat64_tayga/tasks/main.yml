@@ -208,13 +208,13 @@
       
       [Service]
       Type=forking
-      ExecStartPre=/usr/sbin/tayga --mktun
+      ExecStartPre=-/usr/sbin/tayga --mktun
       ExecStart=/usr/sbin/tayga
       ExecStartPost=/bin/sleep 2
-      ExecStartPost=/usr/local/bin/setup-nat64-routes.sh
-      ExecStopPost=/usr/sbin/tayga --rmtun
+      ExecStartPost=-/usr/local/bin/setup-nat64-routes.sh
+      ExecStopPost=-/usr/sbin/tayga --rmtun
       PIDFile=/run/tayga.pid
-      TimeoutStartSec=30s
+      TimeoutStartSec=60s
       Restart=on-failure
       RestartSec=5s
       
