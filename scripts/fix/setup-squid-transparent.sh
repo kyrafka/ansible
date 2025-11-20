@@ -121,6 +121,11 @@ echo "✓ Reglas de iptables agregadas"
 echo "💾 Guardando reglas de iptables..."
 iptables-save > /etc/iptables/rules.v4
 
+# 11. Abrir puerto 3128 en el firewall
+echo "🛡️ Abriendo puerto 3128 en el firewall..."
+ufw allow 3128/tcp
+echo "✓ Puerto 3128 abierto"
+
 echo ""
 echo "════════════════════════════════════════════════════════════════"
 echo "✅ SQUID PROXY TRANSPARENTE CONFIGURADO"
