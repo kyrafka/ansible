@@ -1,4 +1,4 @@
-#!/bin/bash
+il#!/bin/bash
 
 echo "════════════════════════════════════════════════════════════════"
 echo "🔍 DIAGNÓSTICO Y CORRECCIÓN EXHAUSTIVA DE SAMBA"
