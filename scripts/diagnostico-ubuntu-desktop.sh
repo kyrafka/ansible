@@ -18,6 +18,7 @@ echo "Kernel: $(uname -r)"
 echo "Uptime: $(uptime -p)"
 echo "Usuario actual: $(whoami)"
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 2. CONFIGURACIÓN DE RED
@@ -44,6 +45,7 @@ else
     cat /etc/resolv.conf | grep nameserver
 fi
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 3. CONECTIVIDAD - PING AL SERVIDOR
@@ -60,6 +62,7 @@ else
     echo "✗ Servidor: NO ACCESIBLE"
 fi
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 4. CONECTIVIDAD - PING A WINDOWS
@@ -99,6 +102,7 @@ else
     echo "✗ Windows 11-Office: NO ACCESIBLE"
 fi
 echo ""
+sleep 8
 
 # ═══════════════════════════════════════════════════════════════
 # 5. CONECTIVIDAD EXTERNA
@@ -113,6 +117,7 @@ else
     echo "✗ Internet IPv6: NO ACCESIBLE"
 fi
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 6. DNS
@@ -126,6 +131,7 @@ echo ""
 echo "--- Resolución externa ---"
 nslookup google.com
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 7. MONTAJES NFS
@@ -139,6 +145,7 @@ else
     echo "No hay montajes NFS activos"
 fi
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 8. SERVICIOS SSH
@@ -152,6 +159,7 @@ else
     echo "✗ SSH: INACTIVO"
 fi
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 9. RECURSOS DEL SISTEMA
@@ -165,10 +173,12 @@ echo ""
 echo "--- Uso de Memoria ---"
 free -h | grep -E "Mem|Swap"
 echo ""
+sleep 3
 
 echo "--- Uso de Disco ---"
 df -h | grep -E "Filesystem|/dev/"
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 10. USUARIOS DEL SISTEMA
@@ -177,6 +187,7 @@ echo "━━━ 10. USUARIOS DEL SISTEMA ━━━"
 echo "Usuarios con shell de login:"
 grep -E "/bin/bash|/bin/sh" /etc/passwd | cut -d: -f1
 echo ""
+sleep 5
 
 echo "════════════════════════════════════════════════════════════"
 echo "  FIN DEL DIAGNÓSTICO"

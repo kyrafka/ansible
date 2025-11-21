@@ -17,6 +17,7 @@ echo "Sistema Operativo: $(lsb_release -d | cut -f2)"
 echo "Kernel: $(uname -r)"
 echo "Uptime: $(uptime -p)"
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 2. CONFIGURACIÓN DE RED
@@ -35,6 +36,7 @@ echo "--- IPs configuradas ---"
 echo "IPv6 del servidor:"
 ip -6 addr show | grep "inet6 2025" | awk '{print $2}'
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 3. SERVICIOS CRÍTICOS
@@ -50,6 +52,7 @@ for servicio in "${servicios[@]}"; do
     fi
 done
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 4. FIREWALL
@@ -57,6 +60,7 @@ echo ""
 echo "━━━ 4. ESTADO DEL FIREWALL ━━━"
 sudo ufw status numbered
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 5. CONECTIVIDAD - PING A CLIENTES
@@ -64,8 +68,8 @@ echo ""
 echo "━━━ 5. CONECTIVIDAD CON CLIENTES ━━━"
 echo ""
 
-# Ubuntu Desktop
-echo "--- Ping a Ubuntu Desktop (2025:db8:10::dce9) ---"
+# Ubuntu Gamer
+echo "--- Ping a Ubuntu Desktop (2025:db8:10::200) ---"
 if ping6 -c 3 2025:db8:10::200 > /dev/null 2>&1; then
     echo "✓ Ubuntu Desktop: ACCESIBLE"
     ping6 -c 3 2025:db8:10::200 | tail -2
@@ -74,16 +78,16 @@ else
 fi
 echo ""
 
-# Windows 11 - VM 1
+# Windows 11 - Gamer
 echo "--- Ping a Windows 11-01 (2025:db8:10::11) ---"
 if ping6 -c 3 2025:db8:10::13f > /dev/null 2>&1; then
     echo "✓ Windows 11-01: ACCESIBLE"
     ping6 -c 3 2025:db8:10::13f | tail -2
 else
-    echo "✗ Windows 11-01: NO ACCESIBLE"
+    echo "✗ Windows 11-Office: NO ACCESIBLE"
 fi
 echo ""
-
+sleep 8
 
 # ═══════════════════════════════════════════════════════════════
 # 6. DNS
@@ -93,6 +97,7 @@ echo ""
 echo "--- Resolución DNS local ---"
 nslookup servidor.gamecenter.lan localhost
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 7. DHCP
@@ -105,6 +110,7 @@ else
     echo "No se encontró archivo de leases DHCPv6"
 fi
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 8. NFS
@@ -112,6 +118,7 @@ echo ""
 echo "━━━ 8. EXPORTACIONES NFS ━━━"
 sudo exportfs -v
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 9. RECURSOS DEL SISTEMA
@@ -129,6 +136,7 @@ echo ""
 echo "--- Uso de Disco ---"
 df -h | grep -E "Filesystem|/dev/"
 echo ""
+sleep 5
 
 # ═══════════════════════════════════════════════════════════════
 # 10. PUERTOS ABIERTOS
