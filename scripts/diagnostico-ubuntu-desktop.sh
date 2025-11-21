@@ -70,19 +70,9 @@ sleep 5
 echo "━━━ 4. CONECTIVIDAD CON WINDOWS ━━━"
 echo ""
 
-# Windows 11-01
-WIN1_IP="2025:db8:10::11"
-echo "--- Ping a Windows 11-01 ($WIN1_IP) ---"
-if ping6 -c 3 $WIN1_IP > /dev/null 2>&1; then
-    echo "✓ Windows 11-01: ACCESIBLE"
-    ping6 -c 3 $WIN1_IP | tail -2
-else
-    echo "✗ Windows 11-01: NO ACCESIBLE"
-fi
-echo ""
 
 # Windows 11-Gaming
-WIN_GAMING_IP="2025:db8:10::56"
+WIN_GAMING_IP="2025:db8:10::13f"
 echo "--- Ping a Windows 11-Gaming ($WIN_GAMING_IP) ---"
 if ping6 -c 3 $WIN_GAMING_IP > /dev/null 2>&1; then
     echo "✓ Windows 11-Gaming: ACCESIBLE"
@@ -92,17 +82,6 @@ else
 fi
 echo ""
 
-# Windows 11-Office
-WIN_OFFICE_IP="2025:db8:10::72"
-echo "--- Ping a Windows 11-Office ($WIN_OFFICE_IP) ---"
-if ping6 -c 3 $WIN_OFFICE_IP > /dev/null 2>&1; then
-    echo "✓ Windows 11-Office: ACCESIBLE"
-    ping6 -c 3 $WIN_OFFICE_IP | tail -2
-else
-    echo "✗ Windows 11-Office: NO ACCESIBLE"
-fi
-echo ""
-sleep 8
 
 # ═══════════════════════════════════════════════════════════════
 # 5. CONECTIVIDAD EXTERNA
