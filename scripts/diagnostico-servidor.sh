@@ -76,33 +76,14 @@ echo ""
 
 # Windows 11 - VM 1
 echo "--- Ping a Windows 11-01 (2025:db8:10::11) ---"
-if ping6 -c 3 2025:db8:10::11 > /dev/null 2>&1; then
+if ping6 -c 3 2025:db8:10::13f > /dev/null 2>&1; then
     echo "✓ Windows 11-01: ACCESIBLE"
-    ping6 -c 3 2025:db8:10::11 | tail -2
+    ping6 -c 3 2025:db8:10::13f | tail -2
 else
     echo "✗ Windows 11-01: NO ACCESIBLE"
 fi
 echo ""
 
-# Windows 11 - Gaming
-echo "--- Ping a Windows 11-Gaming (2025:db8:10::56) ---"
-if ping6 -c 3 2025:db8:10::56 > /dev/null 2>&1; then
-    echo "✓ Windows 11-Gaming: ACCESIBLE"
-    ping6 -c 3 2025:db8:10::56 | tail -2
-else
-    echo "✗ Windows 11-Gaming: NO ACCESIBLE"
-fi
-echo ""
-
-# Windows 11 - Office
-echo "--- Ping a Windows 11-Office (2025:db8:10::72) ---"
-if ping6 -c 3 2025:db8:10::72 > /dev/null 2>&1; then
-    echo "✓ Windows 11-Office: ACCESIBLE"
-    ping6 -c 3 2025:db8:10::72 | tail -2
-else
-    echo "✗ Windows 11-Office: NO ACCESIBLE"
-fi
-echo ""
 
 # ═══════════════════════════════════════════════════════════════
 # 6. DNS
