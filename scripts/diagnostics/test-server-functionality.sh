@@ -82,11 +82,25 @@ show_section "2️⃣  PRUEBAS DE DNS (BIND9)"
 test_service "Servicio BIND9 activo" \
     "sudo systemctl is-active --quiet bind9"
 
-test_service "Puerto 53 TCP abierto" \
-    "sudo ss -tulnp | grep ':53' | grep -q 'tcp'"
+echo -e "${YELLOW}🔹 Probando: Puerto 53 TCP abierto${NC}"
+if sudo ss -tulnp | grep -q '53.*tcp'; then
+    echo -e "${GREEN}   ✅ ÉXITO${NC}"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}   ❌ FALLO${NC}"
+fi
+((TESTS_TOTAL++))
+echo ""
 
-test_service "Puerto 53 UDP abierto" \
-    "sudo ss -tulnp | grep ':53' | grep -q 'udp'"
+echo -e "${YELLOW}🔹 Probando: Puerto 53 UDP abierto${NC}"
+if sudo ss -tulnp | grep -q '53.*udp'; then
+    echo -e "${GREEN}   ✅ ÉXITO${NC}"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}   ❌ FALLO${NC}"
+fi
+((TESTS_TOTAL++))
+echo ""
 
 echo -e "${YELLOW}🔹 Probando resolución DNS local${NC}"
 echo "   Resolviendo: $DOMAIN"
@@ -138,8 +152,15 @@ show_section "3️⃣  PRUEBAS DE DHCP IPv6"
 test_service "Servicio DHCP activo" \
     "sudo systemctl is-active --quiet isc-dhcp-server6"
 
-test_service "Puerto 547 UDP abierto" \
-    "sudo ss -tulnp | grep -q ':547.*udp'"
+echo -e "${YELLOW}🔹 Probando: Puerto 547 UDP abierto${NC}"
+if sudo ss -tulnp | grep -q '547.*udp'; then
+    echo -e "${GREEN}   ✅ ÉXITO${NC}"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}   ❌ FALLO${NC}"
+fi
+((TESTS_TOTAL++))
+echo ""
 
 test_service "Archivo de leases existe" \
     "[ -f /var/lib/dhcp/dhcpd6.leases ]"
@@ -172,8 +193,15 @@ show_section "4️⃣  PRUEBAS DE SERVIDOR WEB (NGINX)"
 test_service "Servicio Nginx activo" \
     "sudo systemctl is-active --quiet nginx"
 
-test_service "Puerto 80 TCP abierto" \
-    "sudo ss -tulnp | grep -q ':80.*LISTEN'"
+echo -e "${YELLOW}🔹 Probando: Puerto 80 TCP abierto${NC}"
+if sudo ss -tulnp | grep -q '80.*tcp'; then
+    echo -e "${GREEN}   ✅ ÉXITO${NC}"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}   ❌ FALLO${NC}"
+fi
+((TESTS_TOTAL++))
+echo ""
 
 echo -e "${YELLOW}🔹 Probando acceso HTTP local${NC}"
 echo "   URL: http://localhost"
@@ -276,11 +304,25 @@ read
 # ════════════════════════════════════════════════════════════════
 show_section "7️⃣  PRUEBAS DE SSH"
 
-test_service "Servicio SSH activo" \
-    "sudo systemctl is-active --quiet ssh"
+echo -e "${YELLOW}🔹 Probando: Servicio SSH activo${NC}"
+if sudo systemctl is-active --quiet ssh; then
+    echo -e "${GREEN}   ✅ ÉXITO${NC}"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}   ❌ FALLO${NC}"
+fi
+((TESTS_TOTAL++))
+echo ""
 
-test_service "Puerto 22 TCP abierto" \
-    "sudo ss -tulnp | grep -q ':22.*LISTEN'"
+echo -e "${YELLOW}🔹 Probando: Puerto 22 TCP abierto${NC}"
+if sudo ss -tulnp | grep -q '22.*tcp'; then
+    echo -e "${GREEN}   ✅ ÉXITO${NC}"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}   ❌ FALLO${NC}"
+fi
+((TESTS_TOTAL++))
+echo ""
 
 echo -e "${YELLOW}🔹 Verificando configuración SSH${NC}"
 echo ""

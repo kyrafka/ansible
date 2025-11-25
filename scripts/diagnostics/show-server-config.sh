@@ -340,7 +340,7 @@ echo "  sudo cat /etc/fail2ban/jail.local"
 echo ""
 
 echo "Presiona ENTER para continuar..."
-read
+re
 
 # ════════════════════════════════════════════════════════════════
 # 8️⃣  SSH
