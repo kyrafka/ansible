@@ -283,24 +283,25 @@ read
 show_section "6️⃣  FIREWALL (UFW)"
 
 show_subsection "Estado del firewall"
-sudo ufw status verbose
-echo ""
-
-show_subsection "Reglas numeradas"
-sudo ufw status numbered
+if sudo ufw status | grep -q "Status: active"; then
+    echo "  ✅ Firewall activo"
+else
+    echo "  ❌ Firewall inactivo"
+fi
 echo ""
 
 show_subsection "Políticas por defecto"
-echo "Incoming: $(sudo ufw status verbose | grep "Default:" | head -1 | awk '{print $2}')"
-echo "Outgoing: $(sudo ufw status verbose | grep "Default:" | tail -1 | awk '{print $2}')"
+echo "  Incoming: $(sudo ufw status verbose | grep "Default:" | head -1 | awk '{print $2}')"
+echo "  Outgoing: $(sudo ufw status verbose | grep "Default:" | tail -1 | awk '{print $2}')"
 echo ""
 
-show_subsection "Logs del firewall (últimas 10 líneas)"
-if [ -f "/var/log/ufw.log" ]; then
-    sudo tail -10 /var/log/ufw.log
-else
-    echo "⚠️  No hay logs disponibles"
-fi
+show_subsection "Puertos permitidos"
+sudo ufw status | grep -E "ALLOW|LIMIT" | head -10
+echo ""
+
+echo "Para ver configuración completa:"
+echo "  sudo ufw status verbose"
+echo "  sudo ufw status numbered"
 echo ""
 
 echo "Presiona ENTER para continuar..."
