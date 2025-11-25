@@ -183,3 +183,144 @@ network:
       dhcp6: false
       nameservers:
         addresses:
+          - 8.8.8.8
+          - 8.8.4.4
+          - 2001:4860:4860::8888
+      # Opcional: métrica para priorizar esta ruta
+      dhcp4-overrides:
+        route-metric: 100
+    
+    ens34:
+      # LAN - Red interna IPv6
+      dhcp4: false
+      dhcp6: false
+      accept-ra: false
+      ipv6-privacy: false
+      addresses:
+        - 2025:db8:10::1/64
+        - 2025:db8:10::2/64
+      # Opcional: MTU personalizado
+      mtu: 1500
+```
+
+---
+
+## 🔍 TROUBLESHOOTING
+
+### Problema: No hay conectividad IPv6
+
+```bash
+# Verificar que las IPs están asignadas
+ip -6 addr show ens34 | grep "2025:db8:10"
+
+# Verificar que la interfaz está UP
+ip link show ens34
+
+# Verificar IPv6 forwarding
+cat /proc/sys/net/ipv6/conf/all/forwarding
+# Debería ser: 1
+```
+
+### Problema: Clientes no obtienen IP
+
+```bash
+# Verificar que el servidor DHCP está escuchando en ens34
+sudo ss -ulnp | grep :547
+
+# Verificar que hay Router Advertisements
+sudo tcpdump -i ens34 -n icmp6
+```
+
+### Problema: DNS no resuelve
+
+```bash
+# Verificar que BIND está escuchando en ::2
+sudo ss -tulnp | grep :53
+
+# Probar resolución local
+dig @2025:db8:10::2 gamecenter.lan AAAA
+```
+
+---
+
+## 📸 CAPTURAS PARA LA DEMOSTRACIÓN
+
+### 1. Mostrar archivo de configuración:
+
+```bash
+sudo cat /etc/netplan/99-server-network.yaml
+```
+
+**Captura:** Archivo completo visible
+
+### 2. Mostrar interfaces activas:
+
+```bash
+ip -6 addr show
+```
+
+**Captura:** Debe mostrar ens34 con las dos IPs
+
+### 3. Mostrar rutas:
+
+```bash
+ip -6 route show
+```
+
+**Captura:** Debe mostrar ruta para 2025:db8:10::/64
+
+### 4. Probar conectividad:
+
+```bash
+# Ping a ::1 (gateway)
+ping6 -c 4 2025:db8:10::1
+
+# Ping a ::2 (servidor)
+ping6 -c 4 2025:db8:10::2
+```
+
+**Captura:** Ambos pings exitosos
+
+---
+
+## ✅ CHECKLIST DE CONFIGURACIÓN
+
+- [x] Archivo `/etc/netplan/99-server-network.yaml` existe
+- [x] ens33 configurado para Internet (DHCP IPv4)
+- [x] ens34 configurado para LAN (IPv6 estático)
+- [x] Dos IPs en ens34: ::1 y ::2
+- [x] accept-ra: false (no acepta RA)
+- [x] ipv6-privacy: false (no usa IPs temporales)
+- [x] IPv6 forwarding habilitado
+- [x] Servicios escuchando en ::2
+
+---
+
+## 🎯 PARA LA RÚBRICA
+
+**Criterio: Configuración de red y servicios**
+
+**Evidencias:**
+
+1. ✅ **Archivo de configuración:**
+   - `/etc/netplan/99-server-network.yaml`
+   - Configuración clara y documentada
+
+2. ✅ **Interfaces configuradas:**
+   - ens33: WAN (Internet)
+   - ens34: LAN (Red interna IPv6)
+
+3. ✅ **IPs asignadas:**
+   - 2025:db8:10::1/64 (Gateway)
+   - 2025:db8:10::2/64 (Servidor)
+
+4. ✅ **Funcionalidad:**
+   - Ping exitoso a ambas IPs
+   - Servicios escuchando en ::2
+   - Clientes obteniendo IPs por DHCP
+
+---
+
+**Fecha:** Noviembre 2025  
+**Proyecto:** Game Center con IPv6  
+**Curso:** Sistemas Operativos

@@ -83,6 +83,15 @@ show_subsection "Interfaces de red"
 ip -6 addr show | grep -E "inet6|mtu|state"
 echo ""
 
+show_subsection "IPs de ens34 (Red interna)"
+echo "Verificando las dos IPs del servidor:"
+ip -6 addr show ens34 | grep "inet6 2025" || echo "⚠️  IPs no encontradas"
+echo ""
+echo "Explicación:"
+echo "  - 2025:db8:10::1/64  → Gateway (router virtual)"
+echo "  - 2025:db8:10::2/64  → Servidor (servicios DNS, DHCP, Web)"
+echo ""
+
 show_subsection "Rutas IPv6"
 ip -6 route show
 echo ""
