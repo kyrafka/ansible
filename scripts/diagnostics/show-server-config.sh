@@ -200,15 +200,21 @@ echo ""
 
 show_subsection "Leases activos"
 if [ -f "/var/lib/dhcp/dhcpd6.leases" ]; then
-    lease_count=$(sudo grep -c "^lease" /var/lib/dhcp/dhcpd6.leases)
-    echo "  Total de leases: $lease_count"
+    # DHCPv6 usa "ia-na" en lugar de "lease"
+    lease_count=$(sudo grep -c "^ia-na" /var/lib/dhcp/dhcpd6.leases)
+    echo "  Total de clientes: $lease_count"
     if [ $lease_count -gt 0 ]; then
         echo ""
-        echo "  Últimos 3 leases:"
-        sudo grep "^lease" /var/lib/dhcp/dhcpd6.leases | tail -3
+        echo "  Clientes conectados:"
+        # Mostrar IPs asignadas
+        sudo grep "iaaddr" /var/lib/dhcp/dhcpd6.leases | awk '{print "    - " $2}' | head -5
+        echo ""
+        echo "  Nombres de host:"
+        # Mostrar nombres de clientes
+        sudo grep "set ClientName" /var/lib/dhcp/dhcpd6.leases | awk -F'"' '{print "    - " $2}' | head -5
+    else
+        echo "  ℹ️  No hay clientes conectados aún"
     fi
-    echo ""
-    echo "Para ver todos: sudo cat /var/lib/dhcp/dhcpd6.leases"
 else
     echo "⚠️  Archivo no encontrado"
 fi
