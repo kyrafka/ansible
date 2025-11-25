@@ -83,7 +83,7 @@ test_service "Servicio BIND9 activo" \
     "sudo systemctl is-active --quiet bind9"
 
 test_service "Puerto 53 TCP abierto" \
-    "sudo ss -tulnp | grep -q ':53.*LISTEN'"
+    "sudo ss -tulnp | grep -q ':53.*tcp'"
 
 test_service "Puerto 53 UDP abierto" \
     "sudo ss -tulnp | grep -q ':53.*udp'"
