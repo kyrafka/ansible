@@ -236,56 +236,43 @@ read
 # ════════════════════════════════════════════════════════════════
 show_section "5️⃣  SERVIDOR WEB (NGINX)"
 
-show_subsection "Estado del servicio"
-sudo systemctl status nginx --no-pager | head -15
-echo ""
-
-show_subsection "Versión de Nginx"
-nginx -v 2>&1
-echo ""
-
-show_subsection "Configuración principal"
-echo "Archivo: /etc/nginx/nginx.conf"
-if [ -f "/etc/nginx/nginx.conf" ]; then
-    echo "  ✅ Archivo de configuración existe"
+# Verificar si Nginx está instalado
+if command -v nginx &> /dev/null; then
+    show_subsection "Estado del servicio"
+    sudo systemctl status nginx --no-pager 2>/dev/null | head -10 || echo "  ⚠️  Servicio no encontrado"
     echo ""
-    echo "Para ver el archivo: sudo cat /etc/nginx/nginx.conf"
-else
-    echo "⚠️  Archivo no encontrado"
-fi
-echo ""
 
-show_subsection "Sitio configurado"
-echo "Archivo: /etc/nginx/sites-available/default"
-if [ -f "/etc/nginx/sites-available/default" ]; then
-    echo "  ✅ Sitio por defecto configurado"
+    show_subsection "Versión de Nginx"
+    nginx -v 2>&1
     echo ""
-    echo "Configuraciones importantes:"
-    sudo grep -E "listen|server_name|root" /etc/nginx/sites-available/default | grep -v "#" | head -5
-else
-    echo "⚠️  Archivo no encontrado"
-fi
-echo ""
 
-show_subsection "Puerto HTTP abierto"
-if sudo ss -tulnp | grep -q ":80"; then
-    echo "  ✅ Puerto 80 (HTTP) está abierto y escuchando"
-else
-    echo "  ❌ Puerto 80 no está abierto"
-fi
-echo ""
-
-show_subsection "Contenido de la página web"
-if [ -f "/var/www/html/index.html" ]; then
-    echo "  ✅ Página index.html existe"
+    show_subsection "Puerto HTTP abierto"
+    if sudo ss -tulnp | grep -q ":80"; then
+        echo "  ✅ Puerto 80 (HTTP) está abierto y escuchando"
+    else
+        echo "  ❌ Puerto 80 no está abierto"
+    fi
     echo ""
-    echo "Primeras 5 líneas:"
-    sudo cat /var/www/html/index.html | head -5
-    echo "  ..."
+
+    show_subsection "Configuración"
+    if [ -f "/etc/nginx/nginx.conf" ]; then
+        echo "  ✅ Nginx configurado"
+        echo "  Archivo: /etc/nginx/nginx.conf"
+    else
+        echo "  ⚠️  Archivo de configuración no encontrado"
+    fi
+    echo ""
 else
-    echo "⚠️  Archivo no encontrado"
+    echo "  ⚠️  Nginx NO está instalado"
+    echo ""
+    echo "  Para instalar Nginx:"
+    echo "    sudo apt update"
+    echo "    sudo apt install nginx -y"
+    echo ""
+    echo "  O ejecutar el rol de Ansible:"
+    echo "    ansible-playbook site.yml --tags web"
+    echo ""
 fi
-echo ""
 
 echo "Presiona ENTER para continuar..."
 read
