@@ -1,11 +1,26 @@
 # 📋 COMANDOS COMPLETOS PARA UBUNTU DESKTOP
+## Validación de servicios del servidor desde el cliente
 
-## 🎯 VALIDACIÓN DE SERVICIOS DEL SERVIDOR
+---
+
+## 🎯 SERVICIOS CONFIGURADOS EN TU SERVIDOR
+
+✅ DNS (BIND9)
+✅ DHCP IPv6
+✅ Firewall (UFW + fail2ban)
+✅ SSH
+✅ NFS
+✅ Samba (smbd) - 3 recursos compartidos
+✅ FTP (vsftpd)
+
+---
+
+## 📡 DESDE EL SERVIDOR (para verificar estado)
 
 ### 1️⃣ DNS (BIND9)
 ```bash
 # Estado del servicio
-sudo systemctl status named
+sudo systemctl status bind9
 
 # Configuración principal
 sudo cat /etc/bind/named.conf.options
@@ -14,12 +29,11 @@ sudo cat /etc/bind/named.conf.options
 sudo cat /etc/bind/named.conf.local
 
 # Archivo de zona
-sudo cat /etc/bind/db.gamecenter.local
+sudo cat /etc/bind/db.gamecenter.lan
 
-# Probar resolución DNS
-nslookup servidor.gamecenter.local
-nslookup www.gamecenter.local
-dig @2025:db8:10::1 servidor.gamecenter.local AAAA
+# Probar resolución DNS local
+dig @localhost gamecenter.lan AAAA
+nslookup gamecenter.lan localhost
 ```
 
 ### 2️⃣ DHCP IPv6
@@ -91,22 +105,27 @@ ls -la /mnt/nfs
 
 ### 6️⃣ SAMBA
 ```bash
-# Estado de los servicios
+# Estado del servicio (solo smbd, nmbd está deshabilitado)
 sudo systemctl status smbd
-sudo systemctl status nmbd
 
 # Configuración principal
 sudo cat /etc/samba/smb.conf
 
-# Ver recursos compartidos
-smbclient -L //servidor.gamecenter.local -N
+# Ver recursos compartidos activos
+sudo smbstatus
 
-# Montar desde cliente
-sudo mount -t cifs //servidor.gamecenter.local/compartido /mnt/samba -o guest
-ls -la /mnt/samba
+# Ver exportaciones
+sudo smbclient -L localhost -N
 
-# Desde Windows
-# \\servidor.gamecenter.local\compartido
+# Verificar directorios compartidos
+ls -la /srv/publico
+ls -la /srv/juegos
+ls -la /srv/compartido
+
+# Recursos compartidos configurados:
+# [Publico] - /srv/publico - Acceso público total
+# [Juegos] - /srv/juegos - Solo usuarios: jose, administrador, @pcgamers
+# [Compartido] - /srv/compartido - Solo lectura
 ```
 
 ### 7️⃣ FTP (vsftpd)
@@ -117,14 +136,11 @@ sudo systemctl status vsftpd
 # Configuración principal
 sudo cat /etc/vsftpd.conf
 
-# Probar conexión FTP
-ftp servidor.gamecenter.local
-# Usuario: anonymous
-# Contraseña: (vacía)
+# Ver puerto FTP abierto
+sudo ss -tulnp | grep 21
 
-# Con cliente gráfico (FileZilla)
-# Host: ftp://servidor.gamecenter.local
-# Usuario: anonymous
+# Verificar directorio FTP
+ls -la /srv/ftp
 ```
 
 ### 8️⃣ HTTP/Web (Nginx - opcional)
@@ -145,23 +161,25 @@ firefox http://servidor.gamecenter.local
 
 ---
 
-## 🖥️ VALIDACIÓN EN UBUNTU DESKTOP
+---
+
+## 🖥️ VALIDACIÓN DESDE UBUNTU DESKTOP
 
 ### 1️⃣ CONECTIVIDAD BÁSICA
 ```bash
-# Ping al servidor
-ping6 -c 4 2025:db8:10::1
-ping6 -c 4 servidor.gamecenter.local
+# Ping al servidor (IPv6)
+ping6 -c 4 2025:db8:10::2
+ping6 -c 4 gamecenter.lan
 
-# Ping a Internet (NAT64)
+# Ping a Internet
 ping -c 4 8.8.8.8
 ping -c 4 google.com
 
 # Traceroute
-traceroute6 2025:db8:10::1
+traceroute6 2025:db8:10::2
 traceroute google.com
 
-# Ver configuración de red
+# Ver configuración de red obtenida por DHCP
 ip -6 addr show
 ip -6 route show
 cat /etc/resolv.conf
@@ -169,46 +187,43 @@ cat /etc/resolv.conf
 
 ### 2️⃣ RESOLUCIÓN DNS
 ```bash
-# Resolver nombres locales
-nslookup servidor.gamecenter.local
-nslookup www.gamecenter.local
-nslookup desktop.gamecenter.local
+# Resolver nombre del servidor
+nslookup gamecenter.lan
+nslookup 2025:db8:10::2
 
 # Resolver nombres externos
 nslookup google.com
 nslookup facebook.com
 
-# Consultas detalladas
-dig servidor.gamecenter.local AAAA
+# Consultas detalladas con dig
+dig gamecenter.lan AAAA
 dig google.com A
+dig @2025:db8:10::2 gamecenter.lan
 ```
 
 ### 3️⃣ NAVEGACIÓN WEB
 ```bash
 # Abrir navegador
-firefox http://www.gamecenter.local &
+firefox http://gamecenter.lan &
 firefox http://google.com &
 
 # Probar con curl
-curl -6 http://www.gamecenter.local
+curl -6 http://[2025:db8:10::2]
+curl http://gamecenter.lan
 curl http://google.com
 ```
 
 ### 4️⃣ SSH SEGÚN ROL
 ```bash
-# Como usuario admin (DEBE FUNCIONAR)
-ssh admin@servidor.gamecenter.local
-# Contraseña: Admin2024!
+# Probar SSH al servidor
+ssh ubuntu@gamecenter.lan
+ssh ubuntu@2025:db8:10::2
 
-# Como usuario auditor (DEBE FALLAR)
-ssh auditor@servidor.gamecenter.local
-# Debe mostrar: Permission denied
+# Si tienes usuarios específicos configurados
+ssh administrador@gamecenter.lan
+ssh jose@gamecenter.lan
 
-# Como usuario cliente (DEBE FALLAR)
-ssh cliente@servidor.gamecenter.local
-# Debe mostrar: Permission denied
-
-# Ver logs de intentos
+# Ver intentos de conexión (desde el servidor)
 sudo tail -20 /var/log/auth.log
 ```
 
@@ -276,39 +291,52 @@ last | head -20
 ### 8️⃣ SERVICIOS MONTADOS (NFS/SAMBA)
 ```bash
 # Crear puntos de montaje
-sudo mkdir -p /mnt/nfs /mnt/samba
+sudo mkdir -p /mnt/nfs /mnt/publico /mnt/juegos /mnt/compartido
 
-# Montar NFS
-sudo mount -t nfs -o vers=4 servidor.gamecenter.local:/srv/nfs/compartido /mnt/nfs
+# Montar NFS (si está configurado)
+sudo mount -t nfs -o vers=4 gamecenter.lan:/srv/nfs /mnt/nfs
 ls -la /mnt/nfs
-echo "Prueba NFS" | sudo tee /mnt/nfs/test-nfs.txt
 
-# Montar Samba
-sudo mount -t cifs //servidor.gamecenter.local/compartido /mnt/samba -o guest
-ls -la /mnt/samba
-echo "Prueba Samba" | sudo tee /mnt/samba/test-samba.txt
+# Montar recursos Samba
+# [Publico] - Acceso total
+sudo mount -t cifs //gamecenter.lan/Publico /mnt/publico -o guest,uid=1000,gid=1000
+ls -la /mnt/publico
+echo "Prueba desde cliente" | sudo tee /mnt/publico/test-cliente.txt
+
+# [Juegos] - Solo usuarios autorizados
+sudo mount -t cifs //gamecenter.lan/Juegos /mnt/juegos -o username=jose,uid=1000,gid=1000
+ls -la /mnt/juegos
+
+# [Compartido] - Solo lectura
+sudo mount -t cifs //gamecenter.lan/Compartido /mnt/compartido -o guest,uid=1000,gid=1000
+ls -la /mnt/compartido
 
 # Ver montajes activos
 mount | grep -E "nfs|cifs"
-df -h | grep -E "nfs|samba"
+df -h | grep -E "nfs|mnt"
 ```
 
 ### 9️⃣ PROBAR FTP
 ```bash
 # Instalar cliente FTP si no está
-sudo apt install -y ftp
+sudo apt install -y ftp lftp
 
 # Conectar por FTP
-ftp servidor.gamecenter.local
-# Usuario: anonymous
-# Contraseña: (Enter)
-# Comandos: ls, pwd, quit
+ftp gamecenter.lan
+# Usuario: anonymous o tu usuario del servidor
+# Contraseña: (Enter para anonymous)
+# Comandos: ls, pwd, get archivo.txt, quit
+
+# Con lftp (mejor cliente)
+lftp ftp://gamecenter.lan
+# ls, cd, get, put, quit
 
 # Con FileZilla (GUI)
 sudo apt install -y filezilla
 filezilla &
-# Host: ftp://servidor.gamecenter.local
-# Usuario: anonymous
+# Host: ftp://gamecenter.lan o ftp://2025:db8:10::2
+# Puerto: 21
+# Usuario: anonymous o tu usuario
 ```
 
 ---

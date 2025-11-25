@@ -332,4 +332,4 @@ bash scripts/diagnostics/check-user-permissions.sh
 
 ---
 
-**¡Con estos comandos puedes validar TODO para la rúbrica! 🎯**
+**¡Con estos comandos puedes validar TODO para la rúbrica! 🎯*
