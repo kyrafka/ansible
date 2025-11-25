@@ -481,13 +481,4 @@ sudo tail -20 /var/log/auth.log
 - [ ] Logs de seguridad
 
 ### Automatización (Nivel 4)
-- [ ] Captura de ejecución de Ansible
-- [ ] Lista de roles y playbooks
-- [ ] Evidencia de creación automática de VM
-- [ ] Scripts de validación
-
----
-
-**Fecha de generación:** Noviembre 2025  
-**Proyecto:** Infraestructura Game Center con IPv6  
-**Curso:** Sistemas Operativos
+- [ ] Captur
