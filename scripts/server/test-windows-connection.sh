@@ -24,14 +24,14 @@ echo -e "${CYAN}═════════════════════�
 echo ""
 
 # ════════════════════════════════════════════════════════════════
-# 1. PING A WINDOWS
+# 1. PING A WINDOWS (OPCIONAL)
 # ════════════════════════════════════════════════════════════════
 echo -e "${YELLOW}1️⃣  Probando conectividad (ping)...${NC}"
 if ping6 -c 2 $WINDOWS_IP > /dev/null 2>&1; then
     echo -e "${GREEN}   ✅ Windows responde al ping${NC}"
 else
-    echo -e "${RED}   ❌ Windows no responde${NC}"
-    exit 1
+    echo -e "${YELLOW}   ⚠️  Ping no responde (puede estar bloqueado por firewall)${NC}"
+    echo -e "${YELLOW}   Continuando con WinRM...${NC}"
 fi
 echo ""
 
