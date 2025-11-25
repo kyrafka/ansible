@@ -35,10 +35,9 @@ test_service() {
     
     ((TESTS_TOTAL++))
     echo -e "${YELLOW}🔹 Probando: $test_name${NC}"
-    echo "   Comando: $command"
-    echo ""
     
-    if eval "$command"; then
+    # Ejecutar comando y capturar resultado
+    if bash -c "$command" &>/dev/null; then
         echo -e "${GREEN}   ✅ ÉXITO${NC}"
         ((TESTS_PASSED++))
     else
@@ -149,8 +148,15 @@ read
 # ════════════════════════════════════════════════════════════════
 show_section "3️⃣  PRUEBAS DE DHCP IPv6"
 
-test_service "Servicio DHCP activo" \
-    "sudo systemctl is-active --quiet isc-dhcp-server6"
+echo -e "${YELLOW}🔹 Probando: Servicio DHCP activo${NC}"
+if sudo systemctl is-active --quiet isc-dhcp-server6; then
+    echo -e "${GREEN}   ✅ ÉXITO${NC}"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}   ❌ FALLO${NC}"
+fi
+((TESTS_TOTAL++))
+echo ""
 
 echo -e "${YELLOW}🔹 Probando: Puerto 547 UDP abierto${NC}"
 if sudo ss -tulnp | grep -q '547.*udp'; then
@@ -162,8 +168,15 @@ fi
 ((TESTS_TOTAL++))
 echo ""
 
-test_service "Archivo de leases existe" \
-    "[ -f /var/lib/dhcp/dhcpd6.leases ]"
+echo -e "${YELLOW}🔹 Probando: Archivo de leases existe${NC}"
+if [ -f /var/lib/dhcp/dhcpd6.leases ]; then
+    echo -e "${GREEN}   ✅ ÉXITO${NC}"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}   ❌ FALLO${NC}"
+fi
+((TESTS_TOTAL++))
+echo ""
 
 echo -e "${YELLOW}🔹 Verificando leases activos${NC}"
 echo ""
@@ -190,8 +203,15 @@ read
 # ════════════════════════════════════════════════════════════════
 show_section "4️⃣  PRUEBAS DE SERVIDOR WEB (NGINX)"
 
-test_service "Servicio Nginx activo" \
-    "sudo systemctl is-active --quiet nginx"
+echo -e "${YELLOW}🔹 Probando: Servicio Nginx activo${NC}"
+if sudo systemctl is-active --quiet nginx 2>/dev/null; then
+    echo -e "${GREEN}   ✅ ÉXITO${NC}"
+    ((TESTS_PASSED++))
+else
+    echo -e "${YELLOW}   ⚠️  Nginx no instalado (opcional)${NC}"
+fi
+((TESTS_TOTAL++))
+echo ""
 
 echo -e "${YELLOW}🔹 Probando: Puerto 80 TCP abierto${NC}"
 if sudo ss -tulnp | grep -q '80.*tcp'; then
