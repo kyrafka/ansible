@@ -313,24 +313,30 @@ read
 show_section "7️⃣  FAIL2BAN (PROTECCIÓN CONTRA ATAQUES)"
 
 show_subsection "Estado del servicio"
-sudo systemctl status fail2ban --no-pager | head -15
+if sudo systemctl is-active --quiet fail2ban; then
+    echo "  ✅ fail2ban activo"
+else
+    echo "  ❌ fail2ban inactivo"
+fi
 echo ""
 
 show_subsection "Jails activos"
-sudo fail2ban-client status
+sudo fail2ban-client status 2>/dev/null | grep "Jail list" || echo "  ⚠️  No hay jails configurados"
 echo ""
 
 show_subsection "Estado de SSH jail"
-sudo fail2ban-client status sshd 2>/dev/null || echo "⚠️  SSH jail no configurado"
+if sudo fail2ban-client status sshd &>/dev/null; then
+    echo "  ✅ SSH jail activo"
+    sudo fail2ban-client status sshd | grep -E "Currently banned|Total banned"
+else
+    echo "  ⚠️  SSH jail no configurado"
+fi
 echo ""
 
-show_subsection "Configuración"
-echo "Archivo: /etc/fail2ban/jail.local"
-if [ -f "/etc/fail2ban/jail.local" ]; then
-    sudo cat /etc/fail2ban/jail.local | grep -v "^#" | grep -v "^$" | head -30
-else
-    echo "⚠️  Archivo no encontrado"
-fi
+echo "Para ver configuración completa:"
+echo "  sudo fail2ban-client status"
+echo "  sudo fail2ban-client status sshd"
+echo "  sudo cat /etc/fail2ban/jail.local"
 echo ""
 
 echo "Presiona ENTER para continuar..."
