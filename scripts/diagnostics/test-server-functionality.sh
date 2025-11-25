@@ -83,10 +83,10 @@ test_service "Servicio BIND9 activo" \
     "sudo systemctl is-active --quiet bind9"
 
 test_service "Puerto 53 TCP abierto" \
-    "sudo ss -tulnp | grep -q ':53.*tcp'"
+    "sudo ss -tulnp | grep ':53' | grep -q 'tcp'"
 
 test_service "Puerto 53 UDP abierto" \
-    "sudo ss -tulnp | grep -q ':53.*udp'"
+    "sudo ss -tulnp | grep ':53' | grep -q 'udp'"
 
 echo -e "${YELLOW}🔹 Probando resolución DNS local${NC}"
 echo "   Resolviendo: $DOMAIN"
