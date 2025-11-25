@@ -1,7 +1,0 @@
----
-- name: Configurar rol en Ubuntu Desktop
-  hosts: ubuntu_desktops
-  become: true
-  
-  roles:
-    - ubuntu_desktop

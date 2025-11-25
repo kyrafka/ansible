@@ -1,7 +1,0 @@
----
-- name: Configurar rol en Windows 11
-  hosts: windows_desktops
-  gather_facts: false
-  
-  roles:
-    - windows11
