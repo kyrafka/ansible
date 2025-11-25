@@ -1,0 +1,25 @@
+---
+- name: Instalar vsftpd
+  apt:
+    name: vsftpd
+    state: present
+    update_cache: yes
+
+- name: Crear directorio FTP
+  file:
+    path: /srv/ftp
+    state: directory
+    mode: '0755'
+
+- name: Configurar vsftpd
+  template:
+    src: vsftpd.conf.j2
+    dest: /etc/vsftpd.conf
+    backup: yes
+  notify: restart vsftpd
+
+- name: Habilitar y arrancar vsftpd
+  systemd:
+    name: vsftpd
+    enabled: yes
+    state: started

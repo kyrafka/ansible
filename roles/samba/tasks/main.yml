@@ -1,0 +1,32 @@
+---
+- name: Instalar Samba
+  apt:
+    name:
+      - samba
+      - samba-common-bin
+    state: present
+    update_cache: yes
+
+- name: Crear directorio compartido
+  file:
+    path: /srv/samba/compartido
+    state: directory
+    mode: '0777'
+    owner: nobody
+    group: nogroup
+
+- name: Configurar Samba
+  template:
+    src: smb.conf.j2
+    dest: /etc/samba/smb.conf
+    backup: yes
+  notify: restart samba
+
+- name: Habilitar y arrancar Samba
+  systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  loop:
+    - smbd
+    - nmbd
