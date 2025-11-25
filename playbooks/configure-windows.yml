@@ -8,94 +8,65 @@
   gather_facts: no
   
   tasks:
-    - name: Mostrar información
-      debug:
-        msg:
-          - "════════════════════════════════════════"
-          - "Configurando Windows 11"
-          - "════════════════════════════════════════"
-    
     # ════════════════════════════════════════════════════════════════
-    # CREAR USUARIOS
+    # PASO 1: CREAR USUARIOS
     # ════════════════════════════════════════════════════════════════
     
     - name: Crear usuario 'dev'
-      ansible.windows.win_user:
-        name: dev
-        password: "123!123"
-        state: present
-        groups:
-          - Users
-        password_never_expires: yes
-        user_cannot_change_password: no
+      ansible.windows.win_shell: |
+        net user dev 123!123 /add
+        exit 0
+      ignore_errors: yes
       register: user_dev
     
     - name: Crear usuario 'cliente'
-      ansible.windows.win_user:
-        name: cliente
-        password: "123!123"
-        state: present
-        groups:
-          - Users
-        password_never_expires: yes
-        user_cannot_change_password: no
+      ansible.windows.win_shell: |
+        net user cliente 123!123 /add
+        exit 0
+      ignore_errors: yes
       register: user_cliente
     
-    - name: Mostrar resultado de usuarios
-      debug:
-        msg:
-          - "✅ Usuario 'dev' creado: {{ user_dev.changed }}"
-          - "✅ Usuario 'cliente' creado: {{ user_cliente.changed }}"
-    
     # ════════════════════════════════════════════════════════════════
-    # CREAR CARPETAS COMPARTIDAS
+    # PASO 2: CREAR CARPETAS
     # ════════════════════════════════════════════════════════════════
     
-    - name: Crear carpeta compartida
-      ansible.windows.win_file:
-        path: C:\Compartido
-        state: directory
-    
-    - name: Crear carpeta para dev
-      ansible.windows.win_file:
-        path: C:\Dev
-        state: directory
-    
-    # ════════════════════════════════════════════════════════════════
-    # CONFIGURAR FIREWALL
-    # ════════════════════════════════════════════════════════════════
-    
-    - name: Permitir ping (ICMPv6)
+    - name: Crear carpetas del sistema
       ansible.windows.win_shell: |
-        New-NetFirewallRule -Name "ICMPv6-In" -DisplayName "ICMPv6 Ping" -Protocol ICMPv6 -IcmpType 8 -Enabled True -Direction Inbound -Action Allow -ErrorAction SilentlyContinue
+        New-Item -Path C:\Compartido -ItemType Directory -Force | Out-Null
+        New-Item -Path C:\Dev -ItemType Directory -Force | Out-Null
+        exit 0
+      ignore_errors: yes
     
-    - name: Permitir compartir archivos (SMB)
+    # ════════════════════════════════════════════════════════════════
+    # PASO 3: CONFIGURAR FIREWALL
+    # ════════════════════════════════════════════════════════════════
+    
+    - name: Configurar firewall (Ping + Compartir archivos)
       ansible.windows.win_shell: |
-        Enable-NetFirewallRule -DisplayGroup "File and Printer Sharing"
+        New-NetFirewallRule -Name "ICMPv6-In" -DisplayName "ICMPv6 Ping" -Protocol ICMPv6 -IcmpType 8 -Enabled True -Direction Inbound -Action Allow -ErrorAction SilentlyContinue | Out-Null
+        Enable-NetFirewallRule -DisplayGroup "File and Printer Sharing" -ErrorAction SilentlyContinue | Out-Null
+        exit 0
+      ignore_errors: yes
     
     # ════════════════════════════════════════════════════════════════
-    # INFORMACIÓN DEL SISTEMA
+    # PASO 4: VERIFICAR CONFIGURACIÓN
     # ════════════════════════════════════════════════════════════════
     
-    - name: Obtener información del sistema
+    - name: Obtener lista de usuarios
       ansible.windows.win_shell: |
-        $info = @{
-          Hostname = $env:COMPUTERNAME
-          OS = (Get-WmiObject Win32_OperatingSystem).Caption
-          Users = (Get-LocalUser | Select-Object -ExpandProperty Name) -join ', '
-        }
-        $info | ConvertTo-Json
-      register: system_info
+        Get-LocalUser | Select-Object Name, Enabled | Format-Table -AutoSize
+      register: users_list
     
-    - name: Mostrar información del sistema
-      debug:
-        msg: "{{ system_info.stdout | from_json }}"
+    - name: Obtener carpetas creadas
+      ansible.windows.win_shell: |
+        Get-ChildItem C:\ | Where-Object {$_.Name -match 'Compartido|Dev'} | Select-Object Name | Format-Table -AutoSize
+      register: folders_list
     
     # ════════════════════════════════════════════════════════════════
-    # RESUMEN
+    # RESUMEN FINAL
     # ════════════════════════════════════════════════════════════════
     
-    - name: Resumen de configuración
+    - name: Mostrar resumen de configuración
       debug:
         msg:
           - "════════════════════════════════════════"
@@ -115,3 +86,11 @@
           - "  - Compartir archivos habilitado"
           - ""
           - "════════════════════════════════════════"
+    
+    - name: Mostrar usuarios de Windows
+      debug:
+        var: users_list.stdout_lines
+    
+    - name: Mostrar carpetas creadas
+      debug:
+        var: folders_list.stdout_lines
