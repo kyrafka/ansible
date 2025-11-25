@@ -99,14 +99,14 @@ echo ""
 show_subsection "Configuración Netplan"
 echo "Archivo: /etc/netplan/99-server-network.yaml"
 if [ -f "/etc/netplan/99-server-network.yaml" ]; then
-    cat /etc/netplan/99-server-network.yaml
+    sudo cat /etc/netplan/99-server-network.yaml
 elif [ -f "/etc/netplan/50-cloud-init.yaml" ]; then
     echo "Usando: /etc/netplan/50-cloud-init.yaml"
-    cat /etc/netplan/50-cloud-init.yaml
+    sudo cat /etc/netplan/50-cloud-init.yaml
 else
     echo "⚠️  Archivo no encontrado"
     echo "Archivos disponibles:"
-    ls -la /etc/netplan/
+    sudo ls -la /etc/netplan/
 fi
 echo ""
 
