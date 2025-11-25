@@ -79,34 +79,35 @@ read
 # ════════════════════════════════════════════════════════════════
 show_section "2️⃣  CONFIGURACIÓN DE RED IPv6"
 
-show_subsection "Interfaces de red"
-ip -6 addr show | grep -E "inet6|mtu|state"
+show_subsection "Resumen de Interfaces"
+echo "ens33 (WAN - Internet):"
+ip -4 addr show ens33 | grep "inet " | awk '{print "  IPv4: " $2}'
 echo ""
 
-show_subsection "IPs de ens34 (Red interna)"
-echo "Verificando las dos IPs del servidor:"
-ip -6 addr show ens34 | grep "inet6 2025" || echo "⚠️  IPs no encontradas"
+echo "ens34 (LAN - Red Interna IPv6):"
+ip -6 addr show ens34 | grep "inet6 2025" | awk '{print "  " $2}'
 echo ""
-echo "Explicación:"
-echo "  - 2025:db8:10::1/64  → Gateway (router virtual)"
-echo "  - 2025:db8:10::2/64  → Servidor (servicios DNS, DHCP, Web)"
+echo "  Explicación:"
+echo "    - ::1/64  → Gateway (router virtual)"
+echo "    - ::2/64  → Servidor (servicios)"
 echo ""
 
-show_subsection "Rutas IPv6"
-ip -6 route show
+show_subsection "Rutas IPv6 principales"
+ip -6 route show | grep -E "default|2025:db8:10" | head -5
 echo ""
 
 show_subsection "Configuración Netplan"
 echo "Archivo: /etc/netplan/99-server-network.yaml"
+echo ""
+echo "Para ver el archivo completo:"
+echo "  sudo cat /etc/netplan/99-server-network.yaml"
+echo ""
+echo "Configuración resumida:"
 if [ -f "/etc/netplan/99-server-network.yaml" ]; then
-    sudo cat /etc/netplan/99-server-network.yaml
-elif [ -f "/etc/netplan/50-cloud-init.yaml" ]; then
-    echo "Usando: /etc/netplan/50-cloud-init.yaml"
-    sudo cat /etc/netplan/50-cloud-init.yaml
+    echo "  ens33: DHCP IPv4 (Internet)"
+    echo "  ens34: IPv6 estático (2025:db8:10::1/64, ::2/64)"
 else
-    echo "⚠️  Archivo no encontrado"
-    echo "Archivos disponibles:"
-    sudo ls -la /etc/netplan/
+    echo "  ⚠️  Archivo no encontrado"
 fi
 echo ""
 
