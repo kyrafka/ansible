@@ -134,7 +134,11 @@ echo ""
 show_subsection "Configuración principal"
 echo "Archivo: /etc/bind/named.conf.options"
 if [ -f "/etc/bind/named.conf.options" ]; then
-    sudo cat /etc/bind/named.conf.options | grep -v "^//" | grep -v "^$" | head -30
+    echo ""
+    echo "Configuraciones importantes:"
+    sudo grep -E "listen-on-v6|forwarders|allow-query|recursion" /etc/bind/named.conf.options | grep -v "//" | head -10
+    echo ""
+    echo "Para ver el archivo completo: sudo cat /etc/bind/named.conf.options"
 else
     echo "⚠️  Archivo no encontrado"
 fi
@@ -151,14 +155,22 @@ echo ""
 
 show_subsection "Zona directa: gamecenter.lan"
 if [ -f "/var/lib/bind/db.gamecenter.lan" ]; then
-    sudo cat /var/lib/bind/db.gamecenter.lan | head -30
+    echo "Registros principales:"
+    sudo grep -E "^[a-zA-Z]|^@" /var/lib/bind/db.gamecenter.lan | grep -v "^;" | head -15
+    echo ""
+    echo "Para ver el archivo completo: sudo cat /var/lib/bind/db.gamecenter.lan"
 else
     echo "⚠️  Archivo no encontrado"
 fi
 echo ""
 
 show_subsection "Puerto DNS abierto"
-sudo ss -tulnp | grep ":53"
+if sudo ss -tulnp | grep -q ":53"; then
+    echo "  ✅ Puerto 53 (DNS) está abierto y escuchando"
+    sudo ss -tulnp | grep ":53" | head -2
+else
+    echo "  ❌ Puerto 53 no está abierto"
+fi
 echo ""
 
 echo "Presiona ENTER para continuar..."
@@ -176,7 +188,11 @@ echo ""
 show_subsection "Configuración DHCPv6"
 echo "Archivo: /etc/dhcp/dhcpd6.conf"
 if [ -f "/etc/dhcp/dhcpd6.conf" ]; then
-    sudo cat /etc/dhcp/dhcpd6.conf | grep -v "^#" | grep -v "^$" | head -40
+    echo ""
+    echo "Configuraciones importantes:"
+    sudo grep -E "subnet6|range6|option|default-lease-time" /etc/dhcp/dhcpd6.conf | grep -v "^#" | head -10
+    echo ""
+    echo "Para ver el archivo completo: sudo cat /etc/dhcp/dhcpd6.conf"
 else
     echo "⚠️  Archivo no encontrado"
 fi
@@ -184,15 +200,26 @@ echo ""
 
 show_subsection "Leases activos"
 if [ -f "/var/lib/dhcp/dhcpd6.leases" ]; then
-    echo "Últimos 20 leases:"
-    sudo cat /var/lib/dhcp/dhcpd6.leases | tail -20
+    lease_count=$(sudo grep -c "^lease" /var/lib/dhcp/dhcpd6.leases)
+    echo "  Total de leases: $lease_count"
+    if [ $lease_count -gt 0 ]; then
+        echo ""
+        echo "  Últimos 3 leases:"
+        sudo grep "^lease" /var/lib/dhcp/dhcpd6.leases | tail -3
+    fi
+    echo ""
+    echo "Para ver todos: sudo cat /var/lib/dhcp/dhcpd6.leases"
 else
     echo "⚠️  Archivo no encontrado"
 fi
 echo ""
 
 show_subsection "Puerto DHCP abierto"
-sudo ss -tulnp | grep ":547"
+if sudo ss -tulnp | grep -q ":547"; then
+    echo "  ✅ Puerto 547 (DHCP) está abierto y escuchando"
+else
+    echo "  ❌ Puerto 547 no está abierto"
+fi
 echo ""
 
 echo "Presiona ENTER para continuar..."
@@ -214,7 +241,9 @@ echo ""
 show_subsection "Configuración principal"
 echo "Archivo: /etc/nginx/nginx.conf"
 if [ -f "/etc/nginx/nginx.conf" ]; then
-    sudo cat /etc/nginx/nginx.conf | grep -v "^#" | grep -v "^$" | head -30
+    echo "  ✅ Archivo de configuración existe"
+    echo ""
+    echo "Para ver el archivo: sudo cat /etc/nginx/nginx.conf"
 else
     echo "⚠️  Archivo no encontrado"
 fi
@@ -223,20 +252,30 @@ echo ""
 show_subsection "Sitio configurado"
 echo "Archivo: /etc/nginx/sites-available/default"
 if [ -f "/etc/nginx/sites-available/default" ]; then
-    sudo cat /etc/nginx/sites-available/default | grep -v "^#" | grep -v "^$" | head -30
+    echo "  ✅ Sitio por defecto configurado"
+    echo ""
+    echo "Configuraciones importantes:"
+    sudo grep -E "listen|server_name|root" /etc/nginx/sites-available/default | grep -v "#" | head -5
 else
     echo "⚠️  Archivo no encontrado"
 fi
 echo ""
 
 show_subsection "Puerto HTTP abierto"
-sudo ss -tulnp | grep ":80"
+if sudo ss -tulnp | grep -q ":80"; then
+    echo "  ✅ Puerto 80 (HTTP) está abierto y escuchando"
+else
+    echo "  ❌ Puerto 80 no está abierto"
+fi
 echo ""
 
 show_subsection "Contenido de la página web"
 if [ -f "/var/www/html/index.html" ]; then
-    echo "Primeras 20 líneas de /var/www/html/index.html:"
-    sudo cat /var/www/html/index.html | head -20
+    echo "  ✅ Página index.html existe"
+    echo ""
+    echo "Primeras 5 líneas:"
+    sudo cat /var/www/html/index.html | head -5
+    echo "  ..."
 else
     echo "⚠️  Archivo no encontrado"
 fi
@@ -319,7 +358,11 @@ sudo cat /etc/ssh/sshd_config | grep -E "^Port|^PermitRootLogin|^PasswordAuthent
 echo ""
 
 show_subsection "Puerto SSH abierto"
-sudo ss -tulnp | grep ":22"
+if sudo ss -tulnp | grep -q ":22"; then
+    echo "  ✅ Puerto 22 (SSH) está abierto y escuchando"
+else
+    echo "  ❌ Puerto 22 no está abierto"
+fi
 echo ""
 
 show_subsection "Usuarios autorizados para SSH"
@@ -432,8 +475,17 @@ done
 echo ""
 
 show_subsection "Puertos abiertos"
-echo "Puertos en escucha:"
-sudo ss -tulnp | grep LISTEN | grep -E ":(22|53|80|547|2049)" | awk '{print $5}' | sort -u
+echo "Resumen de puertos principales:"
+for port in 22 53 80 547; do
+    if sudo ss -tulnp | grep -q ":$port"; then
+        case $port in
+            22) echo "  ✅ Puerto 22  (SSH)" ;;
+            53) echo "  ✅ Puerto 53  (DNS)" ;;
+            80) echo "  ✅ Puerto 80  (HTTP)" ;;
+            547) echo "  ✅ Puerto 547 (DHCP)" ;;
+        esac
+    fi
+done
 echo ""
 
 show_subsection "Conexiones activas"
