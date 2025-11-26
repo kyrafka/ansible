@@ -39,8 +39,6 @@
       tags: firewall
     - role: nfs_server
       tags: nfs
-    - role: samba
-      tags: samba
     - role: ftp_server
       tags: ftp
     - role: server_users
@@ -49,3 +47,5 @@
       tags: services
     - role: storage
       tags: storage
+    - role: samba
+      tags: samba

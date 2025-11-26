@@ -211,27 +211,14 @@ ansible-playbook site.yml --connection=local --become --ask-become-pass
 
 ### 1.3 Verificar Servicios Configurados
 ```bash
+# Mostrar configuración completa del servidor
 bash scripts/diagnostics/show-server-config.sh
-```
 
-**Verificación manual de servicios críticos:**
-```bash
-# DNS
-sudo systemctl status bind9
-dig @localhost gamecenter.lan AAAA
+# Verificar funcionalidad de servicios
+bash scripts/diagnostics/test-server-functionality.sh
 
-# DHCP
-sudo systemctl status isc-dhcp-server6
-
-# Firewall
-sudo ufw status verbose
-
-# Samba
-sudo systemctl status smbd
-sudo smbstatus
-
-# FTP
-sudo systemctl status vsftpd
+# Estado rápido de todos los servicios
+bash scripts/diagnostics/quick-status.sh
 ```
 
 ---
@@ -250,18 +237,18 @@ bash scripts/client/setup-users-and-themes.sh
 - ✅ `auditor` (sudo limitado)
 - ✅ `gamer01` (sin sudo)
 
-### B. Verificar Usuarios
+### B. Verificar Configuración
 ```bash
+# Mostrar usuarios y grupos creados
 bash scripts/client/mostrar-usuarios-grupos.sh
-```
 
-### C. Verificar Particiones
-```bash
+# Mostrar particiones configuradas
 bash scripts/client/mostrar-particiones.sh
-```
 
-### D. Probar Samba y FTP
-```bash
+# Verificar permisos de usuarios
+bash scripts/diagnostics/check-user-permissions.sh
+
+# Probar conectividad Samba y FTP
 bash scripts/client/test-samba-ftp.sh
 ```
 
@@ -313,47 +300,81 @@ ansible-playbook -i inventory/windows.ini playbooks/configure-windows.yml
 
 ### D. Verificar Configuración de Windows
 ```bash
+# Desde el servidor
 bash scripts/server/mostrar-windows-config.sh
 ```
 
-**Verificación manual en Windows (PowerShell):**
+**Desde Windows (PowerShell):**
 ```powershell
-# Ver usuarios creados
-Get-LocalUser | Format-Table Name, Enabled
-
-# Ver carpetas creadas
-Get-ChildItem C:\ | Where-Object {$_.Name -match 'Compartido|Dev'}
-
-# Ver reglas de firewall
-Get-NetFirewallRule | Where-Object {$_.DisplayName -match 'WinRM|ICMPv6'}
+# Mostrar configuración local
+.\scripts\windows\mostrar-configuracion.ps1
 ```
 
 ---
 
-## 📊 TABLA DE SCRIPTS
+## 📊 SCRIPTS PRINCIPALES
 
-| Script | Sistema | Ejecutar en | Función |
-|--------|---------|-------------|---------|
-| `site.yml` | Servidor | Servidor | Configurar servicios |
-| `scripts/client/setup-users-and-themes.sh` | Ubuntu Desktop | Ubuntu Desktop | Crear usuarios |
-| `scripts/client/mostrar-usuarios-grupos.sh` | Ubuntu Desktop | Ubuntu Desktop | Ver usuarios |
-| `scripts/client/mostrar-particiones.sh` | Ubuntu Desktop | Ubuntu Desktop | Ver particiones |
-| `scripts/client/test-samba-ftp.sh` | Ubuntu Desktop | Ubuntu Desktop | Probar Samba/FTP |
-| `scripts/server/configure-windows.sh` | Windows | Servidor | Configurar Windows |
-| `scripts/server/mostrar-windows-config.sh` | Windows | Servidor | Ver config Windows |
+### Configuración
+| Script | Sistema | Función |
+|--------|---------|---------|
+| `site.yml` | Servidor | Playbook principal - configura todos los servicios |
+| `scripts/client/setup-users-and-themes.sh` | Ubuntu Desktop | Crear usuarios y configurar temas |
+| `scripts/server/configure-windows.sh` | Windows (desde servidor) | Configurar Windows remotamente |
+
+### Verificación
+| Script | Sistema | Función |
+|--------|---------|---------|
+| `scripts/diagnostics/show-server-config.sh` | Servidor | Mostrar configuración del servidor |
+| `scripts/diagnostics/test-server-functionality.sh` | Servidor | Probar funcionalidad de servicios |
+| `scripts/client/mostrar-usuarios-grupos.sh` | Ubuntu Desktop | Ver usuarios y grupos |
+| `scripts/client/mostrar-particiones.sh` | Ubuntu Desktop | Ver particiones |
+| `scripts/diagnostics/check-user-permissions.sh` | Ubuntu Desktop | Verificar permisos |
+| `scripts/client/test-samba-ftp.sh` | Ubuntu Desktop | Probar Samba y FTP |
+| `scripts/server/test-windows-connection.sh` | Windows (desde servidor) | Probar conexión WinRM |
+| `scripts/server/mostrar-windows-config.sh` | Windows (desde servidor) | Ver configuración de Windows |
+
+---
+
+## 🚀 ORDEN DE EJECUCIÓN RECOMENDADO
+
+### Fase 1: Servidor
+```bash
+cd ~/ansible
+ansible-playbook site.yml --connection=local --become --ask-become-pass
+bash scripts/diagnostics/show-server-config.sh
+bash scripts/diagnostics/test-server-functionality.sh
+```
+
+### Fase 2: Ubuntu Desktop
+```bash
+bash scripts/client/setup-users-and-themes.sh
+bash scripts/client/mostrar-usuarios-grupos.sh
+bash scripts/client/mostrar-particiones.sh
+bash scripts/diagnostics/check-user-permissions.sh
+bash scripts/client/test-samba-ftp.sh
+```
+
+### Fase 3: Windows (desde el servidor)
+```bash
+bash scripts/server/test-windows-connection.sh
+bash scripts/server/configure-windows.sh
+bash scripts/server/mostrar-windows-config.sh
+```
 
 ---
 
-## 🚀 ORDEN DE EJECUCIÓN
+## 📋 SCRIPTS ADICIONALES
 
-1. **Servidor:** `ansible-playbook site.yml --connection=local --become --ask-become-pass`
-2. **Servidor:** `bash scripts/diagnostics/show-server-config.sh`
-3. **Ubuntu Desktop:** `bash scripts/client/setup-users-and-themes.sh`
-4. **Ubuntu Desktop:** `bash scripts/client/test-samba-ftp.sh`
-5. **Servidor:** `bash scripts/server/configure-windows.sh`
-6. **Servidor:** `bash scripts/server/mostrar-windows-config.sh`
+Para una lista completa de scripts de diagnóstico, validación y ejecución modular, consultar:
+```bash
+cat EJECUTAR-AHORA.md
+```
 
----
+**Categorías disponibles:**
+- Scripts de diagnóstico y verificación
+- Scripts de ejecución modular (por rol/servicio)
+- Scripts de validación
+- Generación de evidencias
 
 ---
 
@@ -370,7 +391,13 @@ Get-NetFirewallRule | Where-Object {$_.DisplayName -match 'WinRM|ICMPv6'}
 
 Este manual documenta la configuración completa de una infraestructura de red IPv6 gestionada mediante Ansible. Todos los componentes están versionados y pueden ser replicados en diferentes entornos.
 
-Para soporte o consultas, revisar la documentación en el repositorio del proyecto.
+**Características principales:**
+- Configuración automatizada mediante playbooks de Ansible
+- Scripts de verificación y diagnóstico incluidos
+- Gestión remota de Windows mediante WinRM
+- Todos los servicios configurados desde el playbook principal
+
+Para scripts adicionales y troubleshooting, consultar `EJECUTAR-AHORA.md` en la raíz del proyecto.
 
 ---
 
