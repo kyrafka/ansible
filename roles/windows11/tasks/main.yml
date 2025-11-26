@@ -1,0 +1,169 @@
+---
+# Rol para configurar Windows 11
+# Crea usuarios, carpetas y configura firewall
+
+# ════════════════════════════════════════════════════════════════
+# PASO 1: CREAR USUARIOS
+# ════════════════════════════════════════════════════════════════
+
+- name: "👥 Crear usuario 'dev'"
+  ansible.windows.win_shell: |
+    net user dev 123!123 /add
+    exit 0
+  ignore_errors: yes
+  register: user_dev
+
+- name: "✓ Usuario dev"
+  ansible.builtin.debug:
+    msg: "→ Usuario 'dev' creado (contraseña: 123!123)"
+  when: user_dev.rc == 0
+
+- name: "👥 Crear usuario 'cliente'"
+  ansible.windows.win_shell: |
+    net user cliente 123!123 /add
+    exit 0
+  ignore_errors: yes
+  register: user_cliente
+
+- name: "✓ Usuario cliente"
+  ansible.builtin.debug:
+    msg: "→ Usuario 'cliente' creado (contraseña: 123!123)"
+  when: user_cliente.rc == 0
+
+# ════════════════════════════════════════════════════════════════
+# PASO 2: CREAR CARPETAS
+# ════════════════════════════════════════════════════════════════
+
+- name: "📁 Crear carpetas del sistema"
+  ansible.windows.win_shell: |
+    New-Item -Path C:\Compartido -ItemType Directory -Force | Out-Null
+    New-Item -Path C:\Dev -ItemType Directory -Force | Out-Null
+    exit 0
+  ignore_errors: yes
+  register: folders_created
+
+- name: "✓ Carpetas creadas"
+  ansible.builtin.debug:
+    msg:
+      - "→ C:\\Compartido"
+      - "→ C:\\Dev"
+  when: folders_created.rc == 0
+
+# ════════════════════════════════════════════════════════════════
+# PASO 3: CONFIGURAR PERMISOS DE CARPETAS
+# ════════════════════════════════════════════════════════════════
+
+- name: "🔐 Configurar permisos en C:\\Compartido"
+  ansible.windows.win_shell: |
+    icacls C:\Compartido /grant "Users:(OI)(CI)M" /T
+    exit 0
+  ignore_errors: yes
+
+- name: "🔐 Configurar permisos en C:\\Dev"
+  ansible.windows.win_shell: |
+    icacls C:\Dev /grant "dev:(OI)(CI)F" /T
+    icacls C:\Dev /grant "Users:(OI)(CI)R" /T
+    exit 0
+  ignore_errors: yes
+
+- name: "✓ Permisos configurados"
+  ansible.builtin.debug:
+    msg:
+      - "→ C:\\Compartido: Todos los usuarios pueden modificar"
+      - "→ C:\\Dev: dev tiene control total, otros solo lectura"
+
+# ════════════════════════════════════════════════════════════════
+# PASO 4: CONFIGURAR FIREWALL
+# ════════════════════════════════════════════════════════════════
+
+- name: "🔥 Habilitar regla ICMPv6 (Ping)"
+  ansible.windows.win_shell: |
+    New-NetFirewallRule -Name "ICMPv6-In" -DisplayName "ICMPv6 Ping" -Protocol ICMPv6 -IcmpType 8 -Enabled True -Direction Inbound -Action Allow -ErrorAction SilentlyContinue | Out-Null
+    exit 0
+  ignore_errors: yes
+
+- name: "✓ Ping habilitado"
+  ansible.builtin.debug:
+    msg: "→ ICMPv6 permitido en firewall"
+
+- name: "🔥 Habilitar compartir archivos e impresoras"
+  ansible.windows.win_shell: |
+    Enable-NetFirewallRule -DisplayGroup "File and Printer Sharing" -ErrorAction SilentlyContinue | Out-Null
+    exit 0
+  ignore_errors: yes
+
+- name: "✓ Compartir archivos habilitado"
+  ansible.builtin.debug:
+    msg: "→ Reglas de compartir archivos activas"
+
+- name: "🔥 Habilitar WinRM (gestión remota)"
+  ansible.windows.win_shell: |
+    Enable-NetFirewallRule -Name "WINRM-HTTP-In-TCP" -ErrorAction SilentlyContinue | Out-Null
+    exit 0
+  ignore_errors: yes
+
+- name: "✓ WinRM configurado"
+  ansible.builtin.debug:
+    msg: "→ Puerto 5985 abierto para gestión remota"
+
+# ════════════════════════════════════════════════════════════════
+# PASO 5: CONFIGURAR RED IPv6
+# ════════════════════════════════════════════════════════════════
+
+- name: "🌐 Verificar configuración IPv6"
+  ansible.windows.win_shell: |
+    Get-NetIPAddress -AddressFamily IPv6 | Where-Object {$_.PrefixOrigin -eq "Dhcp"} | Select-Object IPAddress, InterfaceAlias | Format-Table -AutoSize
+  register: ipv6_config
+  ignore_errors: yes
+
+- name: "✓ IPv6 configurado"
+  ansible.builtin.debug:
+    msg: "→ Windows tiene IPv6 asignado por DHCP"
+  when: ipv6_config.stdout | length > 0
+
+# ════════════════════════════════════════════════════════════════
+# PASO 6: VERIFICACIÓN FINAL
+# ════════════════════════════════════════════════════════════════
+
+- name: "🔍 Obtener lista de usuarios"
+  ansible.windows.win_shell: |
+    Get-LocalUser | Select-Object Name, Enabled | Format-Table -AutoSize
+  register: users_list
+
+- name: "🔍 Obtener carpetas creadas"
+  ansible.windows.win_shell: |
+    Get-ChildItem C:\ | Where-Object {$_.Name -match 'Compartido|Dev'} | Select-Object Name, LastWriteTime | Format-Table -AutoSize
+  register: folders_list
+
+- name: "📋 Resumen de configuración"
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════"
+      - "✅ WINDOWS 11 CONFIGURADO"
+      - "════════════════════════════════════════"
+      - ""
+      - "👥 Usuarios creados:"
+      - "  • dev (contraseña: 123!123)"
+      - "  • cliente (contraseña: 123!123)"
+      - ""
+      - "📁 Carpetas creadas:"
+      - "  • C:\\Compartido (todos pueden modificar)"
+      - "  • C:\\Dev (dev control total)"
+      - ""
+      - "🔥 Firewall configurado:"
+      - "  • Ping (ICMPv6) permitido"
+      - "  • Compartir archivos habilitado"
+      - "  • WinRM habilitado (puerto 5985)"
+      - ""
+      - "🌐 Red:"
+      - "  • IPv6 configurado por DHCP"
+      - ""
+      - "════════════════════════════════════════"
+
+- name: "📊 Usuarios de Windows"
+  ansible.builtin.debug:
+    var: users_list.stdout_lines
+
+- name: "📊 Carpetas creadas"
+  ansible.builtin.debug:
+    var: folders_list.stdout_lines

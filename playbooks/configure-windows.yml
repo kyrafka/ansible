@@ -7,6 +7,9 @@
   hosts: windows
   gather_facts: no
   
+  roles:
+    - windows11
+  
   tasks:
     # ════════════════════════════════════════════════════════════════
     # PASO 1: CREAR USUARIOS

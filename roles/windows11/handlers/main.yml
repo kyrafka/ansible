@@ -1,0 +1,13 @@
+---
+# Handlers para el rol windows11
+
+- name: restart winrm
+  ansible.windows.win_service:
+    name: WinRM
+    state: restarted
+
+- name: restart firewall
+  ansible.windows.win_shell: |
+    Restart-Service -Name mpssvc -Force
+    exit 0
+  ignore_errors: yes

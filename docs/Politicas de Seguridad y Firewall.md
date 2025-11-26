@@ -274,16 +274,6 @@ bash scripts/diagnostics/test-ssh-ubpc.sh
 sudo ufw status verbose
 ```
 
-### Capturas Recomendadas
-1. **Firewall activo:** `sudo ufw status verbose`
-2. **fail2ban funcionando:** `sudo fail2ban-client status`
-3. **Usuarios creados:** `bash scripts/client/mostrar-usuarios-grupos.sh`
-4. **Permisos sudo:** `sudo cat /etc/sudoers.d/administrador`
-5. **Permisos sudo limitados:** `sudo cat /etc/sudoers.d/auditor`
-6. **SSH bloqueado para gamer:** Intento de SSH con usuario gamer01
-7. **SSH permitido para admin:** Conexión SSH exitosa con administrador
-8. **Logs de fail2ban:** `sudo tail -f /var/log/fail2ban.log`
-
 ---
 
 ## 📚 DOCUMENTACIÓN TÉCNICA
